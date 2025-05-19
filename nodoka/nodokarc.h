@@ -1,0 +1,120 @@
+//{{NO_DEPENDENCIES}}
+// Microsoft Visual C++ generated include file.
+// Used by nodoka.rc
+//
+#define IDS_nodoka                      1
+#define IDS_nodokaAlreadyExists         2
+#define IDS_cannotOpenDevice            3
+#define IDS_driverNotInstalled          4
+#define IDS_executedInRemoteDesktop     5
+#define IDS_nodokaSeeYou                6
+#define IDS_errorNodokaFile             7
+#define IDS_copyNodokaFile              8
+#define IDS_virtualNodokaFile           9
+#define IDS_openNodoka                  10
+#define IDS_openNodokaFilter            11
+#define IDS_helpFilename                12
+#define IDS_nodokaFile                  13
+#define IDS_nodokaShellOpen             14
+#define IDS_readFromHomeDirectory       15
+#define IDS_logFont                     16
+#define IDS_109Emacs                    17
+#define IDS_104on109Emacs               18
+#define IDS_109                         19
+#define IDS_104on109                    20
+#define IDS_104Emacs                    21
+#define IDS_109on104Emacs               22
+#define IDS_104                         23
+#define IDS_109on104                    24
+#define IDS_nodokaPathName              25
+#define IDS_nodokaPath                  26
+#define IDS_nodokaSymbols               27
+#define IDS_version                     28
+#define IDS_homepage                    29
+#define IDS_errorTaskTray               30
+#define IDS_errorTaskTrayTimeout        31
+#define IDS_helpFilename2               32
+#define IDS_cannotInvoke                33
+#define IDS_cannotPermitStandardUser    34
+#define IDS_escapeNlsKeysFailed         35
+#define IDS_escapeNlsKeysRetry          36
+#define IDC_CURSOR_target               101
+#define IDD_DIALOG_editSetting          102
+#define IDD_DIALOG_investigate          103
+#define IDD_DIALOG_log                  104
+#define IDD_DIALOG_setting              105
+#define IDD_DIALOG_version              106
+#define IDI_ICON_nodoka                 107
+#define IDI_ICON_nodoka_file            108
+#define IDI_ICON_nodoka_disabled        109
+#define IDR_MENU_tasktray               110
+#define IDI_ICON_nodoka1                111
+#define IDI_ICON_nodoka1_disabled       112
+#define IDI_ICON_nodoka2                113
+#define IDI_ICON_nodoka2_disabled       114
+#define IDI_ICON_nodoka3                115
+#define IDI_ICON_nodoka3_disabled       116
+#define IDI_ICON_nodoka4                117
+#define IDI_ICON_nodoka4_disabled       118
+#define IDI_ICON_nodoka5                119
+#define IDI_ICON_nodoka5_disabled       120
+#define IDI_ICON_nodoka6                121
+#define IDI_ICON_nodoka6_disabled       122
+#define IDI_ICON_nodoka7                123
+#define IDI_ICON_nodoka7_disabled       124
+#define IDC_BUTTON_add                  1001
+#define IDC_BUTTON_browse               1002
+#define IDC_BUTTON_changeFont           1003
+#define IDC_BUTTON_clearLog             1004
+#define IDC_BUTTON_delete               1005
+#define IDC_BUTTON_setting              1005
+#define IDC_BUTTON_down                 1006
+#define IDC_BUTTON_download             1007
+#define IDC_BUTTON_edit                 1008
+#define IDC_BUTTON_up                   1009
+#define IDC_CHECK_detail                1010
+#define IDC_CUSTOM_scancode             1011
+#define IDC_CUSTOM_target               1012
+#define IDC_CUSTOM_vkey                 1013
+#define IDC_EDIT_log                    1014
+#define IDC_EDIT_nodokaPath             1015
+#define IDC_EDIT_nodokaPathName         1016
+#define IDC_EDIT_symbols                1017
+#define IDC_LIST_nodokaPaths            1018
+#define IDC_STATIC_nodokaPath           1019
+#define IDC_STATIC_nodokaPathName       1020
+#define IDC_STATIC_nodokaPathNameComment 1021
+#define IDC_STATIC_nodokaPaths          1022
+#define IDC_STATIC_symbols              1023
+#define IDC_STATIC_symbolsComment       1024
+#define IDC_STATIC_url                  1025
+#define IDC_STATIC_version              1026
+#define IDC_EDIT_builtBy                1027
+#define IDC_STATIC_nodokaIcon           1028
+#define IDC_BUTTON_reload               1029
+#define IDC_BUTTON_editfile             1030
+#define IDC_BUTTON_setting_reload       1031
+#define IDC_BUTTON_editfile2            1032
+#define IDC_BUTTON_LOG                  1033
+#define IDC_BUTTON_LOG2                 1034
+#define IDC_BUTTON_PAUSE                1035
+#define ID_MENUITEM_quit                40001
+#define ID_MENUITEM_reload              40002
+#define ID_MENUITEM_setting             40003
+#define ID_MENUITEM_investigate         40004
+#define ID_MENUITEM_version             40005
+#define ID_MENUITEM_help                40006
+#define ID_MENUITEM_disable             40007
+#define ID_MENUITEM_log                 40008
+#define IDC_STATIC                      -1
+
+// Next default values for new objects
+// 
+#ifdef APSTUDIO_INVOKED
+#ifndef APSTUDIO_READONLY_SYMBOLS
+#define _APS_NEXT_RESOURCE_VALUE        103
+#define _APS_NEXT_COMMAND_VALUE         40012
+#define _APS_NEXT_CONTROL_VALUE         1029
+#define _APS_NEXT_SYMED_VALUE           101
+#endif
+#endif

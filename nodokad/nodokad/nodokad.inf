@@ -1,0 +1,89 @@
+;
+; nodokad.inf
+;
+; (c) 2020 Applet LLC
+
+; ================= Version section =====================
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Keyboard
+ClassGuid={4D36E96B-E325-11CE-BFC1-08002BE10318} ;
+Provider=%ManufacturerName%
+CatalogFile=nodokad.cat
+DriverVer=03/04/2020,17.43.28.418
+
+; ============ Source & Distination section =============
+[DestinationDirs]
+DefaultDestDir          = 12
+MiniFilter.DriverFiles  = 12            ;%windir%\system32\drivers
+
+;
+; ============ Default install sections =================
+;
+
+[DefaultInstall]
+OptionDesc          = %ServiceDescription%
+CopyFiles           = MiniFilter.DriverFiles
+
+[DefaultInstall.Services]
+AddService          = %ServiceName%,,MiniFilter.Service
+
+;
+; =========== Default uninstall sections ================
+;
+
+[DefaultUninstall]
+DelFiles   = MiniFilter.DriverFiles
+[DefaultUninstall.Services]
+DelService = %ServiceName%,0x200      ;Ensure service is stopped before deleting
+
+;
+; =========== Services Section ==========================
+;
+
+[MiniFilter.Service]
+DisplayName      = %ServiceName%
+Description      = %ServiceDescription%
+ServiceBinary    = %12%\%DriverName%.sys        ;%windir%\system32\drivers\
+Dependencies     = "kbdclass"
+ServiceType      = 1                            ;SERVICE_KERNEL_DRIVER
+StartType        = 3                            ;SERVICE_DEMAND_START
+ErrorControl     = 0                            ;SERVICE_ERROR_NORMAL
+; TODO - Change the Load Order Group value, see https://docs.microsoft.com/ja-jp/windows-hardware/drivers/ifs/what-determines-when-a-driver-is-loaded
+;  HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\ServiceGroupOrder
+LoadOrderGroup   = "Keyboard Class"
+DpendOnGroup     = "Keyboard Class"
+AddReg           = MiniFilter.AddRegistry
+
+;
+; =========== Registry Modifications ====================
+; 
+;
+
+[MiniFilter.AddRegistry]
+HKR,,"DependOnGroup",0x00010000,"Keyboard Class"
+
+;
+; =========== Copy Files ================================
+;
+
+[MiniFilter.DriverFiles]
+%DriverName%.sys
+
+[SourceDisksFiles]
+nodokad.sys  = 1,,
+
+[SourceDisksNames]
+1 = %DiskName%,,,
+
+;
+; =========== String Section ============================
+;
+
+[Strings]
+ManufacturerName        = "Applet LLC"
+ServiceDescription      = "nodokad Device"
+ServiceName             = "nodokad"
+DriverName              = "nodokad"
+ClassName               = "Keyboard"

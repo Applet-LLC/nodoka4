@@ -1,0 +1,582 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "nodokarc.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winresrc.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 日本語 resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+#ifdef _WIN32
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG_investigate DIALOGEX 0, 0, 330, 51
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTERMOUSE | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "調査 - のどか"
+FONT 9, "MS UI Gothic", 0, 0, 0x1
+BEGIN
+    CONTROL         "scancode",IDC_CUSTOM_scancode,"nodokaFocus",WS_TABSTOP,88,18,20,20,WS_EX_CLIENTEDGE
+    LTEXT           "←この中で調べたいキーを入力してください",IDC_STATIC,112,16,44,27
+    GROUPBOX        "仮想キーの調査(&V)",IDC_STATIC,164,4,76,44
+    CONTROL         "vkey",IDC_CUSTOM_vkey,"nodokaFocus",WS_TABSTOP,168,18,20,20,WS_EX_CLIENTEDGE
+    LTEXT           "←この中で調べたいキーを入力してください",IDC_STATIC,192,16,44,27
+    DEFPUSHBUTTON   "閉じる",IDOK,265,32,50,14
+    GROUPBOX        "ウィンドウの調査(&W)",IDC_STATIC,4,4,76,44
+    CONTROL         "",IDC_CUSTOM_target,"nodokaTarget",0x0,8,18,20,20,WS_EX_CLIENTEDGE
+    LTEXT           "←を調べたいウィンドウまでドラッグしてください",IDC_STATIC,32,17,44,27
+    GROUPBOX        "スキャンコードの調査(&S)",IDC_STATIC,84,4,76,44
+END
+
+IDD_DIALOG_setting DIALOGEX 0, 0, 302, 135
+STYLE DS_SETFONT | DS_CENTERMOUSE | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "設定 - のどか"
+FONT 9, "MS UI Gothic", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "設定ファイル名リスト(&L)",IDC_STATIC_nodokaPaths,4,4,296,108
+    CONTROL         "List1",IDC_LIST_nodokaPaths,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOLABELWRAP | WS_BORDER | WS_TABSTOP,8,16,268,72
+    PUSHBUTTON      "↑",IDC_BUTTON_up,280,36,14,14
+    PUSHBUTTON      "↓",IDC_BUTTON_down,280,52,14,14
+    PUSHBUTTON      "追加(&A)",IDC_BUTTON_add,7,92,50,14
+    PUSHBUTTON      "編集(&E)",IDC_BUTTON_edit,59,92,50,14
+    PUSHBUTTON      "削除(&D)",IDC_BUTTON_delete,110,92,50,14
+    PUSHBUTTON      "ファイル編集(&F)",IDC_BUTTON_editfile,225,92,55,14
+    PUSHBUTTON      "GUI編集(&G)",IDC_BUTTON_editfile2,169,92,55,14
+    PUSHBUTTON      "ログ(&L)",IDC_BUTTON_LOG,7,114,33,14
+    PUSHBUTTON      "調査(&I)",IDC_BUTTON_LOG2,41,114,32,14
+    PUSHBUTTON      "一時停止(&T)",IDC_BUTTON_PAUSE,74,114,44,14
+    DEFPUSHBUTTON   "OK",IDOK,129,114,50,14
+    PUSHBUTTON      "再読み込み(&R)",IDC_BUTTON_setting_reload,180,114,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,231,114,50,14
+END
+
+IDD_DIALOG_log DIALOGEX 0, 0, 324, 62
+STYLE DS_SETFONT | DS_CENTERMOUSE | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_CLIENTEDGE
+CAPTION "ログ - のどか"
+FONT 9, "MS UI Gothic", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "閉じる(&C)",IDOK,264,44,60,15
+    EDITTEXT        IDC_EDIT_log,0,3,323,40,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL
+    PUSHBUTTON      "ログのクリア(&L)",IDC_BUTTON_clearLog,4,44,50,15
+    PUSHBUTTON      "フォント(&F)",IDC_BUTTON_changeFont,56,44,50,15
+    PUSHBUTTON      "設定(&S)",IDC_BUTTON_setting,107,44,50,15
+    CONTROL         "詳細(&D)",IDC_CHECK_detail,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,159,47,39,10
+    PUSHBUTTON      "再読み込み(&R)",IDC_BUTTON_reload,202,44,60,15
+END
+
+IDD_DIALOG_version DIALOGEX 0, 0, 252, 181
+STYLE DS_SETFONT | DS_CENTERMOUSE | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "バージョン情報 - のどか"
+FONT 9, "MS UI Gothic", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "閉じる(&C)",IDOK,156,158,50,14
+    PUSHBUTTON      "最新バージョンのダウンロード(&D)",IDC_BUTTON_download,45,158,100,14
+    ICON            IDI_ICON_nodoka,IDC_STATIC_nodokaIcon,8,20,20,20
+    EDITTEXT        IDC_EDIT_builtBy,32,8,210,146,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER
+END
+
+IDD_DIALOG_editSetting DIALOGEX 0, 0, 254, 75
+STYLE DS_SETFONT | DS_CENTERMOUSE | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "設定の編集 - のどか"
+FONT 9, "MS UI Gothic", 0, 0, 0x0
+BEGIN
+    LTEXT           "名前(&N)",IDC_STATIC_nodokaPathName,8,7,36,8
+    EDITTEXT        IDC_EDIT_nodokaPathName,44,4,152,14,ES_AUTOHSCROLL
+    LTEXT           "(セミコロン不可)",IDC_STATIC_nodokaPathNameComment,200,6,44,8
+    LTEXT           "ファイル名(&F)",IDC_STATIC_nodokaPath,8,22,36,8
+    EDITTEXT        IDC_EDIT_nodokaPath,44,20,152,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "参照(&B)",IDC_BUTTON_browse,200,20,50,14
+    LTEXT           "シンボル(&S)",IDC_STATIC_symbols,8,38,36,8
+    EDITTEXT        IDC_EDIT_symbols,44,36,152,14,ES_AUTOHSCROLL
+    LTEXT           "(-D を付け、セミコロンで区切る)",IDC_STATIC_symbolsComment,200,38,48,22
+    DEFPUSHBUTTON   "OK",IDOK,76,56,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,132,56,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_DIALOG_investigate, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 291
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 44
+    END
+
+    IDD_DIALOG_setting, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 295
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+
+    IDD_DIALOG_version, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 249
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 172
+    END
+
+    IDD_DIALOG_editSetting, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 247
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 68
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU_tasktray MENU 
+BEGIN
+    POPUP "タスクトレイ"
+    BEGIN
+        MENUITEM "再読み込み(&R)",                   ID_MENUITEM_reload
+        POPUP "選択(&C)"
+        BEGIN
+            MENUITEM "(ホームディレクトリから)",               ID_MENUITEM_reload
+        END
+        MENUITEM "設定(&S)...",                   ID_MENUITEM_setting
+        MENUITEM SEPARATOR
+        MENUITEM "一時停止(&T)",                    ID_MENUITEM_disable
+        MENUITEM SEPARATOR
+        MENUITEM "調査(&I)...",                   ID_MENUITEM_investigate
+        MENUITEM "ログ(&L)...",                   ID_MENUITEM_log
+        MENUITEM "バージョン(&V)...",                ID_MENUITEM_version
+        MENUITEM "ヘルプ(&H)...",                  ID_MENUITEM_help
+        MENUITEM SEPARATOR
+        MENUITEM "終了(&X)",                      ID_MENUITEM_quit
+    END
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "nodokarc.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winresrc.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 4,3,0,0
+ PRODUCTVERSION 4,3,0,0
+ FILEFLAGSMASK 0x17L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x0L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000904b0"
+        BEGIN
+            VALUE "CompanyName", "Applet LLC"
+            VALUE "FileDescription", "nodoka"
+            VALUE "FileVersion", "4, 3, 0, 0"
+            VALUE "InternalName", "nodoka"
+            VALUE "LegalCopyright", "Copyright (C) 2008~2020"
+            VALUE "OriginalFilename", "nodoka.exe"
+            VALUE "ProductName", "nodoka"
+            VALUE "ProductVersion", "4, 3, 0, 0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x9, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_nodoka              "のどか"
+    IDS_nodokaAlreadyExists "既に のどか は動作中です"
+    IDS_cannotOpenDevice    "のどか デバイスドライバが利用できません"
+    IDS_driverNotInstalled  "のどか デバイスドライバが正しくインストールされていません"
+    IDS_executedInRemoteDesktop "のどか は リモートデスクトップ上では実行できません"
+    IDS_nodokaSeeYou        "See You."
+    IDS_errorNodokaFile     "指定されている設定ファイルが開けません"
+    IDS_copyNodokaFile      "デフォルトの設定ファイルを編集可能とするために、ホームディレクトリにコピーしますか? (推奨)"
+    IDS_virtualNodokaFile   "使用されないVirtualStoreフォルダがあります。このフォルダを開きますか?\n不要なのでファイルもフォルダも削除してください。(推奨)"
+    IDS_openNodoka          "設定ファイルを探す - のどか"
+    IDS_openNodokaFilter    "のどか ファイル (*.nodoka) |*.nodoka|全てのファイル|*|"
+    IDS_helpFilename        "doc\\README-ja.html"
+    IDS_nodokaFile          "のどか ファイル"
+    IDS_nodokaShellOpen     "notepad.exe ""%1"""
+    IDS_readFromHomeDirectory "(ホームディレクトリから)"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_logFont             "-13,0,0,0,400,0,0,0,128,1,2,1,1,Terminal"
+    IDS_109Emacs            "日本語 109 キーボード (Emacs 風)"
+    IDS_104on109Emacs       "日本語 109 キーボード (104 風, Emacs 風)"
+    IDS_109                 "日本語 109 キーボード"
+    IDS_104on109            "日本語 109 キーボード (104 風)"
+    IDS_104Emacs            "英語 104 キーボード (Emacs 風)"
+    IDS_109on104Emacs       "英語 104 キーボード (109 風, Emacs 風)"
+    IDS_104                 "英語 104 キーボード"
+    IDS_109on104            "英語 104 キーボード (109 風)"
+    IDS_nodokaPathName      "名前"
+    IDS_nodokaPath          "設定ファイル名"
+    IDS_nodokaSymbols       "シンボル"
+    IDS_version             "のどか %s           (nodokad: %s)\r\n  %s\r\n\r\nCopyright (C) 1999-2005,\r\n  TAGA Nayuta <nayuta@users.sourceforge.net>\r\nCopyright (C) 2009,\r\n  KOBAYASHI Yoshiaki <gimy@users.sourceforge.jp>\r\nCopyright (C) 2008-2010,\r\n  MATSUMOTO Reiji <matsumoto@spline.oc.to>\r\n\r\n\r\nCopyright (C) 2008-2020\r\n  Applet LLC <applet@bp.iij4u.or.jp>\r\n\r\nbuilt by %s\r\n  %s\r\n  %s\r\n\r\n  %s\r\n"
+    IDS_homepage            "https://appletllc.com/"
+    IDS_errorTaskTray       "タイムアウト以外の原因で、通知領域へアイコンの登録に失敗しました。"
+    IDS_errorTaskTrayTimeout "通知領域へのアイコンの登録がタイムアウトして失敗しました。"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_helpFilename2       "README-ja.html"
+    IDS_cannotInvoke        "%s を起動できません(0x%08x)"
+    IDS_cannotPermitStandardUser "標準ユーザへの許可に失敗しました(エラーコード=%d)"
+    IDS_escapeNlsKeysFailed "ScancodeMapの変更に失敗しました(エラーコード=%d)"
+    IDS_escapeNlsKeysRetry  "ScancodeMapの変更に失敗しました(エラーコード=%d) 再試行しますか？"
+END
+
+#endif    // 日本語 resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英語 (米国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG_investigate DIALOGEX 0, 0, 320, 51
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTERMOUSE | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Investigation - Nodoka"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    CONTROL         "scancode",IDC_CUSTOM_scancode,"nodokaFocus",WS_TABSTOP,88,18,20,20,WS_EX_CLIENTEDGE
+    LTEXT           "<= input any key in this box.",IDC_STATIC,112,16,44,27
+    GROUPBOX        "&Virtual Key",IDC_STATIC,164,4,76,44
+    CONTROL         "vkey",IDC_CUSTOM_vkey,"nodokaFocus",WS_TABSTOP,168,18,20,20,WS_EX_CLIENTEDGE
+    LTEXT           "<= input any key in this box.",IDC_STATIC,192,16,44,27
+    DEFPUSHBUTTON   "&Close",IDOK,260,32,50,14
+    GROUPBOX        "&Window",IDC_STATIC,4,4,76,44
+    CONTROL         "",IDC_CUSTOM_target,"nodokaTarget",0x0,8,18,20,20,WS_EX_CLIENTEDGE
+    LTEXT           "<= drag this to any window.",IDC_STATIC,32,17,44,27
+    GROUPBOX        "&Scan Code",IDC_STATIC,84,4,76,44
+END
+
+IDD_DIALOG_setting DIALOGEX 0, 0, 304, 135
+STYLE DS_SETFONT | DS_CENTERMOUSE | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Setting - Nodoka"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    GROUPBOX        "Setting File &List",IDC_STATIC_nodokaPaths,4,4,296,108
+    CONTROL         "List1",IDC_LIST_nodokaPaths,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOLABELWRAP | WS_BORDER | WS_TABSTOP,8,16,268,72
+    PUSHBUTTON      "&Up",IDC_BUTTON_up,280,36,14,14
+    PUSHBUTTON      "&Dn",IDC_BUTTON_down,280,52,14,14
+    PUSHBUTTON      "&Add",IDC_BUTTON_add,6,92,50,14
+    PUSHBUTTON      "&Edit",IDC_BUTTON_edit,56,92,50,14
+    PUSHBUTTON      "&Delete",IDC_BUTTON_delete,106,92,50,14
+    PUSHBUTTON      "Edit &File",IDC_BUTTON_editfile,231,92,50,14
+    PUSHBUTTON      "&Gui Edit",IDC_BUTTON_editfile2,180,92,50,14
+    PUSHBUTTON      "&Log",IDC_BUTTON_LOG,7,114,27,14
+    PUSHBUTTON      "&Investigation",IDC_BUTTON_LOG2,36,114,49,14
+    PUSHBUTTON      "&Pause",IDC_BUTTON_PAUSE,87,114,33,14
+    DEFPUSHBUTTON   "&OK",IDOK,130,114,50,14
+    PUSHBUTTON      "&Reload",IDC_BUTTON_setting_reload,180,114,50,14
+    PUSHBUTTON      "&Cancel",IDCANCEL,231,114,50,14
+END
+
+IDD_DIALOG_log DIALOGEX 0, 0, 317, 62
+STYLE DS_SETFONT | DS_CENTERMOUSE | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Log - Nodoka"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "&Close",IDOK,264,44,50,15
+    EDITTEXT        IDC_EDIT_log,2,1,315,40,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL
+    PUSHBUTTON      "Clear &Log",IDC_BUTTON_clearLog,4,44,50,15
+    PUSHBUTTON      "Choose &Font",IDC_BUTTON_changeFont,56,44,50,15
+    PUSHBUTTON      "&Setting",IDC_BUTTON_setting,108,44,50,15
+    CONTROL         "&Details",IDC_CHECK_detail,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,164,47,39,10
+    PUSHBUTTON      "&Reload",IDC_BUTTON_reload,206,44,54,15
+END
+
+IDD_DIALOG_version DIALOGEX 0, 0, 251, 180
+STYLE DS_SETFONT | DS_CENTERMOUSE | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Version - Nodoka"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "&Close",IDOK,152,155,50,14
+    PUSHBUTTON      "&Download The Latest Version",IDC_BUTTON_download,41,155,100,14
+    ICON            IDI_ICON_nodoka,IDC_STATIC_nodokaIcon,8,20,20,20
+    EDITTEXT        IDC_EDIT_builtBy,36,8,207,143,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER
+END
+
+IDD_DIALOG_editSetting DIALOGEX 0, 0, 256, 76
+STYLE DS_SETFONT | DS_CENTERMOUSE | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Edit Settings - Nodoka"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    LTEXT           "&Name",IDC_STATIC,8,7,36,8
+    EDITTEXT        IDC_EDIT_nodokaPathName,44,4,152,14,ES_AUTOHSCROLL
+    LTEXT           "(don't use "";"")",IDC_STATIC,200,6,44,8
+    LTEXT           "&Filename",IDC_STATIC,8,22,36,8
+    EDITTEXT        IDC_EDIT_nodokaPath,44,20,152,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse",IDC_BUTTON_browse,200,20,50,14
+    LTEXT           "&Symbols",IDC_STATIC,8,38,36,8
+    EDITTEXT        IDC_EDIT_symbols,44,36,152,14,ES_AUTOHSCROLL
+    LTEXT           "(separate by "";"" with -D)",IDC_STATIC,200,38,48,22
+    DEFPUSHBUTTON   "&OK",IDOK,76,56,50,14
+    PUSHBUTTON      "&Cancel",IDCANCEL,132,56,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_DIALOG_investigate, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 291
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 44
+    END
+
+    IDD_DIALOG_setting, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 297
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+
+    IDD_DIALOG_log, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 236
+        TOPMARGIN, 7
+    END
+
+    IDD_DIALOG_version, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 243
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
+    END
+
+    IDD_DIALOG_editSetting, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 249
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 69
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU_tasktray MENU 
+BEGIN
+    POPUP "TASK TRAY"
+    BEGIN
+        MENUITEM "&Reload",                     ID_MENUITEM_reload
+        POPUP "&Change Setting"
+        BEGIN
+            MENUITEM "(from home directory)",       ID_MENUITEM_reload
+        END
+        MENUITEM "&Setting...",                 ID_MENUITEM_setting
+        MENUITEM SEPARATOR
+        MENUITEM "&Pause",                      ID_MENUITEM_disable
+        MENUITEM SEPARATOR
+        MENUITEM "&Investigation...",           ID_MENUITEM_investigate
+        MENUITEM "&Log...",                     ID_MENUITEM_log
+        MENUITEM "&Version...",                 ID_MENUITEM_version
+        MENUITEM "&Help...",                    ID_MENUITEM_help
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_MENUITEM_quit
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON_nodoka         ICON                    "..\\r\\nodoka.ico"
+IDI_ICON_nodoka_file    ICON                    "..\\r\\nodokafile.ico"
+IDI_ICON_nodoka_disabled ICON                    "..\\r\\nodokadisabled.ico"
+IDI_ICON_nodoka1        ICON                    "..\\r\\nodoka1.ico"
+IDI_ICON_nodoka1_disabled ICON                    "..\\r\\nodoka1disabled.ico"
+IDI_ICON_nodoka2        ICON                    "..\\r\\nodoka2.ico"
+IDI_ICON_nodoka2_disabled ICON                    "..\\r\\nodoka2disabled.ico"
+IDI_ICON_nodoka3        ICON                    "..\\r\\nodoka3.ico"
+IDI_ICON_nodoka3_disabled ICON                    "..\\r\\nodoka3disabled.ico"
+IDI_ICON_nodoka4        ICON                    "..\\r\\nodoka4.ico"
+IDI_ICON_nodoka4_disabled ICON                    "..\\r\\nodoka4disabled.ico"
+IDI_ICON_nodoka5        ICON                    "..\\r\\nodoka5.ico"
+IDI_ICON_nodoka5_disabled ICON                    "..\\r\\nodoka5disabled.ico"
+IDI_ICON_nodoka6        ICON                    "..\\r\\nodoka6.ico"
+IDI_ICON_nodoka6_disabled ICON                    "..\\r\\nodoka6disabled.ico"
+IDI_ICON_nodoka7        ICON                    "..\\r\\nodoka7.ico"
+IDI_ICON_nodoka7_disabled ICON                    "..\\r\\nodoka7disabled.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Cursor
+//
+
+IDC_CURSOR_target       CURSOR                  "..\\r\\target.cur"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_nodoka              "Nodoka"
+    IDS_nodokaAlreadyExists "Already Nodoka is running."
+    IDS_cannotOpenDevice    "Nodoka driver is not available."
+    IDS_driverNotInstalled  "Nodoka is not installed correctly."
+    IDS_executedInRemoteDesktop 
+                            "Nodoka cannot be executed in the Remote Desktop."
+    IDS_nodokaSeeYou        "See You."
+    IDS_errorNodokaFile     "Can not access setting file"
+    IDS_copyNodokaFile      "To edit the default setting file, May I copy a file to home directory? (Recommended)"
+    IDS_virtualNodokaFile   "Detect VirtualStore folder. Is this folder opened?\nPlease delete the file and the folder, It is unnecessary. (Recommended)"
+    IDS_openNodoka          "Find Setting File - Nodoka"
+    IDS_openNodokaFilter    "Nodoka file (*.nodoka) |*.nodoka|All Files|*|"
+    IDS_helpFilename        "doc\\README-en.html"
+    IDS_nodokaFile          "Nodoka file"
+    IDS_nodokaShellOpen     "notepad.exe ""%1"""
+    IDS_readFromHomeDirectory "(from home directory)"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_logFont             "-13,0,0,0,400,0,0,0,128,1,2,1,1,Terminal"
+    IDS_109Emacs            "Japanese 109 Keyboard (Emacs Like)"
+    IDS_104on109Emacs       "Japanese 109 Keyboard (104 Like, Emacs Like)"
+    IDS_109                 "Japanese 109 Keyboard"
+    IDS_104on109            "Japanese 109 Keyboard (104 Like)"
+    IDS_104Emacs            "English 104 Keyboard (Emacs Like)"
+    IDS_109on104Emacs       "English 104 Keyboard (109 Like, Emacs Like)"
+    IDS_104                 "English 104 Keyboard"
+    IDS_109on104            "English 104 Keyboard (109 Like)"
+    IDS_nodokaPathName      "Name"
+    IDS_nodokaPath          "Setting Filename"
+    IDS_nodokaSymbols       "Symbols"
+    IDS_version             "Nodoka %s           (nodokad: %s)\r\n  %s\r\n\r\nCopyright (C) 1999-2005,\r\n  TAGA Nayuta <nayuta@users.sourceforge.net>\r\nCopyright (C) 2009,\r\n  KOBAYASHI Yoshiaki <gimy@users.sourceforge.jp>\r\nCopyright (C) 2008-2010,\r\n  MATSUMOTO Reiji <matsumoto@spline.oc.to>\r\n\r\n\r\nCopyright (C) 2008-2020\r\n  Applet LLC <applet@bp.iij4u.or.jp>\r\n\r\nbuilt by %s\r\n  %s\r\n  %s\r\n\r\n  %s\r\n"
+    IDS_homepage            "https://appletllc.com/"
+    IDS_errorTaskTray       "Do not create Nodoka TaskTray Icon."
+    IDS_errorTaskTrayTimeout "Do not create Nodoka TaskTray Icon by Timeout."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_helpFilename2       "README-en.html"
+    IDS_cannotInvoke        "can't invoke %s(0x%08x)"
+    IDS_cannotPermitStandardUser 
+                            "failed to permit standard user(error code=%d)"
+    IDS_escapeNlsKeysFailed "failed to change ScancodeMap(error code=%d)"
+    IDS_escapeNlsKeysRetry  "failed to change ScancodeMap(error code=%d), retry?"
+END
+
+#endif    // 英語 (米国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

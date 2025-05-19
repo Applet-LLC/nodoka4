@@ -1,0 +1,63 @@
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# のどか - gamepad.nodoka
+#
+# applet	2010-02-20
+
+# まずキーボード定義を読み込む。シンボル未定義だと 104.nodokaを読む。
+if ( USE109 )
+  include "109.nodoka"		# 109 キーボード設定
+  if ( USE104on109 )
+    include "104on109.nodoka"	# 109 キーボードを 104 キーボード風に
+  endif
+else
+  include "104.nodoka"		# 104 キーボード設定
+  if ( USE109on104 )
+    include "109on104.nodoka"	# 104 キーボードを 109 キーボード風に
+  endif
+endif
+
+keymap Global
+
+def option gamepad = enable 10000 5000 2500 40 3 50 0 0 0
+
+# ゲームパッド キーバインディング
+
+key GP_X0    = A
+key GP_X1    = B
+key GP_Y0    = C
+key GP_Y1    = D
+key GP_Z0    = E
+key GP_Z1    = F
+key GP_RX0   = G
+key GP_RX1   = H
+key GP_RY0   = I
+key GP_RY1   = J
+key GP_RZ0   = K
+key GP_RZ1   = L
+key GP_S0    = M
+key GP_S1    = N
+key GP_UP    = O
+key GP_UPRIGHT    = P
+key GP_RIGHT  = Q
+key GP_DOWNRIGHT    = R
+key GP_DOWN = S
+key GP_DOWNLEFT    = T
+key GP_LEFT  = U
+key GP_UPLEFT    = V
+
+key GP_B0    = _0
+key GP_B1    = _1
+key GP_B2    = _2
+key GP_B3    = _3
+key GP_B4    = _4
+key GP_B5    = _5
+key GP_B6    = _6
+key GP_B7    = _7
+key GP_B8    = _8
+key GP_B9    = _9
+key GP_BA    = W
+key GP_BB    = X
+key GP_BC    = Y
+key GP_BD    = Z
+key GP_BE    = Minus
+key GP_BF    = Semicolon

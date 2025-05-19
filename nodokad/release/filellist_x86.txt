@@ -1,0 +1,4 @@
+.Set DestinationDir="nodoka_x86"
+nodoka_x86\nodokad.cat
+nodoka_x86\nodokad.inf
+nodoka_x86\nodokad.sys

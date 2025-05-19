@@ -1,0 +1,4 @@
+.Set DestinationDir="nodoka_x64"
+nodoka_x64\nodokad.cat
+nodoka_x64\nodokad.inf
+nodoka_x64\nodokad.sys

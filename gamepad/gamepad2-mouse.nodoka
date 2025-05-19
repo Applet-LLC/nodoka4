@@ -1,0 +1,76 @@
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# のどか - gamepad2+mouse.nodoka
+#
+# applet	2010-02-20
+
+# まずキーボード定義を読み込む。シンボル未定義だと 104.nodokaを読む。
+if ( USE109 )
+  include "109.nodoka"		# 109 キーボード設定
+  if ( USE104on109 )
+    include "104on109.nodoka"	# 109 キーボードを 104 キーボード風に
+  endif
+else
+  include "104.nodoka"		# 104 キーボード設定
+  if ( USE109on104 )
+    include "109on104.nodoka"	# 104 キーボードを 109 キーボード風に
+  endif
+endif
+
+keymap Global
+
+def option gamepad = enable 10000 5000 2500 40 10 50 0xffff 0xffff 0x0000
+
+# マウス キーバインディング
+
+key GP_X0   = &MouseMove(16,0)		# right
+key GP_X1   = &MouseMove(-16,0)		# left
+key GP_Y0   = &MouseMove(0,16)		# down
+key GP_Y1   = &MouseMove(0,-16)		# up
+key M0-GP_X0   = &MouseMove(32,0)		# right
+key M0-GP_X1   = &MouseMove(-32,0)	# left
+key M0-GP_Y0   = &MouseMove(0,32)		# down
+key M0-GP_Y1   = &MouseMove(0,-32)	# up
+key M1-GP_X0   = &MouseMove(8,0)		# right
+key M1-GP_X1   = &MouseMove(-8,0)		# left
+key M1-GP_Y0   = &MouseMove(0,8)		# down
+key M1-GP_Y1   = &MouseMove(0,-8)		# up
+key GP_Z0   = &Ignore
+key GP_Z1   = &Ignore
+
+key GP_RX0   = &Ignore
+key GP_RX1   = &Ignore
+key GP_RY0   = &Ignore
+key GP_RY1   = &Ignore
+key GP_RZ0   = &Ignore
+key GP_RZ1   = &Ignore
+key GP_S0    = &Ignore
+key GP_S1    = &Ignore
+key GP_UP    = &Ignore
+key GP_UPRIGHT    = &Ignore
+key GP_RIGHT  = &Ignore
+key GP_DOWNRIGHT    = &Ignore
+key GP_DOWN = &Ignore
+key GP_DOWNLEFT    = &Ignore
+key GP_LEFT  = &Ignore
+key GP_UPLEFT    = &Ignore
+
+key GP_B0    = Enter
+key GP_B1    = ESC
+key GP_B2    = &MouseWheel(-120)			# Wheel up
+key GP_B3    = &MouseWheel( 120)			# Wheel down
+key ~U-D-*GP_B4    = &VK(D-LButton)		# LButton
+key U-~D-*GP_B4    = &VK(U-LButton)
+key D-R-*GP_B4 = &Ignore
+key ~U-D-*GP_B5    = &VK(D-RButton)		# RButton
+key U-~D-*GP_B5    = &VK(U-RButton)
+key D-R-*GP_B5 = &Ignore
+mod mod0 = GP_B6				# x2
+mod mod1 = GP_B7				# x1/2
+key GP_B8    = &Ignore
+key GP_B9    = &Ignore
+key GP_BA    = &Ignore
+key GP_BB    = &Ignore
+key GP_BC    = &Ignore
+key GP_BD    = &Ignore
+key GP_BE    = &Ignore
+key GP_BF    = &Ignore

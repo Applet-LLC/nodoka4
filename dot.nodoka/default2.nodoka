@@ -1,0 +1,188 @@
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# のどか - default2.nodoka
+# Copyright (C) 1999-2005, TAGA Nayuta <nayuta@users.sourceforge.net>
+#
+# Modify by applet on Sep. 20, 2008
+
+if ( !KBD109 ) and ( !KBD104 )
+  include "109.nodoka"
+endif
+if ( KBD104 )
+  def alias ↑   = Up
+  def alias ↓   = Down
+  def alias ←   = Left
+  def alias →   = Right
+  def alias Yen = BackSlash
+endif
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# キーシーケンス
+#
+
+keyseq $WindowClose = A-F4
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Global キーマップ
+#
+
+keymap Global
+ if ( KBD109 ) and ( ! KBD104on109 )
+   key *半角/全角   = *Esc                  # Esc と半角/全角の入れ替え
+   key *Esc             = *半角/全角                                        	#       〃
+ endif
+
+ if ( KBD109 )
+   mod control += 英数                                                    	# 英数を Control に
+   key *英数              = *LControl                                     	#       〃
+ else
+   mod control += CapsLock                                              	# CapsLock を Control に
+   key *CapsLock        = *LControl                                     	#       〃
+ endif
+
+
+keymap2 GlobalEscape : Global = &KeymapParent
+ event prefixed         = &HelpMessage("Global", "ESC-")
+ event before-key-down  = &HelpMessage
+ key M-C-G              = &Ignore
+
+keymap Global
+ if ( MAP-ESCAPE-TO-META )
+   key Escape           = &Prefix(GlobalEscape) &EditNextModifier(M-)
+   if ( KBD109 ) and ( ! KBD104on109 )
+     key 半角/全角  = &Prefix(GlobalEscape) &EditNextModifier(M-)
+   endif
+ endif
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# デフォルトのキーマップの定義
+#
+
+keymap  KeymapDefault = &Default
+ if ( KBD109 )
+   mod control += 英数                                                    	# 英数を Control に
+   key *英数              = *LControl                                     	#       〃
+ else
+   mod control += CapsLock                                              	# CapsLock を Control に
+   key *CapsLock        = *LControl                                     	#       〃
+ endif
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# コントロールの設定
+#
+
+include "emacsedit.nodoka"
+
+window  EditControl     /:(Edit|TEdit|RichEdit(20[AW])?)$/ : EmacsEdit
+window  SysListView32   /:SysListView32$/ : EmacsMove
+window  SysTreeView32   /:SysTreeView32$/ : EmacsMove
+window  ComboBox        /:ComboBox(:Edit)?$/ : EmacsEdit
+ key M-N M-P            = A-Down                                        	# ドロップダウンメニューを開く
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Windows の一般的設定
+#
+
+ keyseq $WM_VSCROLL/SB_PAGEUP           = &PostMessage(ToItself, 277, 2, 0)
+ keyseq $WM_VSCROLL/SB_PAGEDOWN         = &PostMessage(ToItself, 277, 3, 0)
+
+keymap2 GeneralC-X : EmacsC-X
+ key C-S                = C-S                                           	# 上書き保存(S)
+ key C-W                = LAlt F A                                      	# 名前を付けて保存(A)...
+ key C-F                = C-O                                           	# 開く(O)...
+ key K                  = C-N                                           	# 新規作成(N)
+ key C-C                = LAlt F X                                      	# 終了(X)
+# key C-C               = A-Q                                           	# 終了(X)
+# key C-C               = $WindowClose                                  	# 終了(X)
+
+
+# ダイアログボックス .........................................................
+
+window  DialogBox       /:#32770:/ : Global
+ key C-G                = Escape
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 各アプリケーションの設定
+#
+
+
+# のどか ...............................................................
+# https://appletllc.com/
+
+# 仮想キー調査ウィンドウでは全てデフォルト
+window  NodokaInvestigate /nodoka\.exe:#32770:nodokaFocus$/ : KeymapDefault
+
+# ログウィンドウ Esc で閉じられるように
+window  NodokaLog ( /nodoka\.exe:#32770:Button/ \
+                && /ログ - のどか/ ) : Global
+ key C-G                = $WindowClose
+ key Esc                = $WindowClose
+
+
+# Console ....................................................................
+
+ keyseq $ConsoleWindowClass/copy        = &PostMessage(ToItself, 274, 65520, 0)
+ keyseq $ConsoleWindowClass/paste       = &PostMessage(ToItself, 274, 65521, 0)
+ keyseq $ConsoleWindowClass/region      = &PostMessage(ToItself, 274, 65522, 0)
+ keyseq $ConsoleWindowClass/scroll      = &PostMessage(ToItself, 274, 65523, 0)
+ keyseq $ConsoleWindowClass/search      = &PostMessage(ToItself, 274, 65524, 0)
+ keyseq $ConsoleWindowClass/select-all  = &PostMessage(ToItself, 274, 65525, 0)
+
+window  ConsoleWindowClass /^ConsoleWindowClass$/ : Global
+ key C-S-K     C-A-K    = A-Space C                                     	# ウィンドウを閉じる
+ key S-Insert           = $ConsoleWindowClass/paste
+ key S-Prior            = $WM_VSCROLL/SB_PAGEUP
+ key S-Next             = $WM_VSCROLL/SB_PAGEDOWN
+ key S-~NL-Num9         = $WM_VSCROLL/SB_PAGEUP
+ key S-~NL-Num3         = $WM_VSCROLL/SB_PAGEDOWN
+
+
+# Emacs ......................................................................
+# http://www.gnu.org/software/emacs/windows/ntemacs.html
+
+keymap Emacsen : Global
+ key C-Yen              = &Default
+ if ( MAP-ESCAPE-TO-META )                                              	# ESC が M- になるのを阻止する
+   if ( KBD109 ) and ( ! KBD104on109 )
+     key *半角/全角 = *Esc
+     key *Esc           = *半角/全角
+   else
+     key Escape         = &Default
+   endif
+ endif
+
+window  Meadow  /:Meadow$/ : Emacsen
+ key IC-M-X             = $ToggleIME M-X
+window  MULE    /:MULE$/ : Emacsen
+window  Emacs   /:Emacs$/ : Emacsen
+
+
+# Notepad ....................................................................
+
+ keyseq $Notepad/new            = &PostMessage(ToParentWindow, 273, 9, 0)
+ keyseq $Notepad/open           = &PostMessage(ToParentWindow, 273, 10, 0)
+ keyseq $Notepad/save-as        = &PostMessage(ToParentWindow, 273, 1, 0)
+
+keymap2 NotepadC-X : GeneralC-X
+ event prefixed         = &HelpMessage("メモ帳 C-x-", \
+        "C-x C-s\t上書き保存\r\n"    \
+        "C-x C-f\t開く\t\r\n"             \
+        "C-x k\t\t新規作成\r\n"             \
+        "C-x C-c\t終了")
+ event before-key-down  = &HelpMessage
+ key C-S                = $Notepad/save-as                              	# 上書き保存(S)
+ key C-F                = $Notepad/open                                 	# 開く(O)...
+ key K                  = $Notepad/new                                  	# 新規作成(N)
+ key C-C                = $WindowClose                                  	# メモ帳の終了(X)
+
+window  Notepad /:Notepad:Edit$/ : EmacsEdit
+ if ( !ZXCV ) key C-X   = &Prefix(NotepadC-X)
+ key C-S                = F3                                            	# 検索(F)...
+ key M-J                = C-G                                           	# 行へ移動
+
+

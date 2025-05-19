@@ -1,0 +1,77 @@
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# のどか - add-mouse-gamepad.nodoka
+#
+# applet 2010-05-02
+
+# マウス フック用 キー定義
+
+def key Drag            = E1-0x00
+def key LButton         = E1-0x01
+def key RButton         = E1-0x02
+def key MButton         = E1-0x03
+def key WheelForward    = E1-0x04
+def key WheelBackward   = E1-0x05
+def key XButton1        = E1-0x06
+def key XButton2        = E1-0x07
+def key TiltRight       = E1-0x08
+def key TiltLeft        = E1-0x09
+
+
+# フォーカスチェンジ検出
+
+def key FocusChange             = E1-0x1f
+
+
+# for check modifier
+def key WinDownOver             = E1-0x19
+def key ShiftDownOver   = E1-0x1a
+def key CtrlDownOver    = E1-0x1b
+def key AltDownOver             = E1-0x1c
+def key EnterDownOver   = E1-0x1e
+
+
+# ゲームパッド キー定義
+
+def key GP_X0           = E1-0x20                                       	#  
+def key GP_X1           = E1-0x21                                       	#  
+def key GP_Y0           = E1-0x22                                       	#  
+def key GP_Y1           = E1-0x23
+  
+def key GP_Z0           = E1-0x24                                       	#  
+def key GP_Z1           = E1-0x25                                       	#  
+def key GP_RX0          = E1-0x26                                       	#  
+def key GP_RX1          = E1-0x27                                       	#  
+
+def key GP_RY0          = E1-0x28                                       	#  
+def key GP_RY1          = E1-0x29                                       	#  
+def key GP_RZ0          = E1-0x2A                                       	#  
+def key GP_RZ1          = E1-0x2B                                       	#  
+
+def key GP_S0           = E1-0x2C                                       	#  
+def key GP_S1           = E1-0x2D                                       	#  
+def key GP_UP           = E1-0x2E                                       	#  
+def key GP_UPRIGHT      = E1-0x2F                                       	#  
+def key GP_RIGHT        = E1-0x30                                       	#  
+def key GP_DOWNRIGHT    = E1-0x31                                       	#  
+def key GP_DOWN         = E1-0x32                                       	#  
+def key GP_DOWNLEFT     = E1-0x33                                       	#  
+def key GP_LEFT         = E1-0x34                                       	#  
+def key GP_UPLEFT       = E1-0x35                                       	#  
+
+def key GP_B0           = E1-0x40                                       	#  
+def key GP_B1           = E1-0x41                                       	#  
+def key GP_B2           = E1-0x42                                       	#  
+def key GP_B3           = E1-0x43                                       	#  
+def key GP_B4           = E1-0x44                                       	#  
+def key GP_B5           = E1-0x45                                       	#  
+def key GP_B6           = E1-0x46                                       	#  
+def key GP_B7           = E1-0x47                                       	#  
+def key GP_B8           = E1-0x48                                       	#  
+def key GP_B9           = E1-0x49                                       	#  
+def key GP_BA           = E1-0x4A                                       	#  
+def key GP_BB           = E1-0x4B                                       	#  
+def key GP_BC           = E1-0x4C                                       	#  
+def key GP_BD           = E1-0x4D                                       	#  
+def key GP_BE           = E1-0x4E                                       	#  
+def key GP_BF           = E1-0x4F                                       	#  
+

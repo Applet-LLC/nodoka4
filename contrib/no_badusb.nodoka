@@ -1,0 +1,141 @@
+  # no_badusb.nodoka 2014-11-11 by G.K.Applet
+
+def option UnitID = K1 0 771 0	# 初めて読み込んだ時に御使いのキーボードの設定が K1になるよう引数を変更してください。
+  # この設定は PS/2接続の英語キーボード PNP0303が有効になっています。
+def option UnitID = K2 0 800 0  # この設定では、PS/2接続の日本語キーボード PNP0320です。
+
+  # なお、この no_badusb.nodokaを読み込むと K0扱いになったキーボードからはキー入力できないので編集される場合には必ず、他の設定を選択するか一時停止にしてください。
+
+def option FakeUp = enable 20 84 # 0x54=84 SysRqをダミーキーに設定しています。
+
+key K0-*A = &Ignore
+key K0-*B = &Ignore
+key K0-*C = &Ignore
+key K0-*D = &Ignore
+key K0-*E = &Ignore
+key K0-*F = &Ignore
+key K0-*G = &Ignore
+key K0-*H = &Ignore
+key K0-*I = &Ignore
+key K0-*J = &Ignore
+key K0-*K = &Ignore
+key K0-*L = &Ignore
+key K0-*M = &Ignore
+key K0-*N = &Ignore
+key K0-*O = &Ignore
+key K0-*P = &Ignore
+key K0-*Q = &Ignore
+key K0-*R = &Ignore
+key K0-*S = &Ignore
+key K0-*T = &Ignore
+key K0-*U = &Ignore
+key K0-*V = &Ignore
+key K0-*W = &Ignore
+key K0-*X = &Ignore
+key K0-*Y = &Ignore
+key K0-*Z = &Ignore
+key K0-*Esc = &Ignore
+key K0-*F1 = &Ignore
+key K0-*F2 = &Ignore
+key K0-*F3 = &Ignore
+key K0-*F4 = &Ignore
+key K0-*F5 = &Ignore
+key K0-*F6 = &Ignore
+key K0-*F7 = &Ignore
+key K0-*F8 = &Ignore
+key K0-*F9 = &Ignore
+key K0-*F10 = &Ignore
+key K0-*F11 = &Ignore
+key K0-*F12 = &Ignore
+
+if ( !USE104 )
+ key K0-半角/全角 = &Ignore
+else
+ key K0-BackQuote = &Ignore
+endif
+
+key K0-*_1 = &Ignore
+key K0-*_2 = &Ignore
+key K0-*_3 = &Ignore
+key K0-*_4 = &Ignore
+key K0-*_5 = &Ignore
+key K0-*_6 = &Ignore
+key K0-*_7 = &Ignore
+key K0-*_8 = &Ignore
+key K0-*_9 = &Ignore
+key K0-*_0 = &Ignore
+key K0-*Minus = &Ignore
+
+if ( !USE104 )
+ key K0-*Caret = &Ignore
+ key K0-*Yen = &Ignore
+else
+ key K0-*Equal = &Ignore
+endif
+
+key K0-*BS = &Ignore
+key K0-*Tab = &Ignore
+
+if ( !USE104 )
+ key K0-*Atmark = &Ignore
+endif
+
+key K0-*OpenBracket = &Ignore
+key K0-*CloseBracket = &Ignore
+key K0-*BackSlash = &Ignore
+
+if ( !USE104 )
+ key K0-*英数 = &Ignore
+ key K0-*Colon = &Ignore
+else
+ key K0-*CapsLock = &Ignore
+ key K0-*Quote = &Ignore
+endif
+
+key K0-*Semicolon = &Ignore
+key K0-*Enter = &Ignore
+key K0-*Comma = &Ignore
+key K0-*Period = &Ignore
+key K0-*Slash = &Ignore
+
+if ( !USE104 )
+ key K0-*BackSlash = &Ignore
+ key K0-*無変換 = &Ignore
+ key K0-*変換 = &Ignore
+ key K0-*ひらがな = &Ignore
+endif
+
+key K0-*Space = &Ignore
+key K0-*Apps = &Ignore
+key K0-*PrintScreen = &Ignore
+key K0-*Scroll = &Ignore
+key K0-*Pause = &Ignore
+key K0-*Insert = &Ignore
+key K0-*Home = &Ignore
+key K0-*PageUp = &Ignore
+key K0-*Del = &Ignore
+key K0-*End = &Ignore
+key K0-*PageDown = &Ignore
+key K0-*Up = &Ignore
+key K0-*Left = &Ignore
+key K0-*Down = &Ignore
+key K0-*Right = &Ignore
+key K0-*NumLock = &Ignore
+key K0-*NumSlash = &Ignore
+key K0-*NumAsterisk = &Ignore
+key K0-*NumMinus = &Ignore
+key K0-*NumPeriod = &Ignore
+key K0-*NumPlus = &Ignore
+key K0-*NumEnter = &Ignore
+key K0-*Num0 = &Ignore
+key K0-*Num1 = &Ignore
+key K0-*Num2 = &Ignore
+key K0-*Num3 = &Ignore
+key K0-*Num4 = &Ignore
+key K0-*Num5 = &Ignore
+key K0-*Num6 = &Ignore
+key K0-*Num7 = &Ignore
+key K0-*Num8 = &Ignore
+key K0-*Num9 = &Ignore
+
+  # EOF

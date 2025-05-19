@@ -1,0 +1,3 @@
+EXPORTS
+	ts4nodokaInit	@1
+	ts4nodokaTerm	@2

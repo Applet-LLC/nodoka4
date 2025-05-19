@@ -1,0 +1,391 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "setuprc.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 日本語 resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+#ifdef _WIN32
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "setuprc.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG_main DIALOGEX 0, 0, 298, 243
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "のどか セットアップ"
+FONT 9, "MS UI Gothic", 0, 0, 0x0
+BEGIN
+    RTEXT           "インストール先(&P):",IDC_STATIC,27,83,55,10
+    EDITTEXT        IDC_EDIT_path,85,81,157,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "参照(&B)...",IDC_BUTTON_browse,252,80,39,15
+    ICON            IDI_ICON_nodoka,IDC_STATIC,15,137,20,20
+    GROUPBOX        "",IDC_STATIC,39,128,238,73
+    CONTROL         "All Users のスタートメニューに登録(&A)",IDC_CHECK_registerStartMenu,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,136,121,10
+    CONTROL         "個人のスタートアップに登録(&S)",IDC_CHECK_registerStartUp,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,146,111,10
+    CONTROL         "個人のデスクトップに登録(&D)",IDC_CHECK_registerStartUp3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,156,111,10
+    CONTROL         "GuiEdit 起動高速化(&Q)",IDC_CHECK_registerStartUp2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,167,95,10
+    CONTROL         "マウスLLフック(&M)",IDC_CHECK_mouse,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,176,135,62,10
+    CONTROL         "キーボードLLフック(&H)",IDC_CHECK_keyboard,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,176,145,76,10
+    CONTROL         "キーボードLLフック時のWA(&W)",IDC_CHECK_win8wa,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,176,156,100,10
+    CHECKBOX        "機能制限版(&L)",IDC_CHECK_limit,176,167,62,10
+    CHECKBOX        "高整合性レベル(高IL)版(&I)",IDC_CHECK_HIL,176,178,97,10
+    RTEXT           "キーボードの種類(&K):",IDC_STATIC,19,204,64,8
+    COMBOBOX        IDC_COMBO_keyboard,86,202,123,42,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "デバイスドライバを使わない(&Z)",IDC_CHECK_dont_devicedriver,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,178,123,10
+    DEFPUSHBUTTON   "OK",IDOK,211,220,39,15
+    PUSHBUTTON      "キャンセル",IDCANCEL,252,220,39,15
+    GROUPBOX        "注意(&N)",IDC_STATIC,7,2,284,74
+    EDITTEXT        IDC_EDIT_note,14,18,264,53,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,WS_EX_CLIENTEDGE
+    RTEXT           "環境変数NODOKA(&N):",IDC_STATIC,9,101,73,10
+    EDITTEXT        IDC_EDIT_pathNODOKA,85,99,157,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "参照(&E)...",IDC_BUTTON_browseNODOKA,252,97,39,15
+    CONTROL         "ショートカットを上書きしない",IDC_CHECKoffShortCut,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,119,97,10
+    CONTROL         "設定ファイルを上書きしない",IDC_CHECKoffDotNodoka,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,176,119,96,10
+    CONTROL         "ScancodeMap変更(&C)",IDC_CHECK_ScancodeMapReload,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,176,189,83,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_DIALOG_main, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 291
+        TOPMARGIN, 2
+        BOTTOMMARGIN, 235
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 4,3,0,0
+ PRODUCTVERSION 4,3,0,0
+ FILEFLAGSMASK 0x17L
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x0L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041104b0"
+        BEGIN
+            VALUE "CompanyName", "Applet LLC"
+            VALUE "FileDescription", "nodoka setup"
+            VALUE "FileVersion", "4, 3, 0, 0"
+            VALUE "InternalName", "setup"
+            VALUE "LegalCopyright", "Copyright (C) 2008~2020"
+            VALUE "OriginalFilename", "setup.exe"
+            VALUE "ProductName", "nodoka setup"
+            VALUE "ProductVersion", "4, 3, 0, 0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x411, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_nodokaSetup         "のどか セットアップ"
+    IDS_nodokaRunning       "のどか が動作中です。終了させて作業を続けますか?"
+    IDS_nodokaEmpty         "インストール先を指定してください。"
+    IDS_selectDir           "インストール先を指定してください。"
+    IDS_invalidDirectory    "不正なディレクトリです。"
+    IDS_removeOk            "のどか をアンインストールしてよろしいですか？"
+    IDS_removeFinish        "のどか はアンインストールされました。"
+    IDS_copyFinish          "インストールが終了しました。\n一度ログオフする必要があります。\n今すぐログオフしますか?"
+    IDS_error               "インストール中にエラーが発生しました。"
+    IDS_alreadyUninstalled  "のどか のアンインストールが既に実行されています。\n再起動してからインストールしなおしてください。"
+    IDS_notAdministrator    "Administrator で実行してください。"
+    IDS_invalidOS           "この OS では動作しません。"
+    IDS_nodokaFile          "のどか ファイル"
+    IDS_nodokaShellOpen     "notepad.exe ""%1"""
+    IDS_nodoka              "のどか"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_nodokad             "のどか ドライバ"
+    IDS_shortcutName        "のどか"
+    IDS_shortcutName2       "dotnet_starter"
+    IDS_keyboard109usb      "日本語 109 (106) キーボード"
+    IDS_keyboard104usb      "英語 104 (101) キーボード"
+    IDS_dotnodoka           "dotjp.nodoka"
+    IDS_copyFinishUsb       "インストールが終了しました。\nコンピュータを再起動する必要があります。\n今すぐ再起動しますか?"
+    IDS_failedToReboot      "再起動に失敗しました。「のどか」を実行する前に必ず再起動してください。"
+    IDS_installerror        "インストール中にエラーが発生しました。\n再起動してからインストールしなおしてください。"
+    IDS_detectfilterdriver  "キーボードクラスのデバイスドライバを検出しました。\nインストールしても、うまく動作しない可能性があります。\nユーザ責任となりますが、インストールを続行させますか。"
+    IDS_selectDirNODOKA     "環境変数NODOKAに指定するフォルダを指定してください。設定ファイルの参照先に使います。"
+    IDS_shortcutNameGUI     "のどかGuiEdit"
+    IDS_note01              "インストール時の注意とライセンスについて\r\n\r\n"
+    IDS_note02              "　「のどか」は、キーボードクラスのフィルタデバイスドライバを用いたキーボードカスタマイズツールです。"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_note03              "そのため標準とは異なるキーボードフィルタドライバがインストールされている場合、「のどか」は正常動作できないため、インストールを終了させます。"
+    IDS_note04              "そのような場合には、そのフィルタドライバを用いるソフトを、あらかじめアンインストールしてください。\r\n\r\n"
+    IDS_note05              "　そのようなソフトとは、Logicool社キーボードやマウスに付属のSetPointやメーカー製のPCにプリインストールされているキーボードカスタマイズユーティリティなどです。\r\n\r\n"
+    IDS_note06              "　「のどか」のバージョンアップインストールの際、デバイスドライバを正常に登録できずに、インストールが終了することがあります。"
+    IDS_note07              "　その場合には、PCを再起動してから、インストール作業をやり直してください。\r\n\r\n"
+    IDS_note08              "　ライセンスは、CPL(Common Public License)です。詳細は zipファイル内に同梱されているCommon_Public_License_1_0.txt を、ご覧ください。\r\n\r\n"
+    IDS_note09              "　デバイスドライバやアプリケーションプログラムのデジタル署名のために、シェアウェアとなっています。試用版は、起動後30分で自動的に終了します。それ以外に正式版との差はありません。\r\n\r\n"
+    IDS_note10              "　ソフトウェアおよびドキュメントの不具合解消に努めていますが、なんらかの誤り、不具合、事故が発生した場合、その責任は、使用者にあります。"
+    IDS_note11              "御理解頂けない場合には、ただちに御利用を、おやめ下さい。"
+    IDS_note12              "なお、対応できないダメなケースもあるでしょうが、バグ報告頂いた場合には、誠意を持って可能な限り対応いたします。\r\n\r\n"
+    IDS_note13              "　新バージョンリリースの際、メジャーバージョンアップ以外では、シェアウェア費用を再度支払う必要はありません。"
+    IDS_note14              "\r\n\r\nインストールオプションについて\r\n\r\n ショートカットを上書きしない：アップデイトの際、選択可能となります。ショートカットの作成処理されません。"
+    IDS_note15              "\r\n\r\n 設定ファイルを上書きしない：アップデイトの際、選択可能となります。インストール先の設定ファイルを置き換えません。"
+    IDS_note16              "\r\n\r\n GuiEdit 起動高速化：GueEdit.exeのネイティブイメージを作成します。.NET Framework4のインストールがあらかじめ必要となります。"
+    IDS_note17              "\r\n\r\n デバイスドライバをインストールしない：キーボードLLフックオプションと併用してください。"
+    IDS_note18              "\r\n\r\n マウスLLフック：マウスフック機能を使うときに設定します。nodoka起動時の引数に-mが設定されます。"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_note19              "\r\n\r\n キーボードLLフック：デバイスドライバを使用しないモードを設定します。nodoka起動時の引数に-kが設定されます。"
+    IDS_note20              "\r\n\r\n 機能制限版：マクロ機能などが使用できない機能制限版をインストールします。"
+    IDS_note21              "\r\n\r\n 高整合性レベル(高IL)版：整合性が高い版をインストールします。起動時に管理者権限が必要であり、通常、スタートアップでの自動起動に失敗します。"
+    IDS_note22              "\r\n\r\n ScancodeMap変更：起動時の引数に-nが設定され、レジストリのScancodeMap変更を実施します。キーボードLLフックオプションと併用可能です。"
+    IDS_note23              "\r\n\r\n インストール時の詳細については、ヘルプをご覧ください。http://www.appletkan.com/nodoka-doc/README-ja.html"
+END
+
+#endif    // 日本語 resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// 英語 (米国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG_main DIALOGEX 0, 0, 310, 264
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Nodoka Setup"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    RTEXT           "Destination(&P):",IDC_STATIC,19,91,52,8
+    EDITTEXT        IDC_EDIT_path,75,88,168,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse...",IDC_BUTTON_browse,256,88,44,14
+    ICON            IDI_ICON_nodoka,IDC_STATIC,12,150,20,20
+    GROUPBOX        "",IDC_STATIC,33,137,258,85
+    CONTROL         "Create shortcut in the Start Menu of &All Users.",IDC_CHECK_registerStartMenu,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,146,165,10
+    CONTROL         "Create shortcut in your &Startup Menu.",IDC_CHECK_registerStartUp,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,158,162,10
+    CONTROL         "Create shortcut in your &Desktop.",IDC_CHECK_registerStartUp3,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,170,162,10
+    CONTROL         "GuiEdit &QuickStart",IDC_CHECK_registerStartUp2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,183,80,10
+    CONTROL         "&mouse LL hook",IDC_CHECK_mouse,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,202,146,64,11
+    CONTROL         "keyboard LL &hook",IDC_CHECK_keyboard,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,202,158,69,11
+    CONTROL         "keyboard LL hook &WA",IDC_CHECK_win8wa,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,202,170,87,11
+    CHECKBOX        "&Limit Version",IDC_CHECK_limit,202,182,64,11
+    CHECKBOX        "High &IL Version",IDC_CHECK_HIL,202,194,64,11
+    RTEXT           "&Keyboard:",IDC_STATIC,38,226,41,8
+    COMBOBOX        IDC_COMBO_keyboard,87,223,116,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Don't Use Device Driver(&Z)",IDC_CHECK_dont_devicedriver,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,196,104,11
+    DEFPUSHBUTTON   "OK",IDOK,207,243,43,14
+    PUSHBUTTON      "&Cancel",IDCANCEL,259,243,41,14
+    GROUPBOX        "&Notice",IDC_STATIC,7,7,293,71
+    EDITTEXT        IDC_EDIT_note,16,16,273,57,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL
+    RTEXT           "Env. NODOKA(&N):",IDC_STATIC,7,109,64,8
+    EDITTEXT        IDC_EDIT_pathNODOKA,75,106,168,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Brows&e...",IDC_BUTTON_browseNODOKA,256,106,44,14
+    CONTROL         "Don't revise shortcat",IDC_CHECKoffShortCut,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,35,126,85,10
+    CONTROL         "Don't revise dot.nodoka setting files",IDC_CHECKoffDotNodoka,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,145,126,131,10
+    CONTROL         "Reload S&cancodeMap",IDC_CHECK_ScancodeMapReload,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,202,207,88,11
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_DIALOG_main, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 300
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 257
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON_nodoka         ICON                    "..\\r\\nodoka.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_nodokaSetup         "Nodoka Setup"
+    IDS_nodokaRunning       "Nodoka is running. To continue this process, exit the Nodoka?"
+    IDS_nodokaEmpty         "Select destination directory."
+    IDS_selectDir           "Select destination directory."
+    IDS_invalidDirectory    "Invalid directory."
+    IDS_removeOk            "Are you sure to uninstall Nodoka?"
+    IDS_removeFinish        "Nodoka is uninstalled."
+    IDS_copyFinish          "Install complete."
+    IDS_error               "An error happened !"
+    IDS_alreadyUninstalled  "Nodoka has been uninstalled.\nPlease reboot Windows, then run this setup program again."
+    IDS_notAdministrator    "Only Administrator can complete install."
+    IDS_invalidOS           "Only for Windows 10"
+    IDS_nodokaFile          "Nodoka file"
+    IDS_nodokaShellOpen     "notepad.exe ""%1"""
+    IDS_nodoka              "Nodoka"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_nodokad             "Nodoka driver"
+    IDS_shortcutName        "Nodoka"
+    IDS_shortcutName2       "dotnet_starter"
+    IDS_keyboard109usb      "Japanese 109 (106) Keybaord"
+    IDS_keyboard104usb      "Standard 104 (101) Keyboard"
+    IDS_dotnodoka           "doten.nodoka"
+    IDS_copyFinishUsb       "Install complete.  Do you want to reboot now?"
+    IDS_failedToReboot      "Failed to reboot."
+    IDS_installerror        "An error happened !\nPlease reboot Windows, then run this setup program again."
+    IDS_detectfilterdriver  "Detect keyboard class device device driver. \r\nNodoka does not work, maybe. \r\nDo you need Installation by your responsible ?"
+    IDS_selectDirNODOKA     "Select EnvironmentVariable NODOKA directory. Use setting file target."
+    IDS_shortcutNameGUI     "NodokaGuiEdit"
+    IDS_note01              " Nodoka is keyboard remap tool. It use keyboardclass filter driver."
+    IDS_note02              " If you use other keyboard filter driver, Nodoka does not work properly. This installation terminates.\r\n"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_note03              " In that case, Please uninstall the keybaord filter driver use softwares.\r\n"
+    IDS_note04              " For example, Logitech's SetPoint software, and keyboard filter driver like to use is to change the keyboard layout.\r\n\r\n"
+    IDS_note05              " Nodoka during the upgrade installation, the device driver not successfully registered, you may terminate the installation."
+    IDS_note06              "In this case, Please Reboot and re-install.\r\n\r\n"
+    IDS_note07              " License is CPL(Common Public License). Details are included in the zip file to Common_Public_License_1_0.txt, Please, Check it.\r\n\r\n"
+    IDS_note08              " Digital sign for device drivers and application programs has become a shareware.\r\n\r\n"
+    IDS_note09              " Trial version is the Terminate automatically after 30 minutes. Other differences are not from the retail version.\r\n\r\n"
+    IDS_note10              " We are working to resolve problems of software and documentation."
+    IDS_note11              "However, any errors, defects, failure, if an accident occurs, all case are user's risk."
+    IDS_note12              "If You do not understand this risk, then, Please do not use this software .\r\n\r\n"
+    IDS_note13              "  When a new version release, unless a major upgrade, do not have to pay the shareware fee."
+    IDS_note14              "\r\n\r\nInstall Option.\r\n\r\n Don't revise shortcat : for update install."
+    IDS_note15              "\r\n\r\n Don't revise dot.nodoka setting files : for update install."
+    IDS_note16              "\r\n\r\n GuiEdit QuickStart : make native image for GuiEdit.exe. You need Install NET Framework4 runtime."
+    IDS_note17              "\r\n\r\n Don't Install Device Driver : Use option keyboad LL hook."
+    IDS_note18              "\r\n\r\n mouse LL hook : Use mouse hook. add nodoka.exe argument ""-m""."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_note19              "\r\n\r\n keyboard LL hook : Use keyboard hook. Not use device driver. add nodoka.exe argument ""-k""."
+    IDS_note20              "\r\n\r\n Limit Version : Use function and macro key limit version."
+    IDS_note21              "\r\n\r\n High IL Version : Use High Integrity version. You must administrator."
+    IDS_note22              "\r\n\r\n Reload ScancodeMap : Use option keyboard LL Hook. add nodoka.exe argument ""-n"""
+    IDS_note23              "\r\n\r\n How to Install, Please see http://www.appletkan.com/en/howtoinsatll_and_capslock_custom.htm"
+END
+
+#endif    // 英語 (米国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
