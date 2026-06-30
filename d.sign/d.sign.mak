@@ -57,8 +57,8 @@ SIGREMOVER	= "C:\Users\applet\Documents\GitHub\nodoka\nodoka\tools\SigRemover.ex
 # "all" must be the first target so nmake builds it by default
 all: remove_sig
 		@echo [d.sign] signing start
-#		-$(SIGNTOOL) sign /v /a /n "Applet LLC" /tr http://timestamp.globalsign.com/tsa/r45standard /td sha256 /fd sha256 /ph $(TARGET_BIN) $(TARGET_SYS)
-		-$(SIGNTOOL) sign /v /a /n "Applet LLC" /tr http://timestamp.globalsign.com/tsa/r45standard /td sha256 /fd sha256 /ph $(TARGET_BIN)
+		-$(SIGNTOOL) sign /v /a /n "Applet LLC" /tr http://timestamp.globalsign.com/tsa/r45standard /td sha256 /fd sha256 /ph $(TARGET_BIN) $(TARGET_SYS)
+#		-$(SIGNTOOL) sign /v /a /n "Applet LLC" /tr http://timestamp.globalsign.com/tsa/r45standard /td sha256 /fd sha256 /ph $(TARGET_BIN)
 		@echo [d.sign] signing done
 
 # Remove existing signatures from user-mode binaries.
