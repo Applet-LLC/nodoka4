@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // target.cpp
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #include "misc.h"
 
@@ -113,6 +115,16 @@ class Target
 			CHECK_TRUE(GetWindowRect(i_hwnd, &rc));
 			if (PtInRect(&rc, pw.m_p))
 			{
+				// UIAccess=true 環境では EnumWindows がシステムオーバーレイを返すことがある。
+				// - Windows.UI.Core.CoreWindow: StartMenu/TextInputHost 等の透過オーバーレイ
+				// - Microsoft.UI.Content.DesktopChildSiteBridge: WinUI3/XAML Islands ブリッジ
+				//   (Notepad等が使用、クライアント領域全体を覆う別プロセス上位ウィンドウ)
+				// これらは実アプリの手前に現れる透過ウィンドウのためスキップして下層を探す。
+				_TCHAR className[256];
+				if (GetClassName(i_hwnd, className, NUMBER_OF(className)) &&
+					(_tcscmp(className, _T("Windows.UI.Core.CoreWindow")) == 0 ||
+					 _tcscmp(className, _T("Microsoft.UI.Content.DesktopChildSiteBridge")) == 0))
+					return TRUE;
 				pw.m_hwnd = i_hwnd;
 				pw.m_rc = rc;
 				return FALSE;

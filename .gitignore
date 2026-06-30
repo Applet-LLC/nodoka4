@@ -25,6 +25,7 @@ vcpkg.applocal.log
 # Backup and temporary files
 *.bak
 *.old
+*.org
 *.20260610
 *.20260610A
 *.20260610B

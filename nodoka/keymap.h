@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // keymap.h
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #ifndef _KEYMAP_H
 #define _KEYMAP_H
@@ -7,6 +9,7 @@
 #include "keyboard.h"
 #include "function.h"
 #include <vector>
+#include <algorithm>
 
 ///
 class Action
@@ -164,6 +167,39 @@ public:
 	Modifier::Type getMode() const { return m_mode; }
 };
 
+/// combo rule: multiple keys pressed simultaneously → action
+struct ComboRule
+{
+	std::vector<Key *> m_keys;         ///< sorted, for order-independent matching
+	std::vector<Key *> m_orderedKeys;  ///< original definition order, for strict-order matching
+	KeySeq *           m_action;
+	int                m_window;    ///< -1 = use global ComboWindow
+	Modifier           m_modifier; ///< matching condition; all dontcare = any modifier state
+};
+
+/// tap-hold rule: short press (tap) vs long press (hold)
+struct TapHoldRule
+{
+	Key *   m_key;
+	KeySeq *m_tapAction;
+	KeySeq *m_holdAction;
+	int     m_threshold;      ///< -1 = use global TapHoldThreshold
+	int     m_interrupt;      ///< -1=global, 0=hold interrupt, 1=tap interrupt
+	int     m_permissiveHold; ///< -1=global, 0=off, 1=on
+	int     m_holdOnOtherKey; ///< -1=global, 0=off, 1=on
+	int     m_quickTapTerm;   ///< -1=global, 0=disabled, >0=ms
+	Modifier m_modifier;      ///< matching condition; all dontcare = any modifier state
+};
+
+/// tap-dance rule: different action based on tap count
+struct TapDanceRule
+{
+	Key *   m_key;
+	KeySeq *m_tap[3]; ///< tap1/tap2/tap3, nullptr = undefined
+	int     m_timeout; ///< -1 = use global TapDanceTimeout
+	Modifier m_modifier; ///< matching condition; all dontcare = any modifier state
+};
+
 ///
 class Keymap
 {
@@ -264,6 +300,11 @@ private:
 	KeySeq *m_defaultKeySeq; /// default keySeq
 	Keymap *m_parentKeymap;  /// parent keymap
 
+	/// combo/taphold/tapdance rules
+	std::vector<ComboRule>    m_comboRules;
+	std::vector<TapHoldRule>  m_tapHoldRules;
+	std::vector<TapDanceRule> m_tapDanceRules;
+
 private:
 	///
 	KeyAssignments &getKeyAssignments(const ModifiedKey &i_mk);
@@ -314,6 +355,22 @@ public:
 
 	/// set default keySeq and parent keymap if default keySeq has not been set
 	bool setIfNotYet(KeySeq *i_keySeq, Keymap *i_parentKeymap);
+
+	/// add combo/taphold/tapdance rules
+	void addComboRule(const ComboRule &i_rule);
+	void addTapHoldRule(const TapHoldRule &i_rule);
+	void addTapDanceRule(const TapDanceRule &i_rule);
+
+	/// search combo/taphold/tapdance rules (modifier-aware)
+	const ComboRule *    searchCombo(const std::vector<Key *> &i_keys, const Modifier &i_mod) const;
+	const ComboRule *    searchComboOrdered(const std::vector<Key *> &i_orderedKeys, const Modifier &i_mod) const;
+	const TapHoldRule *  searchTapHold(const Key *i_key, const Modifier &i_mod) const;
+	const TapDanceRule * searchTapDance(const Key *i_key, const Modifier &i_mod) const;
+
+	/// get all rules (read-only)
+	const std::vector<ComboRule> &    getComboRules()    const { return m_comboRules; }
+	const std::vector<TapHoldRule> &  getTapHoldRules()  const { return m_tapHoldRules; }
+	const std::vector<TapDanceRule> & getTapDanceRules() const { return m_tapDanceRules; }
 };
 
 /// stream output
@@ -349,6 +406,11 @@ public:
 
 	/// adjust modifier
 	void adjustModifier(Keyboard &i_keyboard);
+
+	/// read-only iteration over all keymaps (for modifier key enumeration)
+	typedef std::list<Keymap>::const_iterator const_iterator;
+	const_iterator begin() const { return m_keymapList.begin(); }
+	const_iterator end()   const { return m_keymapList.end();   }
 };
 
 ///

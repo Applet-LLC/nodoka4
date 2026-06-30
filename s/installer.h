@@ -1,5 +1,7 @@
-///////////////////////////////////////////////////////////////////////////////
+﻿///////////////////////////////////////////////////////////////////////////////
 // installer.h
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #ifndef _INSTALLER_H
 #define _INSTALLER_H
@@ -131,6 +133,9 @@ void createUninstallInformation(const tstringi &i_name,
 // remove uninstallation information
 void removeUninstallInformation(const tstringi &i_name);
 
+// enable "Last Known Good Configuration" (前回正常起動時の構成)
+void enableLastKnownGoodConfiguration();
+
 // normalize path
 tstringi normalizePath(tstringi i_path);
 
@@ -153,16 +158,19 @@ tstringi getStartUpName(const tstringi &i_shortcutName);
 tstringi getDeskTopName(const tstringi &i_shortcutName);
 
 // create driver service
-DWORD createDriverService(const tstringi &i_serviceName,
-						  const tstring &i_serviceDescription,
-						  const tstringi &i_driverPath,
-						  const _TCHAR *i_preloadedGroups);
-
-// stop driver service
-BOOL stopDriverService(const tstringi &i_serviceName);
+DWORD createDriverService(const tstringi &i_serviceName);
 
 // remove driver service
 DWORD removeDriverService(const tstringi &i_serviceName);
+
+// check whether the named service currently exists (used to distinguish a
+// fresh install from an in-place upgrade when deciding rollback actions)
+bool driverServiceExists(const tstringi &i_serviceName);
+
+// force-remove a driver name from the keyboard class UpperFilters value,
+// independent of DriverManager.exe's own result. Redundant safety net so
+// that UpperFilters never retains a reference to an uninstalled/failed driver.
+bool forceRemoveUpperFiltersEntry(const tstringi &i_driverName);
 
 // check operating system
 bool checkOs(SetupFile::OS i_os);
@@ -198,6 +206,11 @@ BOOL revertWow64FsRedir(PVOID oldValue);
 // Do ngen.exe and Check
 void dongen(LPCTSTR i_pathLink);
 bool checkDotNet();
+
+#if defined(_WINNT)
+// get last captured DriverManager output (stdout+stderr)
+tstringi getDriverManagerLastOutput();
+#endif
 
 } // namespace Installer
 

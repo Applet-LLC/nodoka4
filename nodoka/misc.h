@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // misc.h
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 
 #ifndef _MISC_H
@@ -12,9 +14,9 @@
 #ifndef RETAIL
 #  define SAMPLE_REL
 #  define SAMPLE_TIME 30		// min.
-#  define VERSION "4.30_sample"
+#  define VERSION "4.31_sample"
 #else
-#  define VERSION "4.30"
+#  define VERSION "4.31"
 #endif
 
 #define YAMY_SUCCESS						0

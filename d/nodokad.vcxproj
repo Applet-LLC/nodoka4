@@ -1,166 +1,77 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Win8.1 Debug|Win32">
-      <Configuration>Win8.1 Debug</Configuration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8.1 Release|Win32">
-      <Configuration>Win8.1 Release</Configuration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8 Debug|Win32">
-      <Configuration>Win8 Debug</Configuration>
+    <ProjectConfiguration Include="Win11 Debug|Win32">
+      <Configuration>Win11 Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8 Release|Win32">
-      <Configuration>Win8 Release</Configuration>
+    <ProjectConfiguration Include="Win11 Release|Win32">
+      <Configuration>Win11 Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Win7 Debug|Win32">
-      <Configuration>Win7 Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win7 Release|Win32">
-      <Configuration>Win7 Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8.1 Debug|x64">
-      <Configuration>Win8.1 Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8.1 Release|x64">
-      <Configuration>Win8.1 Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8 Debug|x64">
-      <Configuration>Win8 Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win8 Release|x64">
-      <Configuration>Win8 Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win7 Debug|x64">
-      <Configuration>Win7 Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Win7 Release|x64">
-      <Configuration>Win7 Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Device.h" />
-    <ClInclude Include="Driver.h" />
-    <ClInclude Include="ioctl.h" />
-    <ClInclude Include="log.h" />
-    <ClInclude Include="nodokad.h" />
-    <ClInclude Include="Public.h" />
-    <ClInclude Include="Queue.h" />
-    <ClInclude Include="Trace.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Inf Include="nodokad.inf">
-      <DeploymentContent>true</DeploymentContent>
-    </Inf>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{2F34ABB0-EB96-42E8-AFE3-BB001E9E955A}</ProjectGuid>
-    <TemplateGuid>{497e31cb-056b-4f31-abb8-447fd55ee5a5}</TemplateGuid>
+    <ProjectGuid>{71E46836-AF51-F003-3EB6-7F2467ED98A2}</ProjectGuid>
+    <TemplateGuid>{1bc93793-694f-48fe-9372-81e2b05556fd}</TemplateGuid>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
-    <Configuration>Win8.1 Debug</Configuration>
+    <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
+    <Configuration>Release</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <RootNamespace>nodokad</RootNamespace>
+    <ProjectName>d</ProjectName>
+    <WDKContentRoot>K:\Program Files\Windows Kits\10\</WDKContentRoot>
+    <WDKBuildFolder>10.0.26100.0</WDKBuildFolder>
+    <WDKBinRoot>K:\Program Files\Windows Kits\10\bin\10.0.26100.0</WDKBinRoot>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <DDK_LIB_PATH>C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\km\x86\</DDK_LIB_PATH>
+    <MatchingWdkPresent>true</MatchingWdkPresent>
+    <MatchingSdkPresent>true</MatchingSdkPresent>
+    <KIT_SHARED_IncludePath>K:\Program Files\Windows Kits\10\Include\10.0.26100.0\shared</KIT_SHARED_IncludePath>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Debug|Win32'" Label="Configuration">
-    <TargetVersion>WindowsV6.3</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Release|Win32'" Label="Configuration">
-    <TargetVersion>WindowsV6.3</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'" Label="Configuration">
-    <TargetVersion>Windows8</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'" Label="Configuration">
-    <TargetVersion>Windows8</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'" Label="Configuration">
-    <TargetVersion>Windows7</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'" Label="Configuration">
-    <TargetVersion>Windows7</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
     <ConfigurationType>Driver</ConfigurationType>
     <DriverType>WDM</DriverType>
+    <DriverTargetPlatform>Windows Driver</DriverTargetPlatform>
+    <_NT_TARGET_VERSION>0xA000008</_NT_TARGET_VERSION>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Debug|x64'" Label="Configuration">
-    <TargetVersion>WindowsV6.3</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Release|x64'" Label="Configuration">
-    <TargetVersion>WindowsV6.3</TargetVersion>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'" Label="Configuration">
-    <TargetVersion>Windows8</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'" Label="Configuration">
-    <TargetVersion>Windows8</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'" Label="Configuration">
-    <TargetVersion>Windows7</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
-    <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>KMDF</DriverType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'" Label="Configuration">
-    <TargetVersion>Windows7</TargetVersion>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>WindowsKernelModeDriver8.1</PlatformToolset>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
     <ConfigurationType>Driver</ConfigurationType>
     <DriverType>WDM</DriverType>
+    <DriverTargetPlatform>Windows Driver</DriverTargetPlatform>
+    <_NT_TARGET_VERSION>0xA000008</_NT_TARGET_VERSION>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win11 Debug|Win32'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>WDM</DriverType>
+    <DriverTargetPlatform>Windows Driver</DriverTargetPlatform>
+    <_NT_TARGET_VERSION>0xA000008</_NT_TARGET_VERSION>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win11 Release|Win32'" Label="Configuration">
+    <TargetVersion>Windows10</TargetVersion>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <ConfigurationType>Driver</ConfigurationType>
+    <DriverType>WDM</DriverType>
+    <DriverTargetPlatform>Windows Driver</DriverTargetPlatform>
+    <_NT_TARGET_VERSION>0xA000008</_NT_TARGET_VERSION>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -170,203 +81,180 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Debug|Win32'">
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)Win32\Debug\</OutDir>
+    <IntDir>$(ProjectDir)Win32\Debug\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Release|Win32'">
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)Win32\Release\</OutDir>
+    <IntDir>$(ProjectDir)Win32\Release\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win11 Debug|Win32'">
+    <OutDir>$(SolutionDir)Win32\Debug\</OutDir>
+    <IntDir>$(ProjectDir)Win32\Win11 Debug\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win11 Release|Win32'">
+    <OutDir>$(SolutionDir)Win32\Release\</OutDir>
+    <IntDir>$(ProjectDir)Win32\Win11 Release\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <RunInf2Cat>false</RunInf2Cat>
+    <EnableInf2cat>false</EnableInf2cat>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <DriverCatalog_Enable>false</DriverCatalog_Enable>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <InfVerif_AdditionalOptions>/v</InfVerif_AdditionalOptions>
+    <Inf2CatVerbose>true</Inf2CatVerbose>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <SkipPackageVerification>true</SkipPackageVerification>
+    <TargetName>nodokad</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <RunInf2Cat>false</RunInf2Cat>
+    <EnableInf2cat>true</EnableInf2cat>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
-    <OutDir>$(SolutionDir)\nodokad\x86</OutDir>
-    <IntDir>$(ConfigurationName)\x86</IntDir>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <DriverCatalog_Enable>false</DriverCatalog_Enable>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <InfVerif_AdditionalOptions>/v</InfVerif_AdditionalOptions>
+    <Inf2CatVerbose>true</Inf2CatVerbose>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <Inf2CatAdditionalOptions>/PageHashes</Inf2CatAdditionalOptions>
+    <SkipPackageVerification>true</SkipPackageVerification>
+    <TargetName>nodokad</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Debug|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win11 Debug|Win32'">
+    <RunInf2Cat>false</RunInf2Cat>
+    <EnableInf2cat>false</EnableInf2cat>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <DriverCatalog_Enable>false</DriverCatalog_Enable>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <InfVerif_AdditionalOptions>/v</InfVerif_AdditionalOptions>
+    <Inf2CatVerbose>true</Inf2CatVerbose>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <SkipPackageVerification>true</SkipPackageVerification>
+    <TargetName>nodokad</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Release|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win11 Release|Win32'">
+    <RunInf2Cat>false</RunInf2Cat>
+    <EnableInf2cat>false</EnableInf2cat>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <DriverCatalog_Enable>false</DriverCatalog_Enable>
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+    <InfVerif_AdditionalOptions>/v</InfVerif_AdditionalOptions>
+    <Inf2CatVerbose>true</Inf2CatVerbose>
+    <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <SkipPackageVerification>true</SkipPackageVerification>
+    <TargetName>nodokad</TargetName>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">
-    <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <TimeStampServer>http://timestamp.digicert.com</TimeStampServer>
-    <OutDir>$(SolutionDir)\nodokad\x64</OutDir>
-    <IntDir>$(ConfigurationName)\x64</IntDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Debug|Win32'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
+    <Link>
+      <AdditionalDependencies>WdfDriverEntry.lib;hidclass.lib;ntoskrnl.lib;wdm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>K:\Program Files\Windows Kits\10\Lib\wdf\kmdf\x86\1.35\;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\km\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ForceIntegrityCheck>true</ForceIntegrityCheck>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>K:\Program Files\Windows Kits\10\Include\10.0.26100.0\km;K:\Program Files\Windows Kits\10\Include\wdf\kmdf\1.35;K:\Program Files\Windows Kits\10\Include\10.0.26100.0\ucrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_X86_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4845;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>"k:\Program Files\Windows Kits\10\Tools\10.0.26100.0\x64\infverif.exe" /v "$(OutDir)nodokad.inf"</Command>
+      <Message>Running infverif on $(OutDir)nodokad.inf</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Release|Win32'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
+    <Link>
+      <AdditionalDependencies>WdfDriverEntry.lib;hidclass.lib;ntoskrnl.lib;wdm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>K:\Program Files\Windows Kits\10\Lib\wdf\kmdf\x86\1.35\;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\km\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ForceIntegrityCheck>true</ForceIntegrityCheck>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>K:\Program Files\Windows Kits\10\Include\10.0.26100.0\km;K:\Program Files\Windows Kits\10\Include\wdf\kmdf\1.35;K:\Program Files\Windows Kits\10\Include\10.0.26100.0\ucrt;K:\Program Files\Windows Kits\10\Include\10.0.26100.0\um;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_X86_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4845;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>"k:\Program Files\Windows Kits\10\Tools\10.0.26100.0\x64\infverif.exe" /v "$(OutDir)nodokad.inf"</Command>
+      <Message>Running infverif on $(OutDir)nodokad.inf</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|Win32'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win11 Debug|Win32'">
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
+    <Link>
+      <AdditionalDependencies>WdfDriverEntry.lib;hidclass.lib;ntoskrnl.lib;wdm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>K:\Program Files\Windows Kits\10\Lib\wdf\kmdf\x86\1.35\;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\km\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ForceIntegrityCheck>true</ForceIntegrityCheck>
+    </Link>
+    <ClCompile>
+      <AdditionalIncludeDirectories>K:\Program Files\Windows Kits\10\Include\10.0.26100.0\km;K:\Program Files\Windows Kits\10\Include\wdf\kmdf\1.35;K:\Program Files\Windows Kits\10\Include\10.0.26100.0\ucrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_X86_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4845;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>"k:\Program Files\Windows Kits\10\Tools\10.0.26100.0\x64\infverif.exe" /v "$(OutDir)nodokad.inf"</Command>
+      <Message>Running infverif on $(OutDir)nodokad.inf</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win11 Release|Win32'">
     <DriverSign>
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|Win32'">
+    <Link>
+      <AdditionalDependencies>WdfDriverEntry.lib;hidclass.lib;ntoskrnl.lib;wdm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>K:\Program Files\Windows Kits\10\Lib\wdf\kmdf\x86\1.35\;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\km\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ForceIntegrityCheck>true</ForceIntegrityCheck>
+    </Link>
     <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
+      <AdditionalIncludeDirectories>K:\Program Files\Windows Kits\10\Include\10.0.26100.0\km;K:\Program Files\Windows Kits\10\Include\wdf\kmdf\1.35;K:\Program Files\Windows Kits\10\Include\10.0.26100.0\ucrt;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_X86_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4845;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
-    <DriverSign>
-      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
-    </DriverSign>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">
-    <ClCompile>
-      <WppEnabled>false</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">
-      </WppScanConfigurationData>
-      <WppKernelMode>
-      </WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
-    <DriverSign>
-      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
-    </DriverSign>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Debug|x64'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
-    <DriverSign>
-      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
-    </DriverSign>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Release|x64'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
-    <DriverSign>
-      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
-    </DriverSign>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Debug|x64'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
-    <DriverSign>
-      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
-    </DriverSign>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
-    <DriverSign>
-      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
-    </DriverSign>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Debug|x64'">
-    <ClCompile>
-      <WppEnabled>true</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">trace.h</WppScanConfigurationData>
-      <WppKernelMode>true</WppKernelMode>
-      <WarningLevel>Level4</WarningLevel>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
-    <DriverSign>
-      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
-    </DriverSign>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">
-    <ClCompile>
-      <WppEnabled>false</WppEnabled>
-      <WppScanConfigurationData Condition="'%(ClCompile. ScanConfigurationData)'  == ''">
-      </WppScanConfigurationData>
-      <WppKernelMode>
-      </WppKernelMode>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
-    <DriverSign>
-      <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
-    </DriverSign>
+    <PostBuildEvent>
+      <Command>"k:\Program Files\Windows Kits\10\Tools\10.0.26100.0\x64\infverif.exe" /v "$(OutDir)nodokad.inf"</Command>
+      <Message>Running infverif on $(OutDir)nodokad.inf</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
-    <FilesToPackage Include="@(Inf->'%(CopyOutput)')" Condition="'@(Inf)'!=''" />
+  </ItemGroup>
+  <ItemGroup>
+    <Inf Include="nodokad.inf" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="keyque.c" />
-    <ClCompile Include="log.c" />
     <ClCompile Include="nodokad.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="nodokad.rc">
+      <AdditionalIncludeDirectories>K:\Program Files\Windows Kits\10\Include\10.0.26100.0\um;K:\Program Files\Windows Kits\10\Include\10.0.26100.0\shared;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ioctl.h" />
+    <ClInclude Include="nodokad.h" />
+    <ClInclude Include="Public.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

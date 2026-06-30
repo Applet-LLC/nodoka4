@@ -1,0 +1,283 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Sample|Win32">
+      <Configuration>Sample</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{63AA33A9-B8F1-4265-8148-98F536A1FEB5}</ProjectGuid>
+    <RootNamespace>exelimit</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)Win32\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">nodoka_limit</TargetName>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)Win32\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">nodoka_limit</TargetName>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <PostBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</PostBuildEventUseInBuild>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">$(SolutionDir)Win32\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">$(Configuration)\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">nodoka_limit</TargetName>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">false</LinkIncremental>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'" />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINNT;RETAIL;_WIN32_IE=0x0500;_WIN32_WINNT=0x0500;STRICT;FOR_LIMIT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\boost\boost_1_85_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmtd.lib;libcpmtd.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Debug\nodoka.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ShowProgress>LinkVerbose</ShowProgress>
+      <OutputFile>$(OutDir)nodoka_limit.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(IntDir);%(AdditionalLibraryDirectories);..\..\boost\boost_1_85_0\lib32-msvc-14.3</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)nodoka_limit.exe.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>nodoka.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;_WINNT;NDEBUG;RETAIL;_WIN32_IE=0x0500;_WIN32_WINNT=0x0500;STRICT;FOR_LIMIT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\boost\boost_1_85_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmt.lib;libcpmt.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Release\nodoka.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ShowProgress>LinkVerboseLib</ShowProgress>
+      <OutputFile>$(OutDir)nodoka_limit.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(IntDir);%(AdditionalLibraryDirectories);..\..\boost\boost_1_85_0\lib32-msvc-14.3</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)nodoka_limit.exe.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>
+      </OptimizeReferences>
+      <EnableCOMDATFolding>
+      </EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>MachineX86</TargetMachine>
+      <UACUIAccess>true</UACUIAccess>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>nodoka.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <VerboseOutput>true</VerboseOutput>
+    </Manifest>
+    <PostBuildEvent>
+      <Command>echo Signing skipped (use d.sign project).</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>WIN32;_WINNT;NDEBUG;_WIN32_IE=0x0500;_WIN32_WINNT=0x0500;STRICT;FOR_LIMIT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\boost\boost_1_85_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmt.lib;libcpmt.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Release\nodoka.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ShowProgress>LinkVerboseLib</ShowProgress>
+      <OutputFile>$(OutDir)nodoka_limit.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories);..\..\boost\boost_1_85_0\lib32-msvc-14.3;..\..\boost\boost_1_85_0\lib32-msvc-14.3</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)nodoka_limit.exe.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>
+      </OptimizeReferences>
+      <EnableCOMDATFolding>
+      </EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>MachineX86</TargetMachine>
+      <UACUIAccess>true</UACUIAccess>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>nodoka.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <VerboseOutput>true</VerboseOutput>
+    </Manifest>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\nodoka\compiler_specific_func.cpp" />
+    <ClCompile Include="..\nodoka\dlgeditsetting.cpp" />
+    <ClCompile Include="..\nodoka\dlginvestigate.cpp" />
+    <ClCompile Include="..\nodoka\dlglog.cpp" />
+    <ClCompile Include="..\nodoka\dlgsetting.cpp" />
+    <ClCompile Include="..\nodoka\dlgversion.cpp" />
+    <ClCompile Include="..\nodoka\engine.cpp" />
+    <ClCompile Include="..\nodoka\fixscancodemap.cpp" />
+    <ClCompile Include="..\nodoka\focus.cpp" />
+    <ClCompile Include="..\nodoka\function.cpp" />
+    <ClCompile Include="..\nodoka\keyboard.cpp" />
+    <ClCompile Include="..\nodoka\keymap.cpp" />
+    <ClCompile Include="..\nodoka\layoutmanager.cpp" />
+    <ClCompile Include="..\nodoka\nodoka.cpp" />
+    <ClCompile Include="..\nodoka\parser.cpp" />
+    <ClCompile Include="..\nodoka\registry.cpp" />
+    <ClCompile Include="..\nodoka\setting.cpp" />
+    <ClCompile Include="..\nodoka\stringtool.cpp" />
+    <ClCompile Include="..\nodoka\target.cpp" />
+    <ClCompile Include="..\nodoka\vkeytable.cpp" />
+    <ClCompile Include="..\nodoka\windowstool.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\nodoka\array.h" />
+    <ClInclude Include="..\sirius_sdk\commonValues.h" />
+    <ClInclude Include="..\nodoka\compiler_specific.h" />
+    <ClInclude Include="..\nodoka\compiler_specific_func.h" />
+    <ClInclude Include="..\nodoka\dlgeditsetting.h" />
+    <ClInclude Include="..\nodoka\dlginvestigate.h" />
+    <ClInclude Include="..\nodoka\dlglog.h" />
+    <ClInclude Include="..\nodoka\dlgsetting.h" />
+    <ClInclude Include="..\nodoka\dlgversion.h" />
+    <ClInclude Include="..\nodoka\driver.h" />
+    <ClInclude Include="..\nodoka\engine.h" />
+    <ClInclude Include="..\nodoka\errormessage.h" />
+    <ClInclude Include="..\nodoka\fixscancodemap.h" />
+    <ClInclude Include="..\nodoka\focus.h" />
+    <ClInclude Include="..\nodoka\function.h" />
+    <CustomBuild Include="..\nodoka\functions.h">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Outputs)</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">
+      </Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Sample|Win32'">%(Outputs)</Outputs>
+    </CustomBuild>
+    <ClInclude Include="..\nodoka\hook.h" />
+    <ClInclude Include="..\nodoka\hookdata.h" />
+    <ClInclude Include="..\nodoka\keyboard.h" />
+    <ClInclude Include="..\nodoka\keymap.h" />
+    <ClInclude Include="..\nodoka\layoutmanager.h" />
+    <ClInclude Include="..\nodoka\misc.h" />
+    <ClInclude Include="..\nodoka\msgstream.h" />
+    <ClInclude Include="..\nodoka\multithread.h" />
+    <ClInclude Include="..\nodoka\nodoka.h" />
+    <ClInclude Include="..\nodoka\nodokaipc.h" />
+    <ClInclude Include="..\nodoka\nodokarc.h" />
+    <ClInclude Include="..\nodoka\parser.h" />
+    <ClInclude Include="..\nodoka\registry.h" />
+    <ClInclude Include="..\nodoka\setting.h" />
+    <ClInclude Include="..\nodoka\stringtool.h" />
+    <ClInclude Include="..\nodoka\target.h" />
+    <ClInclude Include="..\nodoka\vkeytable.h" />
+    <ClInclude Include="..\nodoka\windowstool.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\r\nodoka.ico" />
+    <None Include="..\r\nodoka1.ico" />
+    <None Include="..\r\nodoka1disabled.ico" />
+    <None Include="..\r\nodoka2.ico" />
+    <None Include="..\r\nodoka2disabled.ico" />
+    <None Include="..\r\nodoka3.ico" />
+    <None Include="..\r\nodoka3disabled.ico" />
+    <None Include="..\r\nodoka4.ico" />
+    <None Include="..\r\nodoka4disabled.ico" />
+    <None Include="..\r\nodoka5.ico" />
+    <None Include="..\r\nodoka5disabled.ico" />
+    <None Include="..\r\nodoka6.ico" />
+    <None Include="..\r\nodoka6disabled.ico" />
+    <None Include="..\r\nodoka7.ico" />
+    <None Include="..\r\nodoka7disabled.ico" />
+    <None Include="..\r\nodokadisabled.ico" />
+    <None Include="..\r\nodokafile.ico" />
+    <None Include="..\r\target.cur" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="nodoka.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\nodoka\nodoka.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\dll\dll.vcxproj">
+      <Project>{9897e270-b99f-414a-8012-c8e681c0e71d}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,5 +1,7 @@
-///////////////////////////////////////////////////////////////////////////////
+Ôªø///////////////////////////////////////////////////////////////////////////////
 // setup.cpp
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #include "..\nodoka\misc.h"
 #include "..\nodoka\registry.h"
@@ -10,6 +12,9 @@
 #include <shlobj.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+// g_destDir is the install destination directory, defined in setup.cpp (global scope)
+extern tstringi g_destDir;
 
 namespace Installer
 {
@@ -175,6 +180,20 @@ void removeUninstallInformation(const tstringi &i_name)
 			   _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\") + i_name);
 }
 
+// enable "Last Known Good Configuration" (ÂâçÂõûÊ≠£Â∏∏Ëµ∑ÂãïÊôÇ„ÅÆÊßãÊàê)
+void enableLastKnownGoodConfiguration()
+{
+	Registry regCm(
+		HKEY_LOCAL_MACHINE,
+		_T("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Configuration Manager"));
+	CHECK_TRUE(regCm.write(_T("BackupCount"), DWORD(2)));
+
+	Registry regLkg(
+		HKEY_LOCAL_MACHINE,
+		_T("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Configuration Manager\\LastKnownGood"));
+	CHECK_TRUE(regLkg.write(_T("Enabled"), DWORD(1)));
+}
+
 // normalize path
 tstringi normalizePath(tstringi i_path)
 {
@@ -296,184 +315,126 @@ tstringi getDeskTopName(const tstringi &i_shortcutName)
 
 #if defined(_WINNT)
 
-// create driver service
-DWORD createDriverService(const tstringi &i_serviceName,
-						  const tstring &i_serviceDescription,
-						  const tstringi &i_driverPath,
-						  const _TCHAR *i_preloadedGroups)
+// Last captured stdout+stderr from DriverManager, for display in error dialogs.
+static tstringi g_driverManagerLastOutput;
+
+tstringi getDriverManagerLastOutput()
 {
-	SC_HANDLE hscm;
-	SC_HANDLE hs;
-
-	// setup.exeÇ™WOW64ä¬ã´Ç≈ìÆÇ¢ÇΩéûÇÃWAÇæÇ™ïsóvÇ»ÇÃÇ≈à»ëOê›íËÇµÇƒÇ¢ÇΩÇ™çÌèúÅB
-	{
-		Registry reg(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\services\\nodokad"));
-		reg.remove(_T("WOW64"));
-		reg.remove(_T("Error"));
-	}
-
-	// SCManager open
-	hscm = OpenSCManager(NULL, NULL,
-						 SC_MANAGER_CREATE_SERVICE | SC_MANAGER_CONNECT);
-	if (!hscm)
-	{
-		//MessageBox(NULL, L"OpenScManager error", L"Nodoka Setup", MB_OK | MB_ICONSTOP);	// DEBUG
-		return false;
-	}
-
-	// Service(driver)Ç™ãèÇΩÇÁí‚é~Ç≥ÇπÇÈÅB
-	hs = OpenService(hscm, i_serviceName.c_str(), SERVICE_STOP);
-	if (!hs)
-	{
-		//MessageBox(NULL, L"OpenService stop error", L"Nodoka Setup", MB_OK | MB_ICONSTOP);	// DEBUG
-
-		SERVICE_STATUS ss;
-		ControlService(hs, SERVICE_CONTROL_STOP, &ss);
-		CloseServiceHandle(hs);
-	}
-
-	// Service(driver)ÇÃÉCÉìÉXÉgÅ[Éã
-	{
-		hs = CreateService(hscm, i_serviceName.c_str(), i_serviceDescription.c_str(),
-						   SERVICE_START | SERVICE_STOP, SERVICE_KERNEL_DRIVER,
-						   SERVICE_DEMAND_START,
-						   SERVICE_ERROR_IGNORE,
-						   i_driverPath.c_str(), NULL, NULL,
-						   i_preloadedGroups, NULL, NULL);
-		DWORD err = GetLastError();
-		if (hs == NULL)
-		{
-			//MessageBox(NULL, L"CreateService error", L"Nodoka Setup", MB_OK | MB_ICONSTOP);
-			Registry reg(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\nodokad"));
-			reg.write(_T("Error"), err);
-
-			switch (err)
-			{
-			case ERROR_SERVICE_EXISTS:
-			{
-#if 0
-					hs = OpenService(hscm, i_serviceName.c_str(), SERVICE_CHANGE_CONFIG);
-					if (hs == NULL) {
-						CloseServiceHandle(hscm);
-						return GetLastError();
-						}
-					if (!ChangeServiceConfig(
-						hscm, SERVICE_KERNEL_DRIVER,
-						SERVICE_DEMAND_START,
-						SERVICE_ERROR_IGNORE,
-						i_driverPath.c_str(), NULL, NULL,
-						i_preloadedGroups, NULL, NULL,
-						i_serviceDescription.c_str())) {
-							CloseServiceHandle(hs);
-							CloseServiceHandle(hscm);
-							return GetLastError();		// ERROR_IO_PENDING!
-							// this code always reaches here. why?
-						}
-#else
-				Registry reg(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Services\\nodokad"));
-				reg.write(_T("Start"), SERVICE_DEMAND_START);
-#endif
-				break;
-			}
-			default:
-			{
-				CloseServiceHandle(hscm);
-				return err;
-			}
-			}
-		}
-	}
-	CloseServiceHandle(hs);
-	CloseServiceHandle(hscm);
-
-	Registry reg(HKEY_LOCAL_MACHINE, NODOKAD_FILTER_KEY);
-	typedef std::list<tstring> Filters;
-	Filters filters;
-	if (!reg.read(_T("UpperFilters"), &filters))
-	{
-		return false;
-	}
-	// nodokadìoò^Ç™Ç†ÇÈèÍçáÅAçÌèúÇ∑ÇÈ
-	for (Filters::iterator i = filters.begin(); i != filters.end();)
-	{
-		Filters::iterator next = i;
-		++next;
-		if (*i == _T("nodokad"))
-		{
-			filters.erase(i);
-		}
-		i = next;
-	}
-	// kbdclassÇÃéüÇ…nodokadÇì¸ÇÍÇÈÅB
-	bool add_nodokad = false;
-
-	for (Filters::iterator i = filters.begin(); i != filters.end();)
-	{
-		Filters::iterator next = i;
-		++next;
-		if (*i == _T("kbdclass"))
-		{
-			filters.insert(next, _T("nodokad"));
-			add_nodokad = true;
-		}
-		i = next;
-	}
-
-	// Ç‡ÇµkbdclassÇ™å©Ç¬Ç©ÇÁÇ»Ç¢èÍçá(ÇªÇÃÉPÅ[ÉXÇÕÇ†ÇËÇ¶Ç»Ç¢Ç™)àÍî‘ç≈å„Ç…ì¸ÇÍÇÈÅB
-	if (add_nodokad == false)
-	{
-		filters.push_back(_T("nodokad"));
-	}
-
-	// ÉåÉWÉXÉgÉäÇ…èëÇ´çûÇﬁÅB
-	if (!reg.write(_T("UpperFilters"), filters))
-	{
-		return false;
-	}
-
-	return ERROR_SUCCESS;
+	return g_driverManagerLastOutput;
 }
-#endif // _WINNT
 
-#if defined(_WINNT)
-
-// stop driver service
-BOOL stopDriverService(const tstringi &i_serviceName)
+// launch DriverManager.exe from the install directory and wait for it to complete
+// DriverManager.exe uses GetExecutablePath() to locate nodokad\nodokad.inf relative
+// to itself, so it must be run from the directory where the driver package was installed.
+static DWORD runDriverManager(const tstringi &i_arg)
 {
-	SC_HANDLE hscm;
-	SC_HANDLE hs;
-	BOOL err = FALSE;
-	SERVICE_STATUS ss;
+	// After installFiles(), DriverManager.exe is in g_destDir.
+	// Running it from there ensures GetExecutablePath() resolves nodokad\nodokad.inf
+	// relative to the install directory, not the SFX temp directory.
+	const tstringi &installDir = g_destDir;
+#ifdef _WIN64
+	tstringi exe = installDir + _T("\\DriverManager64.exe");
+#else
+	tstringi exe = installDir + _T("\\DriverManager.exe");
+#endif
 
-	hscm = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | GENERIC_EXECUTE);
-	if (!hscm)
+	g_driverManagerLastOutput.clear();
+
+	// Create a pipe to capture DriverManager's stdout and stderr.
+	SECURITY_ATTRIBUTES sa = {};
+	sa.nLength = sizeof(sa);
+	sa.bInheritHandle = TRUE;
+
+	HANDLE hRead = NULL, hWrite = NULL;
+	bool pipeOk = CreatePipe(&hRead, &hWrite, &sa, 0) &&
+	              SetHandleInformation(hRead, HANDLE_FLAG_INHERIT, 0);
+	if (!pipeOk)
 	{
-		DBG_PRINT((L"can not service open hscm error"));
-		DBG_PRINT((L"GetLastError = %d"), GetLastError());
-		return false;
+		if (hRead)  { CloseHandle(hRead);  hRead  = NULL; }
+		if (hWrite) { CloseHandle(hWrite); hWrite = NULL; }
 	}
 
-	hs = OpenService(hscm, i_serviceName.c_str(), SERVICE_STOP | GENERIC_EXECUTE);
-	if (!hs)
+	if (pipeOk)
 	{
-		DBG_PRINT((L"can not service stop hs error"));
-		DBG_PRINT((L"GetLastError = %d"), GetLastError());
-		CloseServiceHandle(hscm);
-		return false;
+		STARTUPINFO si = {};
+		si.cb          = sizeof(si);
+		si.dwFlags     = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_HIDE;
+		si.hStdOutput  = hWrite;
+		si.hStdError   = hWrite;   // merge stderr into stdout
+
+		tstringi cmdLine = _T("\"") + exe + _T("\" ") + i_arg;
+		PROCESS_INFORMATION pi = {};
+		BOOL created = CreateProcess(NULL, const_cast<LPTSTR>(cmdLine.c_str()),
+		                             NULL, NULL, TRUE, 0, NULL,
+		                             installDir.c_str(), &si, &pi);
+		// Close parent's write-end so ReadFile returns EOF when the child exits.
+		CloseHandle(hWrite); hWrite = NULL;
+
+		if (!created)
+		{
+			CloseHandle(hRead);
+			return GetLastError();
+		}
+
+		// Drain the pipe while the child runs (avoids pipe-buffer deadlock).
+		char rawBuf[4096];
+		DWORD totalRead = 0, bytesRead = 0;
+		while (totalRead < sizeof(rawBuf) - 1 &&
+		       ReadFile(hRead, rawBuf + totalRead,
+		                static_cast<DWORD>(sizeof(rawBuf) - 1 - totalRead),
+		                &bytesRead, NULL) &&
+		       bytesRead > 0)
+		{
+			totalRead += bytesRead;
+		}
+		CloseHandle(hRead);
+		rawBuf[totalRead] = '\0';
+
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		DWORD exitCode = 1;
+		GetExitCodeProcess(pi.hProcess, &exitCode);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+
+		if (totalRead > 0)
+		{
+			int wlen = MultiByteToWideChar(CP_ACP, 0, rawBuf, -1, NULL, 0);
+			if (wlen > 1)
+			{
+				WCHAR *wbuf = new WCHAR[wlen];
+				MultiByteToWideChar(CP_ACP, 0, rawBuf, -1, wbuf, wlen);
+				g_driverManagerLastOutput = wbuf;
+				delete[] wbuf;
+			}
+		}
+
+		return exitCode == 0 ? ERROR_SUCCESS : ERROR_INSTALL_FAILURE;
 	}
-	err = ControlService(hs, SERVICE_CONTROL_STOP, &ss);
-	if (!err)
-	{
-		DBG_PRINT((L"can not service stop ctrl error"));
-		DBG_PRINT((L"GetLastError = %d"), GetLastError());
 
-		return false;
-	}
+	// Fallback when pipe creation fails: run without capturing output.
+	SHELLEXECUTEINFO sei = {};
+	sei.cbSize       = sizeof(sei);
+	sei.fMask        = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
+	sei.lpVerb       = NULL;
+	sei.lpFile       = exe.c_str();
+	sei.lpParameters = i_arg.c_str();
+	sei.lpDirectory  = installDir.c_str();
+	sei.nShow        = SW_HIDE;
+	if (!ShellExecuteEx(&sei))
+		return GetLastError();
+	WaitForSingleObject(sei.hProcess, INFINITE);
+	DWORD exitCode = 1;
+	GetExitCodeProcess(sei.hProcess, &exitCode);
+	CloseHandle(sei.hProcess);
+	return exitCode == 0 ? ERROR_SUCCESS : ERROR_INSTALL_FAILURE;
+}
 
-	CloseServiceHandle(hs);
-	CloseServiceHandle(hscm);
-
-	return TRUE;
+// create driver service
+DWORD createDriverService(const tstringi &i_serviceName)
+{
+	tstringi arg = tstringi(_T("install ")) + i_serviceName;
+	return runDriverManager(arg);
 }
 #endif // _WINNT
 
@@ -481,38 +442,49 @@ BOOL stopDriverService(const tstringi &i_serviceName)
 // remove driver service
 DWORD removeDriverService(const tstringi &i_serviceName)
 {
-	DWORD err = ERROR_SUCCESS;
+	tstringi arg = tstringi(_T("uninstall ")) + i_serviceName;
+	return runDriverManager(arg);
+}
+#endif // _WINNT
 
-	Registry reg(HKEY_LOCAL_MACHINE, NODOKAD_FILTER_KEY);
-	std::list<tstring> filters;
-	if (reg.read(_T("UpperFilters"), &filters))
-	{
-		filters.remove(_T("nodokad"));
-		reg.write(_T("UpperFilters"), filters);
-	}
-
+#if defined(_WINNT)
+// check whether the named service currently exists. Stopping/waiting for the
+// service itself is fully delegated to DriverManager.exe's stopAndWaitService
+// (called internally from InstallDriver/UninstallDriver) -- this is the single
+// place that actually waits, so the previous non-waiting native stopDriverService
+// here has been removed to avoid a duplicate, weaker implementation (W5ÂØæÂøú).
+bool driverServiceExists(const tstringi &i_serviceName)
+{
 	SC_HANDLE hscm = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
-	SC_HANDLE hs =
-		OpenService(hscm, i_serviceName.c_str(),
-					SERVICE_START | SERVICE_STOP | DELETE);
-	if (!hs)
-	{
-		err = GetLastError();
-		goto error;
-	}
-
-	SERVICE_STATUS ss;
-	ControlService(hs, SERVICE_CONTROL_STOP, &ss);
-
-	if (!DeleteService(hs))
-	{
-		err = GetLastError();
-		goto error;
-	}
-error:
-	CloseServiceHandle(hs);
+	if (!hscm)
+		return false;
+	SC_HANDLE hs = OpenService(hscm, i_serviceName.c_str(), SERVICE_QUERY_STATUS);
+	bool exists = (hs != NULL);
+	if (hs)
+		CloseServiceHandle(hs);
 	CloseServiceHandle(hscm);
-	return err;
+	return exists;
+}
+
+// force-remove a driver name from the keyboard class UpperFilters value,
+// independent of DriverManager.exe's own result. DriverManager already retries
+// and aborts safely on failure (see DriverManager.cpp), but this is an
+// additional, fully independent layer: even if DriverManager.exe itself is
+// missing, fails to launch, or its registry write somehow fails, UpperFilters
+// must never retain a reference to an uninstalled/failed driver (Áµ∂ÂØæË¶Å‰ª∂1).
+bool forceRemoveUpperFiltersEntry(const tstringi &i_driverName)
+{
+	Registry reg(HKEY_LOCAL_MACHINE, NODOKAD_FILTER_KEY);
+	Registry::tstrings filters;
+	if (!reg.read(_T("UpperFilters"), &filters))
+		return true; // no UpperFilters value at all -> nothing to remove
+
+	size_t before = filters.size();
+	filters.remove(i_driverName);
+	if (filters.size() == before)
+		return true; // driver name was not present
+
+	return reg.write(_T("UpperFilters"), filters);
 }
 #endif // _WINNT
 
@@ -586,7 +558,7 @@ bool checkOs(SetupFile::OS os)
 	SYSTEM_INFO sysInfo;
 	getSysInfo(&sysInfo);
 
-	// IntelÉAÅ[ÉLÉeÉNÉ`ÉÉÅ[à»äOÇÕîrèú
+	// Intel„Ç¢„Éº„Ç≠„ÉÜ„ÇØ„ÉÅ„É£„Éº‰ª•Â§ñ„ÅØÊéíÈô§
 	switch (os)
 	{
 	default:

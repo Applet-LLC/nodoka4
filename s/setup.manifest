@@ -3,7 +3,7 @@
   <assemblyIdentity
     type="win32"
     name="nodoka installer"
-    version="4.3.0.0"
+    version="4.3.1.0"
     processorArchitecture="*"
 />
   <description>nodoka installer</description>
@@ -16,19 +16,9 @@
         processorArchitecture="*"
         publicKeyToken="6595b64144ccf1df"
         language="*"
-    />
+      />
     </dependentAssembly>
   </dependency>
-  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
-    <security>
-      <requestedPrivileges>
-        <requestedExecutionLevel
-          level="requireAdministrator"
-          uiAccess="false"
-      />
-      </requestedPrivileges>
-    </security>
-  </trustInfo>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <!-- Windows 10 -->

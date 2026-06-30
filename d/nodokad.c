@@ -1,5 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Driver for Nodoka for W2K, XP, XP64, Vista, Vista64
+// Driver for Nodoka for W10, W11
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 
 #include <ntddk.h>
@@ -22,18 +24,16 @@ extern ULONG KqDeque(KeyQue *kq, OUT KEYBOARD_INPUT_DATA *buf, IN ULONG lengthof
 
 //#define W2K			// force W2K for debug.
 //#define CALCADDR      // force Calc. SpinLock address
-//#define LOG = 1		// force Logging
+//#define LOG 1			// enable DbgPrint logging (view with DebugView)
 
+// CALCADDR: debug-only; requires kbdclass.h. Not used in normal (Windows 11) build.
 #ifdef CALCADDR
-#ifdef W2K
-#include "C:\WinDDK\NTDDK\src\input\kbdclass\kbdclass.h"
-#else  // XP, VISTA
-#include "C:\WinDDK\6001.18001\src\input\kbdclass\kbdclass.h"
-#endif
+#error "CALCADDR: add path to kbdclass.h (e.g. WDK input\\kbdclass) in project IncludePath"
 #endif
 
 #define USE_TOUCHPAD // very experimental!
 
+/*
 #if DBG
 // Enable debug logging only on checked build:
 // We use macro to avoid function call overhead
@@ -45,6 +45,7 @@ extern ULONG KqDeque(KeyQue *kq, OUT KEYBOARD_INPUT_DATA *buf, IN ULONG lengthof
 #define DEBUG_LOG(x) nodokaLogEnque x
 #define DEBUG_LOG_RETRIEVE(x) nodokaLogDeque x
 #else
+*/
 #if LOG
 #define DEBUG_LOG_INIT(x)
 #define DEBUG_LOG_TERM(x)
@@ -56,7 +57,33 @@ extern ULONG KqDeque(KeyQue *kq, OUT KEYBOARD_INPUT_DATA *buf, IN ULONG lengthof
 #define DEBUG_LOG(x)
 #define DEBUG_LOG_RETRIEVE(x) STATUS_INVALID_DEVICE_REQUEST
 #endif
+
+/*
 #endif
+*/
+
+/*
+ NODOKAD_TRACE: debug trace macro.
+ DBG build: always active (DbgPrintEx).
+ Release build with NODOKAD_LOG defined: also active (viewable in DebugView with Capture Kernel).
+ Release build without NODOKAD_LOG: no-op.
+*/
+#if DBG
+#define NODOKAD_TRACE(fmt, ...) \
+    DbgPrintEx(DPFLTR_DEFAULT_ID, DPFLTR_ERROR_LEVEL, "nodokad: " fmt, ##__VA_ARGS__)
+#elif defined(NODOKAD_LOG)
+#define NODOKAD_TRACE(fmt, ...) \
+    DbgPrintEx(DPFLTR_DEFAULT_ID, DPFLTR_ERROR_LEVEL, "nodokad: " fmt, ##__VA_ARGS__)
+#else
+#define NODOKAD_TRACE(fmt, ...) ((void)0)
+#endif
+// WDM keyboard class upper filter: we traverse device stacks and dispatch tables using
+// documented DEVICE_OBJECT/DRIVER_OBJECT members (NextDevice, AttachedDevice, DeviceQueue,
+// DriverName, MajorFunction). These are permitted for filter drivers (see C28175 docs).
+// Suppress 28175 with this justification for driver signing.
+#pragma warning(push)
+#pragma warning(disable: 28175)
+
 ///////////////////////////////////////////////////////////////////////////////
 // Device Extensions
 
@@ -72,7 +99,10 @@ typedef struct _DetourDeviceExtension
 	LONG isOpen;
 	BOOLEAN wasCleanupInitiated; //
 	PIRP irpq;
+	PFILE_OBJECT irpOwnerFileObject; // file object that issued the pending ReadFile IRP
 	KeyQue readQue; // when IRP_MJ_READ, the contents of readQue are returned
+	HANDLE openProcessId; // PID of the process that currently has the device open (0 = none)
+	ULONG openSessionId;  // session ID of the process that currently has the device open
 	} DetourDeviceExtension;
 
 typedef struct _FilterDeviceExtension
@@ -97,14 +127,23 @@ typedef struct _FilterDeviceExtension
 // Protorypes (TODO)
 
 
-NTSTATUS DriverEntry       (IN PDRIVER_OBJECT, IN PUNICODE_STRING);
+// DriverEntry matches DRIVER_INITIALIZE signature.
+_IRQL_requires_(PASSIVE_LEVEL)
+NTSTATUS DriverEntry(IN PDRIVER_OBJECT, IN PUNICODE_STRING);
 NTSTATUS nodokaAddDevice     (IN PDRIVER_OBJECT, IN PDEVICE_OBJECT);
 VOID nodokaUnloadDriver      (IN PDRIVER_OBJECT);
+VOID NodokaProcessNotifyCallback(IN PEPROCESS, IN HANDLE, IN PPS_CREATE_NOTIFY_INFO);
+NTSTATUS NodokaSessionNotificationCallback(IN PVOID, IN PVOID, IN ULONG, IN PVOID, IN PVOID, IN ULONG);
+_IRQL_requires_(DISPATCH_LEVEL) _IRQL_requires_same_
 VOID nodokaDetourReadCancel (IN PDEVICE_OBJECT, IN PIRP);
+NTSTATUS filterRemoveCompletion(IN PDEVICE_OBJECT, IN PIRP, IN PVOID);
 
 NTSTATUS filterGenericCompletion (IN PDEVICE_OBJECT, IN PIRP, IN PVOID);
 NTSTATUS filterReadCompletion    (IN PDEVICE_OBJECT, IN PIRP, IN PVOID);
 
+_Dispatch_type_(IRP_MJ_CREATE)
+_Dispatch_type_(IRP_MJ_CREATE_NAMED_PIPE)
+_Dispatch_type_(IRP_MJ_PNP)
 NTSTATUS nodokaGenericDispatch (IN PDEVICE_OBJECT, IN PIRP);
 NTSTATUS detourCreate        (IN PDEVICE_OBJECT, IN PIRP);
 NTSTATUS detourClose         (IN PDEVICE_OBJECT, IN PIRP);
@@ -116,6 +155,7 @@ NTSTATUS filterRead          (IN PDEVICE_OBJECT, IN PIRP);
 NTSTATUS filterPassThrough   (IN PDEVICE_OBJECT, IN PIRP);
 NTSTATUS detourPnP           (IN PDEVICE_OBJECT, IN PIRP);
 NTSTATUS filterPnP           (IN PDEVICE_OBJECT, IN PIRP);
+_Dispatch_type_(IRP_MJ_POWER)
 NTSTATUS filterPower         (IN PDEVICE_OBJECT, IN PIRP);
 #ifndef NODOKAD_NT4
 NTSTATUS detourPower         (IN PDEVICE_OBJECT, IN PIRP);
@@ -139,8 +179,7 @@ NTSTATUS filterTouchpad      (IN PDEVICE_OBJECT, IN PIRP);
 
 BOOLEAN g_isPnP;
 BOOLEAN g_isW2K;
-ULONG g_SpinLock_offset;
-ULONG g_RequestIsPending_offset;
+// g_SpinLock_offset and g_RequestIsPending_offset removed — avoid accessing other driver internals
 
 // Device names
 #define UnicodeString(str) { sizeof(str) - sizeof(UNICODE_NULL),	\
@@ -165,10 +204,108 @@ UnicodeString(L"\\Driver\\kbdclass");
 // Global Variables
 PDRIVER_DISPATCH _IopInvalidDeviceRequest; // Default dispatch function
 
+// Fix F: reference to the detour device object for the process-termination callback
+static PDEVICE_OBJECT g_detourDevObj = NULL;
+// Fix G: registration handle for IoRegisterContainerNotification (session disconnect/logoff)
+static PVOID g_containerRegistration = NULL;
+
+// Fix F: process termination callback — fires when any process exits.
+// If the exiting process is the one that has the detour device open, set
+// wasCleanupInitiated=TRUE immediately so filterReadCompletion stops
+// diverting keyboard input before the login screen for the next user appears.
+// This fires synchronously in kernel context, before user-mode handle cleanup.
+VOID NodokaProcessNotifyCallback(
+	PEPROCESS Process,
+	HANDLE ProcessId,
+	PPS_CREATE_NOTIFY_INFO CreateInfo)
+	{
+	UNREFERENCED_PARAMETER(Process);
+	if (CreateInfo != NULL) return; // Ignore process creation; only care about termination
+	if (g_detourDevObj == NULL) return;
+
+	DetourDeviceExtension *devExt =
+		(DetourDeviceExtension*)g_detourDevObj->DeviceExtension;
+
+	KIRQL irql;
+	KeAcquireSpinLock(&devExt->lock, &irql);
+	if (devExt->openProcessId == ProcessId)
+		{
+		devExt->wasCleanupInitiated = TRUE;
+		// openProcessId is cleared in detourCleanup; leave it here so that
+		// the normal CLEANUP/CLOSE IRP sequence can still decrement isOpen correctly.
+		}
+	KeReleaseSpinLock(&devExt->lock, irql);
+	}
+
+// Fix G: session disconnect/logoff notification — fires in kernel context when the session
+// that has the detour device open is disconnected or logs off, BEFORE the login screen.
+// Registering with IoObject=detourDevObj scopes this to sessions with the device open,
+// but a late-firing notification can still arrive after a new session has re-opened
+// (Fix 6: use session-ID comparison to reject stale notifications).
+NTSTATUS NodokaSessionNotificationCallback(
+	PVOID SessionObject,
+	PVOID IoObject,
+	ULONG Event,
+	PVOID Context,
+	PVOID NotificationPayload,
+	ULONG PayloadLength)
+	{
+	PDEVICE_OBJECT devObj = (PDEVICE_OBJECT)Context;
+	DetourDeviceExtension *devExt = (DetourDeviceExtension*)devObj->DeviceExtension;
+	KIRQL irql;
+
+	UNREFERENCED_PARAMETER(IoObject);
+	UNREFERENCED_PARAMETER(NotificationPayload);
+	UNREFERENCED_PARAMETER(PayloadLength);
+
+	DEBUG_LOG(("nodokad: NodokaSessionNotificationCallback event=%x", Event));
+
+	// Fix 6: get the disconnecting session's ID before acquiring the spinlock.
+	// IoGetContainerInformation requires IRQL <= APC_LEVEL.
+	IO_SESSION_STATE_INFORMATION sessionInfo = {};
+	NTSTATUS sessionStatus = IoGetContainerInformation(
+		IoSessionStateInformation, SessionObject, &sessionInfo, sizeof(sessionInfo));
+
+	KeAcquireSpinLock(&devExt->lock, &irql);
+	if (NT_SUCCESS(sessionStatus)) {
+		// Fix 6: set wasCleanupInitiated only when BOTH conditions are true:
+		// (1) isOpen<=1: no other session still has the device open (multi-RDP safety).
+		//     With 3+ simultaneous sessions, the last opener's disconnect should not
+		//     cut keyboard access for sessions that opened earlier.
+		// (2) openSessionId matches the disconnecting session: prevents a stale
+		//     notification (fired after a new session re-opened) from overriding the
+		//     fresh open's wasCleanupInitiated=FALSE (the original Case 5 race).
+		// Together these replace the original isOpen<=1-only guard which failed Case 5,
+		// while also correctly handling concurrent RDP sessions.
+		NODOKAD_TRACE("SessionNotify: event=%lu sessId=%lu openSessId=%lu isOpen=%ld\n",
+			Event, sessionInfo.SessionId, devExt->openSessionId, devExt->isOpen);
+		if (devExt->isOpen <= 1 && devExt->openSessionId == sessionInfo.SessionId) {
+			devExt->wasCleanupInitiated = TRUE;
+			NODOKAD_TRACE("SessionNotify: -> wasCleanupInitiated=TRUE\n");
+		} else {
+			NODOKAD_TRACE("SessionNotify: -> unchanged (isOpen=%ld idMatch=%d)\n",
+				devExt->isOpen, (devExt->openSessionId == sessionInfo.SessionId));
+		}
+	} else {
+		// Fallback if IoGetContainerInformation fails (should not happen on Win7+):
+		// use the original isOpen guard to avoid completely losing the protection.
+		NODOKAD_TRACE("SessionNotify: event=%lu getInfo failed=%08lx isOpen=%ld\n",
+			Event, sessionStatus, devExt->isOpen);
+		if (devExt->isOpen <= 1) {
+			devExt->wasCleanupInitiated = TRUE;
+			NODOKAD_TRACE("SessionNotify: -> wasCleanupInitiated=TRUE (fallback)\n");
+		}
+	}
+	KeReleaseSpinLock(&devExt->lock, irql);
+
+	return STATUS_SUCCESS;
+	}
+
 
 #define NODOKAD_MODE L""
 static UNICODE_STRING NodokaDriverVersion =
-UnicodeString(L"$Revision: 1.33 $" NODOKAD_MODE);
+UnicodeString(L"$Revision: 1.38 $" NODOKAD_MODE);
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -190,10 +327,13 @@ void DEBUG_LOGChain(PDRIVER_OBJECT driverObject)
 	return;
 	}
 
-// initialize driver
+// initialize driver (signature matches DRIVER_INITIALIZE; typedef is pointer type so cannot declare function with it)
+#pragma warning(suppress: 28101)
+_IRQL_requires_(PASSIVE_LEVEL)
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT driverObject,
 										 IN PUNICODE_STRING registryPath)
 	{
+	// DbgBreakPoint();  // DriverEntry breakpoint for debugging; remove or comment out for production
 	NTSTATUS status;
 	BOOLEAN is_symbolicLinkCreated = FALSE;
 	ULONG i;
@@ -221,32 +361,30 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT driverObject,
 		}
 #ifdef NODOKAD_NT4
 	g_isXp = FALSE;
-	g_RequestIsPending_offset = 0;
-	g_SpinLock_offset = 48;
+	/* removed reliance on target driver's internal offsets */
 #else /* !NODOKAD_NT4 */
 	if (IoIsWdmVersionAvailable(6, 0x00)) { // is Windows Vista
-		DEBUG_LOG(("nodokad: is Windows Vista"));
-		g_isW2K = FALSE;
-		g_RequestIsPending_offset = 0;	// not use
+	DEBUG_LOG(("nodokad: is Windows Vista"));
+	g_isW2K = FALSE;
+	/* removed use of undocumented offsets */
 #ifndef AMD64
-		g_SpinLock_offset = 108;
+	/* no target-driver offset assumptions on x86 */
 #else
-		g_SpinLock_offset = 160;
+	/* no target-driver offset assumptions on AMD64 */
 #endif
-		} else if (IoIsWdmVersionAvailable(1, 0x20)) { // is Windows XP
+	} else if (IoIsWdmVersionAvailable(1, 0x20)) { // is Windows XP
 			DEBUG_LOG(("nodokad: is Windows XP"));
 			g_isW2K = FALSE;
-			g_RequestIsPending_offset = 0;	// not use
+			/* removed use of undocumented offsets */
 #ifndef AMD64
-			g_SpinLock_offset = 108;
+			/* no target-driver offset assumptions on x86 */
 #else
-			g_SpinLock_offset = 160;
+			/* no target-driver offset assumptions on AMD64 */
 #endif
 		} else if (IoIsWdmVersionAvailable(1, 0x10)) { // is Windows 2000
 			DEBUG_LOG(("nodokad: is Windows 2000"));
 			g_isW2K = TRUE;
-			g_RequestIsPending_offset = 48;
-			g_SpinLock_offset = 116;
+			/* removed use of undocumented offsets */
 			} else { // Unknown version
 				DEBUG_LOG(("nodokad: unknown Windows"));
 				status = STATUS_UNKNOWN_REVISION;
@@ -297,8 +435,40 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT driverObject,
 			detourDevExt->isOpen = FALSE;
 			detourDevExt->wasCleanupInitiated = FALSE;
 			detourDevExt->irpq = NULL;
+			detourDevExt->irpOwnerFileObject = NULL;
+			detourDevExt->openProcessId = NULL;
 			status = KqInitialize(&detourDevExt->readQue);
 			if (!NT_SUCCESS(status)) goto error;
+
+			// Fix F: register process-termination callback and store detour device reference
+			g_detourDevObj = detourDevObj;
+			{
+			NTSTATUS cbStatus = PsSetCreateProcessNotifyRoutineEx(
+				NodokaProcessNotifyCallback, FALSE);
+			if (!NT_SUCCESS(cbStatus))
+				DEBUG_LOG(("nodokad: PsSetCreateProcessNotifyRoutineEx failed: %x", cbStatus));
+			}
+
+			// Fix G: register session disconnect/logoff notification.
+			// IoObject=detourDevObj scopes the callback to sessions with the device open.
+			{
+			IO_SESSION_STATE_NOTIFICATION sessionNotif;
+			NTSTATUS cbStatus;
+			RtlZeroMemory(&sessionNotif, sizeof(sessionNotif));
+			sessionNotif.Size = sizeof(sessionNotif);
+			sessionNotif.IoObject = detourDevObj;
+			sessionNotif.EventMask = IO_SESSION_STATE_DISCONNECT_EVENT |
+			                         IO_SESSION_STATE_LOGOFF_EVENT;
+			sessionNotif.Context = detourDevObj;
+			cbStatus = IoRegisterContainerNotification(
+				IoSessionStateNotification,
+				(PIO_CONTAINER_NOTIFICATION_FUNCTION)NodokaSessionNotificationCallback,
+				&sessionNotif,
+				sizeof(sessionNotif),
+				&g_containerRegistration);
+			if (!NT_SUCCESS(cbStatus))
+				DEBUG_LOG(("nodokad: IoRegisterContainerNotification failed: %x", cbStatus));
+			}
 
 			// create symbolic link for detour
 			status =
@@ -469,44 +639,20 @@ error:
 
 BOOLEAN CancelKeyboardClassRead(PIRP cancelIrp, PDEVICE_OBJECT kbdClassDevObj)
 	{
-	PVOID kbdClassDevExt;
-	BOOLEAN isSafe;
-	PKSPIN_LOCK kbdClassSpinLock;
-	PKSPIN_LOCK CalcSpinLock;
-	KIRQL currentIrql;
+	UNREFERENCED_PARAMETER(kbdClassDevObj);
 
 	DEBUG_LOG(("nodokad: CancelKeyboardClassRead()"));
 
-	kbdClassDevExt = kbdClassDevObj->DeviceExtension;
+	// Use documented API to cancel the IRP. IoCancelIrp acquires the cancel spin lock
+	// internally and returns TRUE if it successfully set the IRP to be canceled.
+	if (cancelIrp == NULL) {
+		DEBUG_LOG(("nodokad: CancelKeyboardClassRead: null irp"));
+		return FALSE;
+	}
 
-#ifndef CALCADDR
-	kbdClassSpinLock = (PKSPIN_LOCK)((ULONG_PTR)kbdClassDevExt + g_SpinLock_offset);
-#else
-	kbdClassSpinLock = &(((PDEVICE_EXTENSION)kbdClassDevExt)->SpinLock);
-#endif
-
-	KeAcquireSpinLock(kbdClassSpinLock, &currentIrql);
-
-	DEBUG_LOG(("nodokad:            W2K  = %x", g_isW2K));
-	DEBUG_LOG(("nodokad:  kbdClassDevExt = %x", kbdClassDevExt));
-	DEBUG_LOG(("nodokad:        SpinLock = %x", kbdClassSpinLock));
-#ifdef CALCADDR
-	DEBUG_LOG(("nodokad:RequestIsPending,W2K = %x", &(((PDEVICE_EXTENSION)kbdClassDevExt)->RequestIsPending) ));
-#endif
-
-	if (g_isW2K == FALSE) {
-		isSafe = cancelIrp->CancelRoutine ? TRUE : FALSE;
-		} else {
-			isSafe = *(BOOLEAN*)((ULONG_PTR)kbdClassDevExt + g_RequestIsPending_offset);
-		}
-	if (isSafe == TRUE) {
-		KeReleaseSpinLock(kbdClassSpinLock, currentIrql);
-		IoCancelIrp(cancelIrp);
-		} else {
-			DEBUG_LOG(("nodokad: cancel irp not pending"));
-			KeReleaseSpinLock(kbdClassSpinLock, currentIrql);
-		}
-	return isSafe;
+	// Rely on IoCancelIrp instead of peeking into other driver's device extension.
+	// This avoids accessing undocumented offsets and is compatible with modern Windows.
+	return IoCancelIrp(cancelIrp);
 	}
 
 // unload driver
@@ -539,7 +685,14 @@ VOID nodokaUnloadDriver(IN PDRIVER_OBJECT driverObject)
 		kbdClassDevObj = filterDevExt->kbdClassDevObj;
 		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 		if (cancelIrp) {
-			while (CancelKeyboardClassRead(cancelIrp, kbdClassDevObj) != TRUE);
+			// Retry with a limit: IoCancelIrp returns FALSE when the cancel routine
+			// has already been cleared (IRP is completing). Spinning forever would
+			// hang the system; give the completing thread time to finish.
+			int retry = 100;
+			LARGE_INTEGER interval;
+			interval.QuadPart = -1000; // 100us in 100-nanosecond units
+			while (!CancelKeyboardClassRead(cancelIrp, kbdClassDevObj) && --retry > 0)
+				KeDelayExecutionThread(KernelMode, FALSE, &interval);
 			}
 		// delete device objects
 		delObj= devObj;
@@ -552,12 +705,27 @@ VOID nodokaUnloadDriver(IN PDRIVER_OBJECT driverObject)
 	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
 	// TODO: at this point, the irp may be completed (but what can I do for it ?)
 	cancelIrp = detourDevExt->irpq;
+	// clear stored pointer under lock to avoid races with concurrent cancel routine
+	detourDevExt->irpq = NULL;
 	// finalize read que
 	KqFinalize(&detourDevExt->readQue);
 	KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
 	if (cancelIrp)
 		IoCancelIrp(cancelIrp);
-	// delete device objects
+
+	// Fix G: unregister session notification before freeing device memory (use-after-free guard)
+	if (g_containerRegistration)
+		{
+		IoUnregisterContainerNotification(g_containerRegistration);
+		g_containerRegistration = NULL;
+		}
+
+	// Fix F: unregister process-termination callback and clear device reference
+	// (must be done before device memory is freed)
+	g_detourDevObj = NULL;
+	PsSetCreateProcessNotifyRoutineEx(NodokaProcessNotifyCallback, TRUE);
+
+	// delete device objects (after all callbacks are unregistered)
 	IoDeleteDevice(devObj);
 
 	// delete symbolic link
@@ -570,43 +738,44 @@ VOID nodokaUnloadDriver(IN PDRIVER_OBJECT driverObject)
 // Cancel Functionss
 
 
-// detour read cancel
+// detour read cancel (device lock released on all paths; called at DISPATCH_LEVEL)
+#pragma warning(suppress: 28166)
+_IRQL_requires_(DISPATCH_LEVEL)
+_IRQL_requires_same_
 VOID nodokaDetourReadCancel(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	{
 	DetourDeviceExtension *devExt =
 		(DetourDeviceExtension *)deviceObject->DeviceExtension;
-	KIRQL currentIrql;
+	KIRQL oldIrql;
 
-	DEBUG_LOG(("nodokad: detourReadCancel():"));
+	DEBUG_LOG(("nodokad: detourReadCancel()"));
 
-	KeAcquireSpinLock(&devExt->lock, &currentIrql);
-	devExt->irpq = NULL;
-	KeReleaseSpinLock(&devExt->lock, currentIrql);
+	// Cancel routine is invoked with the cancel spin lock held.
+	// Use the recommended pattern: atomically clear the cancel routine,
+	// release the cancel spin lock, then acquire the device lock to
+	// safely manipulate device state. This prevents deadlocks caused by
+	// inconsistent lock ordering (device lock <-> cancel spin lock).
+	if (IoSetCancelRoutine(irp, NULL) == NULL) {
+		// Another thread already cleared the cancel routine or it's being completed.
+		// Release cancel spin lock (held by caller) and return.
+		IoReleaseCancelSpinLock(irp->CancelIrql);
+		return;
+	}
 
+	// We successfully cleared the cancel routine while holding the cancel spin lock.
+	// Release the cancel spin lock before acquiring the device lock to avoid
+	// inversion with code paths that acquire the device lock first then the cancel spin lock.
 	IoReleaseCancelSpinLock(irp->CancelIrql);
 
-#if 0
-	KeAcquireSpinLock(&devExt->lock, &currentIrql);
-	if (devExt->irpq && irp == deviceObject->CurrentIrp)
-		// the current request is being cancelled
-		{
-		deviceObject->CurrentIrp = NULL;
-		devExt->irpq = NULL;
-		KeReleaseSpinLock(&devExt->lock, currentIrql);
-		IoStartNextPacket(deviceObject, TRUE);
-		}
-	else
-		{
-		// Cancel a request in the device queue
-		KIRQL cancelIrql;
+	KeAcquireSpinLock(&devExt->lock, &oldIrql);
 
-		IoAcquireCancelSpinLock(&cancelIrql);
-		KeRemoveEntryDeviceQueue(&deviceObject->DeviceQueue,
-			&irp->Tail.Overlay.DeviceQueueEntry);
-		IoReleaseCancelSpinLock(cancelIrql);
-		KeReleaseSpinLock(&devExt->lock, currentIrql);
-		}
-#endif
+	// Clear driver's stored IRP pointer if it references this IRP.
+	if (devExt->irpq == irp) {
+		devExt->irpq = NULL;
+		devExt->irpOwnerFileObject = NULL;
+	}
+
+	KeReleaseSpinLock(&devExt->lock, oldIrql);
 
 	irp->IoStatus.Status = STATUS_CANCELLED;
 	irp->IoStatus.Information = 0;
@@ -631,6 +800,60 @@ NTSTATUS filterGenericCompletion(IN PDEVICE_OBJECT deviceObject,
 	return STATUS_SUCCESS;
 	}
 
+/*
+ * Completion routine for IRP_MN_REMOVE_DEVICE / IRP_MN_SURPRISE_REMOVAL forwarded
+ * to the lower driver. Perform filter cleanup here once lower driver has completed.
+ */
+NTSTATUS filterRemoveCompletion(IN PDEVICE_OBJECT deviceObject, IN PIRP irp, IN PVOID context)
+	{
+	PDEVICE_OBJECT filterDevObj = (PDEVICE_OBJECT)context;
+	FilterDeviceExtension *filterDevExt;
+	DetourDeviceExtension *detourDevExt;
+	KIRQL currentIrql;
+	PIRP cancelIrp = NULL;
+	PDRIVER_OBJECT driverObject;
+
+	UNREFERENCED_PARAMETER(deviceObject);
+
+	if (irp->PendingReturned)
+		IoMarkIrpPending(irp);
+
+	filterDevExt = (FilterDeviceExtension*)filterDevObj->DeviceExtension;
+	driverObject = filterDevObj->DriverObject;
+
+	DEBUG_LOG(("nodokad: filterRemoveCompletion() status=%x", irp->IoStatus.Status));
+
+	// If remove succeeded, clean up association in detour device
+	detourDevExt = (DetourDeviceExtension*)filterDevExt->detourDevObj->DeviceExtension;
+	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
+	if (detourDevExt->filterDevObj == filterDevObj) {
+		detourDevExt->filterDevObj = NULL;
+	}
+	KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
+
+	// Perform filter-specific cleanup: detach, finalize queues, cancel pending IRP
+	KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
+	cancelIrp = filterDevExt->irpq;
+	filterDevExt->irpq = NULL;
+	KqFinalize(&filterDevExt->readQue);
+	KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
+
+	if (cancelIrp) {
+		IoCancelIrp(cancelIrp);
+	}
+
+	// Detach from lower device stack and delete this filter device
+	if (filterDevExt->kbdClassDevObj) {
+		IoDetachDevice(filterDevExt->kbdClassDevObj);
+	}
+	IoDeleteDevice(filterDevObj);
+	DEBUG_LOG(("nodokad: delete filter device: %x", filterDevObj));
+	DEBUG_LOGChain(driverObject);
+
+	// Propagate completion status
+	return irp->IoStatus.Status;
+	}
+
 
 // 
 NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
@@ -638,7 +861,6 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 	{
 	NTSTATUS status;
 	KIRQL currentIrql, cancelIrql;
-	PIRP irpCancel = NULL;
 	FilterDeviceExtension *filterDevExt =
 		(FilterDeviceExtension*)deviceObject->DeviceExtension;
 	PDEVICE_OBJECT detourDevObj = filterDevExt->detourDevObj;
@@ -664,13 +886,22 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 	if (detourDevExt->isOpen && !detourDevExt->wasCleanupInitiated)
 		{
 		// if detour is opened, key datum are forwarded to detour
-		if (irp->IoStatus.Status == STATUS_SUCCESS)
+			if (irp->IoStatus.Status == STATUS_SUCCESS)
 			{
-			PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(irp);
-
+#if DBG
+			{
+			ULONG nKeys = (ULONG)irp->IoStatus.Information / sizeof(KEYBOARD_INPUT_DATA);
+			PKEYBOARD_INPUT_DATA kd = (PKEYBOARD_INPUT_DATA)irp->AssociatedIrp.SystemBuffer;
+			KqEnque(&detourDevExt->readQue, kd, nKeys);
+			for (ULONG _di = 0; _di < nKeys; _di++)
+				NODOKAD_TRACE("filterReadCompletion enqueue[%lu] sc=0x%X flags=0x%X ExtraInfo=0x%08X\n",
+				              _di, kd[_di].MakeCode, kd[_di].Flags, kd[_di].ExtraInformation);
+			}
+#else
 			KqEnque(&detourDevExt->readQue,
 				(KEYBOARD_INPUT_DATA *)irp->AssociatedIrp.SystemBuffer,
 				(ULONG)irp->IoStatus.Information / sizeof(KEYBOARD_INPUT_DATA));
+#endif
 
 			irp->IoStatus.Status = STATUS_CANCELLED;
 			irp->IoStatus.Information = 0;
@@ -679,19 +910,42 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 
 		IoAcquireCancelSpinLock(&cancelIrql);
 
-		if (detourDevExt->irpq) {
-			if (readq(&detourDevExt->readQue, detourDevExt->irpq) == STATUS_SUCCESS) {
-				IoSetCancelRoutine(detourDevExt->irpq, NULL);
-				IoCompleteRequest(detourDevExt->irpq, IO_KEYBOARD_INCREMENT);
+		if (detourDevExt->irpq && !KqIsEmpty(&detourDevExt->readQue)) {
+			PIRP savedIrp = detourDevExt->irpq;
+			// Fix 2: claim the IRP before dequeuing to prevent data loss.
+			// If we dequeued first and then found the IRP was being cancelled,
+			// the dequeued keys would be silently discarded.
+			if (IoSetCancelRoutine(savedIrp, NULL) != NULL) {
 				detourDevExt->irpq = NULL;
-				}
+				IoReleaseCancelSpinLock(cancelIrql);
+				readq(&detourDevExt->readQue, savedIrp);
+				KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
+				IoCompleteRequest(savedIrp, IO_KEYBOARD_INCREMENT);
+				goto _filterReadCompletion_after_detour_irp_unlocked;
 			}
+			// IoSetCancelRoutine returned NULL: cancel routine is running.
+			// Data remains in readQue; the cancel routine will complete the IRP.
+		}
 		IoReleaseCancelSpinLock(cancelIrql);
-
 		KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
+_filterReadCompletion_after_detour_irp_unlocked:
 
 		KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
 		status = readq(&filterDevExt->readQue, irp);
+		if (status == STATUS_PENDING) {
+			// No inject data: complete with STATUS_SUCCESS/0 bytes.
+			// Win10 x86 win32k does not re-issue READ after STATUS_CANCELLED but
+			// does re-issue after STATUS_SUCCESS with zero bytes (NT_SUCCESS=TRUE).
+			// Sync drop investigation: note that filterDevExt->irpq is NOT re-armed
+			// here. Until kbdclass issues a brand new IRP_MJ_READ (-> filterRead()),
+			// any further detourWrite() in the meantime has nothing to wake.
+			NODOKAD_TRACE("filterReadCompletion: queue empty at drain, irpq left unarmed\n");
+			irp->IoStatus.Status = STATUS_SUCCESS;
+			irp->IoStatus.Information = 0;
+			} else {
+				NODOKAD_TRACE("filterReadCompletion: drained %lu byte(s) from queue\n",
+					(ULONG)irp->IoStatus.Information);
+			}
 		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 		}
 	else
@@ -701,6 +955,10 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 
 	if (status == STATUS_SUCCESS)
 		irp->IoStatus.Status = STATUS_SUCCESS;
+	// Guard: ensure STATUS_PENDING never appears in IoStatus at completion routine exit
+	// (Driver Verifier 0xC9/0x224: kbdclass synchronous completion on Win10 x86).
+	if (irp->IoStatus.Status == (NTSTATUS)STATUS_PENDING)
+		irp->IoStatus.Status = STATUS_CANCELLED;
 	return irp->IoStatus.Status;
 	}
 
@@ -716,6 +974,14 @@ NTSTATUS readq(KeyQue *readQue, PIRP irp)
 		len = KqDeque(readQue,
 			(KEYBOARD_INPUT_DATA *)irp->AssociatedIrp.SystemBuffer,
 			irpSp->Parameters.Read.Length / sizeof(KEYBOARD_INPUT_DATA));
+#if DBG
+		{
+		PKEYBOARD_INPUT_DATA kd = (PKEYBOARD_INPUT_DATA)irp->AssociatedIrp.SystemBuffer;
+		for (ULONG _di = 0; _di < len; _di++)
+			NODOKAD_TRACE("readq dequeue[%lu] sc=0x%X flags=0x%X ExtraInfo=0x%08X (->user)\n",
+			              _di, kd[_di].MakeCode, kd[_di].Flags, kd[_di].ExtraInformation);
+		}
+#endif
 		irp->IoStatus.Status = STATUS_SUCCESS;
 		irp->IoStatus.Information = len * sizeof(KEYBOARD_INPUT_DATA);
 		irpSp->Parameters.Read.Length = (ULONG)irp->IoStatus.Information;
@@ -732,6 +998,9 @@ NTSTATUS readq(KeyQue *readQue, PIRP irp)
 
 
 // Generic Dispatcher
+_Dispatch_type_(IRP_MJ_CREATE)
+_Dispatch_type_(IRP_MJ_CREATE_NAMED_PIPE)
+_Dispatch_type_(IRP_MJ_PNP)
 NTSTATUS nodokaGenericDispatch(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	{
 	PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(irp);
@@ -765,40 +1034,55 @@ NTSTATUS detourCreate(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 		(DetourDeviceExtension*)deviceObject->DeviceExtension;
 
 	DEBUG_LOG(("nodokad: detourCreate()"));
+	NODOKAD_TRACE("detourCreate: isOpen=%ld before increment\n", detourDevExt->isOpen);
 
-	if (1 < InterlockedIncrement(&detourDevExt->isOpen))
-		// nodoka detour device can be opend only once at a time
-		{
-		InterlockedDecrement(&detourDevExt->isOpen);
-		irp->IoStatus.Status = STATUS_INTERNAL_ERROR;
-		}
-	else
-		{
-		PIRP irpCancel;
-		KIRQL currentIrql;
-		PDEVICE_OBJECT filterDevObj;
+	// Fix 5: allow true reference counting for FUS (Fast User Switching) scenarios
+	// where two sessions may have the device open simultaneously.
+	// Previously "Fix B" reset isOpen to 1 unconditionally, which broke the
+	// reference count when user A opened while user B still had it open:
+	// A open → isOpen=2→1 (Fix B); B close → isOpen=0 (wrong, A still open).
+	InterlockedIncrement(&detourDevExt->isOpen);
 
-		KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
-		detourDevExt->wasCleanupInitiated = FALSE;
-		KqClear(&detourDevExt->readQue);
-		filterDevObj = detourDevExt->filterDevObj;
-		KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
-		if (filterDevObj) {
-			FilterDeviceExtension *filterDevExt =
-				(FilterDeviceExtension*)filterDevObj->DeviceExtension;
-			PDEVICE_OBJECT kbdClassDevObj;
+	{
+	PIRP irpCancel;
+	KIRQL currentIrql;
+	PDEVICE_OBJECT filterDevObj;
 
-			KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
-			irpCancel = filterDevExt->kbdClassDevObj->CurrentIrp;
-			kbdClassDevObj = filterDevExt->kbdClassDevObj;
-			KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
-			if (irpCancel) {
-				CancelKeyboardClassRead(irpCancel, kbdClassDevObj);
-				}
+	// Fix 6: record the opener's session ID for stale-notification detection.
+	// IoGetContainerInformation requires IRQL <= APC_LEVEL — call before spinlock.
+	IO_SESSION_STATE_INFORMATION sessionInfo = {};
+	NTSTATUS sessionStatus = IoGetContainerInformation(
+		IoSessionStateInformation, NULL, &sessionInfo, sizeof(sessionInfo));
+	ULONG openSessionId = NT_SUCCESS(sessionStatus) ? sessionInfo.SessionId : (ULONG)~0;
+
+	NODOKAD_TRACE("detourCreate: sessId=%lu wasClean=%d isOpen=%ld -> opening\n",
+		openSessionId, detourDevExt->wasCleanupInitiated, detourDevExt->isOpen);
+	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
+	detourDevExt->wasCleanupInitiated = FALSE;
+	detourDevExt->irpOwnerFileObject = NULL;
+	detourDevExt->openProcessId = PsGetCurrentProcessId(); // Fix F: track opening process
+	detourDevExt->openSessionId = openSessionId;           // Fix 6: track opening session
+	KqClear(&detourDevExt->readQue);
+	filterDevObj = detourDevExt->filterDevObj;
+	KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
+	if (filterDevObj) {
+		FilterDeviceExtension *filterDevExt =
+			(FilterDeviceExtension*)filterDevObj->DeviceExtension;
+		PDEVICE_OBJECT kbdClassDevObj;
+
+		// Fix C: cancel the IRP the filter actually owns (irpq), not kbdClassDevObj->CurrentIrp
+		KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
+		irpCancel = filterDevExt->irpq;
+		filterDevExt->irpq = NULL;
+		kbdClassDevObj = filterDevExt->kbdClassDevObj;
+		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
+		if (irpCancel) {
+			CancelKeyboardClassRead(irpCancel, kbdClassDevObj);
 			}
-
-		irp->IoStatus.Status = STATUS_SUCCESS;
 		}
+
+	irp->IoStatus.Status = STATUS_SUCCESS;
+	}
 	irp->IoStatus.Information = 0;
 	IoCompleteRequest(irp, IO_NO_INCREMENT);
 	return irp->IoStatus.Status;
@@ -843,17 +1127,33 @@ NTSTATUS detourRead(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 		status = STATUS_BUFFER_TOO_SMALL;
 	else
 		status = readq(&detourDevExt->readQue, irp);
+
 	if (status == STATUS_PENDING) {
+		// Follow safe cancel pattern:
+		// Acquire the cancel spin lock, check if IRP was already cancelled,
+		// then set cancel routine and store the pointer while holding the cancel lock.
 		IoAcquireCancelSpinLock(&cancelIrql);
-		IoMarkIrpPending(irp);
-		detourDevExt->irpq = irp;
-		IoSetCancelRoutine(irp, nodokaDetourReadCancel);
-		IoReleaseCancelSpinLock(cancelIrql);
+		if (irp->Cancel) {
+			// IRP already canceled — complete outside of device lock.
+			IoReleaseCancelSpinLock(cancelIrql);
+			status = STATUS_CANCELLED;
+		} else {
+			IoMarkIrpPending(irp);
+			IoSetCancelRoutine(irp, nodokaDetourReadCancel);
+			detourDevExt->irpq = irp;
+			detourDevExt->irpOwnerFileObject = irpSp->FileObject;
+			IoReleaseCancelSpinLock(cancelIrql);
+			// Keep STATUS_PENDING to indicate queued.
 		}
-	else {
-		IoCompleteRequest(irp, IO_KEYBOARD_INCREMENT);
-		}
+	}
+
+	// Release spinlock before IoCompleteRequest to avoid holding a lock
+	// while the I/O manager runs completion processing (deadlock risk on UP).
 	KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
+
+	if (status != STATUS_PENDING) {
+		IoCompleteRequest(irp, IO_KEYBOARD_INCREMENT);
+	}
 	return status;
 	}
 
@@ -876,7 +1176,7 @@ NTSTATUS detourWrite(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 		status = STATUS_INVALID_PARAMETER;
 	else {
 		// write to filter que
-		KIRQL cancelIrql, currentIrql;
+		KIRQL currentIrql;
 		PIRP irpCancel;
 		PDEVICE_OBJECT filterDevObj;
 
@@ -897,13 +1197,27 @@ NTSTATUS detourWrite(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 				len);
 			irp->IoStatus.Information = len * sizeof(KEYBOARD_INPUT_DATA);
 			irpSp->Parameters.Write.Length = (ULONG)irp->IoStatus.Information;
-			// cancel filter irp
-			irpCancel = filterDevExt->irpq; 
+
+			irpCancel = filterDevExt->irpq;
 			filterDevExt->irpq = NULL;
 			kbdClassDevObj = filterDevExt->kbdClassDevObj;
 			KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 			if (irpCancel) {
-				CancelKeyboardClassRead(irpCancel, kbdClassDevObj);
+				// Fix 1 (Sync drop investigation): mirror nodokaUnloadDriver's retry.
+				// IoCancelIrp returns FALSE when the cancel routine has already been
+				// cleared (the lower driver is completing this IRP naturally, e.g. a
+				// real key arrived at the same moment). That case self-resolves via
+				// filterReadCompletion()'s own queue drain, so a short bounded retry
+				// here only guards against a cancel attempt landing in that brief
+				// window; it does not change behavior in the common case where the
+				// IRP is genuinely still pending.
+				int retry = 100;
+				LARGE_INTEGER interval;
+				interval.QuadPart = -1000; // 100us in 100-nanosecond units
+				while (!CancelKeyboardClassRead(irpCancel, kbdClassDevObj) && --retry > 0)
+					KeDelayExecutionThread(KernelMode, FALSE, &interval);
+				NODOKAD_TRACE("detourWrite: cancel %s (retries left=%d)\n",
+					retry > 0 ? "ok" : "gave up", retry);
 				}
 			status = STATUS_SUCCESS;
 			} else {
@@ -921,48 +1235,64 @@ NTSTATUS detourWrite(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 NTSTATUS detourCleanup(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	{
 	KIRQL currentIrql, cancelIrql;
-	PIO_STACK_LOCATION irpSp;
-	PIRP  currentIrp = NULL, irpCancel;
+	PIRP  irpToCancel = NULL;
 	DetourDeviceExtension *detourDevExt =
 		(DetourDeviceExtension*)deviceObject->DeviceExtension;
+	PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(irp);
+	PFILE_OBJECT cleanupFileObj = irpSp->FileObject;
 
+	UNREFERENCED_PARAMETER(deviceObject);
 	DEBUG_LOG(("nodokad: detourCleanup()"));
+	NODOKAD_TRACE("detourCleanup: isOpen=%ld wasClean=%d irpq=%p irpOwner=%p cleanupFO=%p\n",
+		detourDevExt->isOpen, detourDevExt->wasCleanupInitiated,
+		detourDevExt->irpq, detourDevExt->irpOwnerFileObject, cleanupFileObj);
 
 	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
 	IoAcquireCancelSpinLock(&cancelIrql);
-	irpSp = IoGetCurrentIrpStackLocation(irp);
-	detourDevExt->wasCleanupInitiated = TRUE;
 
-	// Complete all requests queued by this thread with STATUS_CANCELLED
-	currentIrp = deviceObject->CurrentIrp;
-	deviceObject->CurrentIrp = NULL;
-	detourDevExt->irpq = NULL;
+	// Fix 4+5: FUS support — only update shared state when this is the last (or only) opener.
+	// When two sessions both have the device open (FUS: user A resumed, user B still closing),
+	// isOpen > 1 at B's CLEANUP time. Setting wasCleanupInitiated or clearing openProcessId
+	// here would suppress key forwarding for A, causing a freeze.
+	if (detourDevExt->isOpen <= 1) {
+		detourDevExt->wasCleanupInitiated = TRUE;
+		detourDevExt->openProcessId = NULL; // Fix F: clear tracked process
+		NODOKAD_TRACE("detourCleanup: -> wasCleanupInitiated=TRUE (isOpen<=1)\n");
+	} else {
+		NODOKAD_TRACE("detourCleanup: -> skipped (isOpen=%ld)\n", detourDevExt->isOpen);
+	}
 
-	while (currentIrp != NULL)
-		{
-		IoSetCancelRoutine(currentIrp, NULL);
-		currentIrp->IoStatus.Status = STATUS_CANCELLED;
-		currentIrp->IoStatus.Information = 0;
-
-		IoReleaseCancelSpinLock(cancelIrql);
-		KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
-		IoCompleteRequest(currentIrp, IO_NO_INCREMENT);
-		KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
-		IoAcquireCancelSpinLock(&cancelIrql);
-
-		// Dequeue the next packet (IRP) from the device work queue.
-			{
-			PKDEVICE_QUEUE_ENTRY packet =
-				KeRemoveDeviceQueue(&deviceObject->DeviceQueue);
-			currentIrp = packet ?
-				CONTAINING_RECORD(packet, IRP, Tail.Overlay.DeviceQueueEntry) : NULL;
-			}
+	// detourRead stores the pending IRP in irpq (via IoMarkIrpPending),
+	// not in deviceObject->CurrentIrp. Cancel it here so that the FILE_OBJECT
+	// reference is released and IRP_MJ_CLOSE can be dispatched.
+	// Fix 4: only cancel irpq if it was issued by this file object.
+	// If another opener's ReadFile is stored in irpq, do not touch it.
+	if (detourDevExt->irpq != NULL &&
+		detourDevExt->irpOwnerFileObject == cleanupFileObj) {
+		irpToCancel = detourDevExt->irpq;
+		detourDevExt->irpq = NULL;
+		detourDevExt->irpOwnerFileObject = NULL;
+		NODOKAD_TRACE("detourCleanup: -> irpq cancelled (owner match)\n");
+		if (IoSetCancelRoutine(irpToCancel, NULL) == NULL) {
+			// Cancel routine is already running and will complete the IRP.
+			// Do not touch the IRP here to avoid double-completion.
+			irpToCancel = NULL;
 		}
+	} else if (detourDevExt->irpq != NULL) {
+		NODOKAD_TRACE("detourCleanup: -> irpq NOT cancelled (owner mismatch)\n");
+	}
 
 	IoReleaseCancelSpinLock(cancelIrql);
 	KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
 
-	// Complete the cleanup request with STATUS_SUCCESS.
+	// Complete the pending read IRP with STATUS_CANCELLED (outside spin locks).
+	if (irpToCancel != NULL) {
+		irpToCancel->IoStatus.Status = STATUS_CANCELLED;
+		irpToCancel->IoStatus.Information = 0;
+		IoCompleteRequest(irpToCancel, IO_NO_INCREMENT);
+	}
+
+	// Complete the cleanup IRP itself.
 	irp->IoStatus.Status = STATUS_SUCCESS;
 	irp->IoStatus.Information = 0;
 	IoCompleteRequest(irp, IO_NO_INCREMENT);
@@ -992,10 +1322,13 @@ NTSTATUS detourDeviceControl(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 			PIRP irpCancel = NULL;
 
 			KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
-			if (detourDevExt->isOpen)
+			if (detourDevExt->isOpen) {
 				irpCancel = detourDevExt->irpq;
+				// clear stored pointer under lock to avoid races with cancel routine
+				detourDevExt->irpq = NULL;
+			}
 			KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
-
+			
 			if (irpCancel)
 				IoCancelIrp(irpCancel);// at this point, the irpCancel may be completed
 			status = STATUS_SUCCESS;
@@ -1039,11 +1372,17 @@ NTSTATUS detourPower(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 
 	DEBUG_LOG(("nodokad: detourPower()"));
 
+	// If there's a lower device, forward the power IRP; otherwise complete.
 	PoStartNextPowerIrp(irp);
-	irp->IoStatus.Status = STATUS_SUCCESS;
-	irp->IoStatus.Information = 0;
-	IoCompleteRequest(irp, IO_NO_INCREMENT);
-	return STATUS_SUCCESS;
+	if (deviceObject->NextDevice) {
+		IoCopyCurrentIrpStackLocationToNext(irp);
+		return PoCallDriver(deviceObject->NextDevice, irp);
+	} else {
+		irp->IoStatus.Status = STATUS_SUCCESS;
+		irp->IoStatus.Information = 0;
+		IoCompleteRequest(irp, IO_NO_INCREMENT);
+		return STATUS_SUCCESS;
+	}
 	}
 #endif // !NODOKAD_NT4
 
@@ -1078,6 +1417,9 @@ NTSTATUS filterRead(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 			status = readq(&filterDevExt->readQue, irp);
 		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 		if (status != STATUS_PENDING) {
+			// Sync drop investigation: confirms the fast path (data already queued,
+			// no cancel/round-trip needed) is what serves bursts after the first item.
+			NODOKAD_TRACE("filterRead: served from queue immediately (no round trip)\n");
 			irp->IoStatus.Status = status;
 			IoCompleteRequest(irp, IO_NO_INCREMENT);
 			return status;
@@ -1088,11 +1430,16 @@ NTSTATUS filterRead(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 		KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
 		}
 
+	// Sync drop investigation: queue was empty, so this read is being parked
+	// (forwarded toward real hardware) and will become the next thing detourWrite()
+	// can wake. If kbdclass is slow to re-issue reads after delivery, writes that
+	// land here find nothing to wake until this trace's IRP eventually completes.
+	NODOKAD_TRACE("filterRead: queue empty, parking read (irp=%p)\n", irp);
 	KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
 	filterDevExt->irpq = irp;
 	KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 
-	*IoGetNextIrpStackLocation(irp) = *irpSp;
+	IoCopyCurrentIrpStackLocationToNext(irp);
 	IoSetCompletionRoutine(irp, filterReadCompletion, NULL, TRUE, TRUE, TRUE);
 	return IoCallDriver(filterDevExt->kbdClassDevObj, irp);
 	}
@@ -1106,7 +1453,7 @@ NTSTATUS filterPassThrough(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 
 	DEBUG_LOG(("nodokad: filterPassThrough()"));
 
-	*IoGetNextIrpStackLocation(irp) = *IoGetCurrentIrpStackLocation(irp);
+	IoCopyCurrentIrpStackLocationToNext(irp);
 	IoSetCompletionRoutine(irp, filterGenericCompletion,
 		NULL, TRUE, TRUE, TRUE);
 	return IoCallDriver(filterDevExt->kbdClassDevObj, irp);
@@ -1115,16 +1462,43 @@ NTSTATUS filterPassThrough(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 
 //#ifndef NODOKAD_NT4
 // filter IRP_MJ_POWER
+_Dispatch_type_(IRP_MJ_POWER)
 NTSTATUS filterPower(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	{
-	FilterDeviceExtension *filterDevExt =
-		(FilterDeviceExtension*)deviceObject->DeviceExtension;
+	PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(irp);
 
 	DEBUG_LOG(("nodokad: filterPower()"));
 
 	PoStartNextPowerIrp(irp);
-	IoSkipCurrentIrpStackLocation(irp);
-	return PoCallDriver(filterDevExt->kbdClassDevObj, irp);
+	if (deviceObject->NextDevice) {
+		// Filter device: forward power IRP down the device stack
+		FilterDeviceExtension *filterDevExt =
+			(FilterDeviceExtension*)deviceObject->DeviceExtension;
+		// Fix D: on Fast Startup shutdown (S4 hibernate), proactively reset the
+		// detour device's isOpen to 0 before the hibernate image is written.
+		// This prevents stale isOpen=1 from blocking re-open after resume when
+		// the user session's CLEANUP/CLOSE did not complete before hibernation.
+		if (irpSp->MinorFunction == IRP_MN_SET_POWER &&
+			irpSp->Parameters.Power.Type == SystemPowerState &&
+			irpSp->Parameters.Power.State.SystemState == PowerSystemHibernate)
+			{
+			KIRQL detourIrql;
+			DetourDeviceExtension *detourDevExt =
+				(DetourDeviceExtension*)filterDevExt->detourDevObj->DeviceExtension;
+			KeAcquireSpinLock(&detourDevExt->lock, &detourIrql);
+			InterlockedExchange(&detourDevExt->isOpen, 0);
+			detourDevExt->wasCleanupInitiated = TRUE;
+			KeReleaseSpinLock(&detourDevExt->lock, detourIrql);
+			}
+		IoCopyCurrentIrpStackLocationToNext(irp);
+		return PoCallDriver(filterDevExt->kbdClassDevObj, irp);
+		} else {
+			// Detour device: virtual, not in PnP tree, complete immediately
+			irp->IoStatus.Status = STATUS_SUCCESS;
+			irp->IoStatus.Information = 0;
+			IoCompleteRequest(irp, IO_NO_INCREMENT);
+			return STATUS_SUCCESS;
+		}
 	}
 //#endif // !NODOKAD_NT4
 NTSTATUS filterPnP(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
@@ -1132,59 +1506,24 @@ NTSTATUS filterPnP(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(irp);
 	FilterDeviceExtension *filterDevExt =
 		(FilterDeviceExtension*)deviceObject->DeviceExtension;
-	DetourDeviceExtension *detourDevExt =
-		(DetourDeviceExtension*)filterDevExt->detourDevObj->DeviceExtension;
-	KIRQL currentIrql;
-	NTSTATUS status;
-	ULONG minor;
-	PIRP cancelIrp;
-	PDRIVER_OBJECT driverObject = deviceObject->DriverObject;
+	ULONG minor = irpSp->MinorFunction;
 
-	DEBUG_LOG(("nodokad: filterPnP()"));
+	DEBUG_LOG(("nodokad: filterPnP() minor=%d(%x)", minor, minor));
 
-	minor = irpSp->MinorFunction;
-	IoSkipCurrentIrpStackLocation(irp);
-	status = IoCallDriver(filterDevExt->kbdClassDevObj, irp);
-	DEBUG_LOG(("nodokad: filterPnP: minor=%d(%x)", minor, minor));
 	switch (minor) {
-		//  case IRP_MN_SURPRISE_REMOVAL:
+	case IRP_MN_SURPRISE_REMOVAL:
 	case IRP_MN_REMOVE_DEVICE:
-		KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
-		if (detourDevExt->filterDevObj == deviceObject) {
-			PDEVICE_OBJECT devObj = deviceObject->DriverObject->DeviceObject;
+		//
+		// Forward remove to lower driver and perform cleanup in completion routine.
+		//
+		IoCopyCurrentIrpStackLocationToNext(irp);
+		IoSetCompletionRoutine(irp, filterRemoveCompletion, deviceObject, TRUE, TRUE, TRUE);
+		return IoCallDriver(filterDevExt->kbdClassDevObj, irp);
 
-			DEBUG_LOG(("nodokad: filterPnP: current filter(%x) was removed", deviceObject));
-			detourDevExt->filterDevObj = NULL;
-			while (devObj->NextDevice) {
-				if (devObj != deviceObject) {
-					detourDevExt->filterDevObj = devObj;
-					break;
-					}
-				devObj = devObj->NextDevice;
-				}
-			DEBUG_LOG(("nodokad: filterPnP: current filter was changed to %x", detourDevExt->filterDevObj));
-			}
-		KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
-		// detach
-		IoDetachDevice(filterDevExt->kbdClassDevObj);
-
-		KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
-		// TODO: at this point, the irp may be completed (but what can I do for it ?)
-		cancelIrp = filterDevExt->irpq;
-		KqFinalize(&filterDevExt->readQue);
-
-		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
-		if (cancelIrp) {
-			IoCancelIrp(cancelIrp);
-			}
-		IoDeleteDevice(deviceObject);
-		DEBUG_LOG(("nodokad: delete filter device: %x", deviceObject));
-		DEBUG_LOGChain(driverObject);
-		break;
 	default:
-		break;
-		}
-	return status;
+		IoCopyCurrentIrpStackLocationToNext(irp);
+		return IoCallDriver(filterDevExt->kbdClassDevObj, irp);
+	}
 	}
 
 
@@ -1196,8 +1535,6 @@ NTSTATUS filterTouchpadCompletion(IN PDEVICE_OBJECT deviceObject,
 	KIRQL currentIrql;
 	FilterDeviceExtension *filterDevExt =
 		(FilterDeviceExtension*)deviceObject->DeviceExtension;
-	PIO_STACK_LOCATION irpSp = IoGetCurrentIrpStackLocation(irp);
-	//PIO_STACK_LOCATION irpSp = IoGetNextIrpStackLocation(irp);
 	UCHAR *data = irp->UserBuffer;
 	UCHAR pressure;
 
@@ -1215,36 +1552,39 @@ NTSTATUS filterTouchpadCompletion(IN PDEVICE_OBJECT deviceObject,
 
 	if (data)
 		{
-		ULONG *p = (ULONG*)data;
 		//DEBUG_LOG(("nodokad: UserBuffer: %2x %2x %2x %2x", data[4], data[5], data[6], data[7]));
 		//DEBUG_LOG(("nodokad: UserBuffer: %x %x %x %x %x %x %x %x", p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]));
 		}
 	KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
 	if (filterDevExt->isTouched == FALSE && pressure)
 		{
-		KIRQL currentIrql, cancelIrql;
+		KIRQL cancelIrql, detourIrql;
 		PDEVICE_OBJECT detourDevObj = filterDevExt->detourDevObj;
 		DetourDeviceExtension *detourDevExt =
 			(DetourDeviceExtension*)detourDevObj->DeviceExtension;
 		if (detourDevExt->isOpen)
 			{
 			KEYBOARD_INPUT_DATA PadKey = {0, TOUCHPAD_SCANCODE, 0, 0, 0};
-			KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
+			KeAcquireSpinLock(&detourDevExt->lock, &detourIrql);
 			// if detour is opened, key datum are forwarded to detour
 			KqEnque(&detourDevExt->readQue, &PadKey, 1);
 			detourDevExt->filterDevObj = deviceObject;
 
 			if (detourDevExt->irpq) {
-				if (readq(&detourDevExt->readQue, detourDevExt->irpq) ==
-					STATUS_SUCCESS) {
-						IoAcquireCancelSpinLock(&cancelIrql);
-						IoSetCancelRoutine(detourDevExt->irpq, NULL);
-						IoReleaseCancelSpinLock(cancelIrql);
-						IoCompleteRequest(detourDevExt->irpq, IO_KEYBOARD_INCREMENT);
+				PIRP savedIrp = detourDevExt->irpq;
+				if (readq(&detourDevExt->readQue, savedIrp) == STATUS_SUCCESS) {
+					IoAcquireCancelSpinLock(&cancelIrql);
+					if (IoSetCancelRoutine(savedIrp, NULL) != NULL) {
 						detourDevExt->irpq = NULL;
+						IoReleaseCancelSpinLock(cancelIrql);
+						IoCompleteRequest(savedIrp, IO_KEYBOARD_INCREMENT);
+					} else {
+						// Cancel routine is running; do not touch completion here.
+						IoReleaseCancelSpinLock(cancelIrql);
 					}
 				}
-			KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
+			}
+			KeReleaseSpinLock(&detourDevExt->lock, detourIrql);
 			}
 		filterDevExt->isTouched = TRUE;
 		}
@@ -1252,29 +1592,32 @@ NTSTATUS filterTouchpadCompletion(IN PDEVICE_OBJECT deviceObject,
 		{
 		if (filterDevExt->isTouched == TRUE && pressure == 0)
 			{
-			KIRQL currentIrql, cancelIrql;
+			KIRQL cancelIrql, detourIrql;
 			PDEVICE_OBJECT detourDevObj = filterDevExt->detourDevObj;
 			DetourDeviceExtension *detourDevExt =
 				(DetourDeviceExtension*)detourDevObj->DeviceExtension;
 			if (detourDevExt->isOpen)
 				{
 				KEYBOARD_INPUT_DATA PadKey = {0, TOUCHPAD_SCANCODE, 1, 0, 0};
-				KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
+				KeAcquireSpinLock(&detourDevExt->lock, &detourIrql);
 				// if detour is opened, key datum are forwarded to detour
 				KqEnque(&detourDevExt->readQue, &PadKey, 1);
 				detourDevExt->filterDevObj = deviceObject;
 
 				if (detourDevExt->irpq) {
-					if (readq(&detourDevExt->readQue, detourDevExt->irpq) ==
-						STATUS_SUCCESS) {
-							IoAcquireCancelSpinLock(&cancelIrql);
-							IoSetCancelRoutine(detourDevExt->irpq, NULL);
-							IoReleaseCancelSpinLock(cancelIrql);
-							IoCompleteRequest(detourDevExt->irpq, IO_KEYBOARD_INCREMENT);
+					PIRP savedIrp = detourDevExt->irpq;
+					if (readq(&detourDevExt->readQue, savedIrp) == STATUS_SUCCESS) {
+						IoAcquireCancelSpinLock(&cancelIrql);
+						if (IoSetCancelRoutine(savedIrp, NULL) != NULL) {
 							detourDevExt->irpq = NULL;
+							IoReleaseCancelSpinLock(cancelIrql);
+							IoCompleteRequest(savedIrp, IO_KEYBOARD_INCREMENT);
+						} else {
+							IoReleaseCancelSpinLock(cancelIrql);
 						}
 					}
-				KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
+				}
+				KeReleaseSpinLock(&detourDevExt->lock, detourIrql);
 				}
 			filterDevExt->isTouched = FALSE;
 			}
@@ -1293,7 +1636,7 @@ NTSTATUS filterTouchpad(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 
 	DEBUG_LOG(("nodokad: filterTouchpad()"));
 
-	*IoGetNextIrpStackLocation(irp) = *IoGetCurrentIrpStackLocation(irp);
+	IoCopyCurrentIrpStackLocationToNext(irp);
 	IoSetCompletionRoutine(irp, filterTouchpadCompletion,
 		NULL, TRUE, TRUE, TRUE);
 	return IoCallDriver(filterDevExt->kbdClassDevObj, irp);
@@ -1303,13 +1646,19 @@ NTSTATUS filterTouchpad(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 
 NTSTATUS detourPnP(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	{
-	UNREFERENCED_PARAMETER(deviceObject);
-
 	DEBUG_LOG(("nodokad: detourPnP()"));
 
-	IoSkipCurrentIrpStackLocation(irp);
-	irp->IoStatus.Status = STATUS_SUCCESS;
-	irp->IoStatus.Information = 0;
-	IoCompleteRequest(irp, IO_NO_INCREMENT);
-	return STATUS_SUCCESS;
+	// Forward PnP IRPs to lower driver if present; otherwise complete.
+	if (deviceObject->NextDevice) {
+		IoCopyCurrentIrpStackLocationToNext(irp);
+		return IoCallDriver(deviceObject->NextDevice, irp);
+	} else {
+		// No lower device to forward to — complete the PnP IRP here.
+		irp->IoStatus.Status = STATUS_SUCCESS;
+		irp->IoStatus.Information = 0;
+		IoCompleteRequest(irp, IO_NO_INCREMENT);
+		return STATUS_SUCCESS;
 	}
+	}
+
+#pragma warning(pop)

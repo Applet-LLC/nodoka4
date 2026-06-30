@@ -1,51 +1,51 @@
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ‚Ì‚Ç‚© - emacsedit.nodoka
+ï»¿#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ã®ã©ã‹ - emacsedit.nodoka
 # Copyright (C) 1999-2005, TAGA Nayuta <nayuta@users.sourceforge.net>
 #
 # Modify by applet on Oct. 17, 2012
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Emacs •—ˆÚ“®ƒRƒ}ƒ“ƒh
+# Emacs é¢¨ç§»å‹•ã‚³ãƒãƒ³ãƒ‰
 #
 
 keymap	EmacsMove : Global
- key Home		= C-Home		# •¶“ª
- key End		= C-End			# •¶––
+ key Home		= C-Home		# æ–‡é ­
+ key End		= C-End			# æ–‡æœ«
  key C-Space		= &Undefined		# Mark
- key C-A		= Home			# s“ª
- key C-B		= Left			# ©
- key M-B		= C-Left		# ©(’PŒê)
- key C-E		= End			# s––
- key C-F		= Right			# ¨
- key M-F		= C-Right		# ¨(’PŒê)
+ key C-A		= Home			# è¡Œé ­
+ key C-B		= Left			# â†
+ key M-B		= C-Left		# â†(å˜èª)
+ key C-E		= End			# è¡Œæœ«
+ key C-F		= Right			# â†’
+ key M-F		= C-Right		# â†’(å˜èª)
  key C-G		= Escape		# CANCEL
- key C-L		= &WindowRedraw &Recenter # Ä•`‰æ
- key C-N		= Down			# «
- key C-P		= Up			# ª
- key C-Q		= &Prefix(KeymapDefault) # mayu ‚É¶‰E‚³‚ê‚È‚¢ƒL[“ü—Í
- key C-S		= C-F			# ŒŸõ
- if ( !ZXCV ) key C-V	= Next			# Ÿ•Å
- key M-V		= Prior			# ‘O•Å
- key S-Home		= S-C-Home		# •¶“ª(‘I‘ğ)
- key S-End		= S-C-End		# •¶––(‘I‘ğ)
- key S-M-Comma		= C-Home		# •¶“ª
- key S-M-Period		= C-End			# •¶––
+ key C-L		= &WindowRedraw &Recenter # å†æç”»
+ key C-N		= Down			# â†“
+ key C-P		= Up			# â†‘
+ key C-Q		= &Prefix(KeymapDefault) # mayu ã«å·¦å³ã•ã‚Œãªã„ã‚­ãƒ¼å…¥åŠ›
+ key C-S		= C-F			# æ¤œç´¢
+ if ( !ZXCV ) key C-V	= Next			# æ¬¡é 
+ key M-V		= Prior			# å‰é 
+ key S-Home		= S-C-Home		# æ–‡é ­(é¸æŠ)
+ key S-End		= S-C-End		# æ–‡æœ«(é¸æŠ)
+ key S-M-Comma		= C-Home		# æ–‡é ­
+ key S-M-Period		= C-End			# æ–‡æœ«
 
  if ( EmacsMove/ShiftSelection )
-   key S-C-A		= S-Home		# s“ª(‘I‘ğ)
-   key S-C-B		= S-Left		# ©(‘I‘ğ)
-   key S-C-E		= S-End			# s––(‘I‘ğ)
-   key S-C-F		= S-Right		# ¨(‘I‘ğ)
-   key S-C-N		= S-Down		# «(‘I‘ğ)
-   key S-C-P		= S-Up			# ª(‘I‘ğ)
-   key S-C-V		= S-Next		# Ÿ•Å(‘I‘ğ)
-   key S-M-V		= S-Prior		# ‘O•Å(‘I‘ğ)
+   key S-C-A		= S-Home		# è¡Œé ­(é¸æŠ)
+   key S-C-B		= S-Left		# â†(é¸æŠ)
+   key S-C-E		= S-End			# è¡Œæœ«(é¸æŠ)
+   key S-C-F		= S-Right		# â†’(é¸æŠ)
+   key S-C-N		= S-Down		# â†“(é¸æŠ)
+   key S-C-P		= S-Up			# â†‘(é¸æŠ)
+   key S-C-V		= S-Next		# æ¬¡é (é¸æŠ)
+   key S-M-V		= S-Prior		# å‰é (é¸æŠ)
  endif
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Emacs •—•ÒWƒRƒ}ƒ“ƒh
+# Emacs é¢¨ç·¨é›†ã‚³ãƒãƒ³ãƒ‰
 #
 
  keyseq	$EmacsEdit/kill-word		= S-C-Right C-X
@@ -74,7 +74,7 @@ keymap2 EmacsC-U0_9C-U : Global \
  key C-G	= &HelpMessage &Variable(0, 0) &Ignore
  
 keymap2 EmacsC-U0_9 : EmacsC-U0_9C-U
- event prefixed		= &HelpVariable("ŒJ‚è•Ô‚µ")
+ event prefixed		= &HelpVariable("ç¹°ã‚Šè¿”ã—")
  key _0 Num0		= &Variable(10, 0) &Prefix(EmacsC-U0_9)
  key _1 Num1		= &Variable(10, 1) &Prefix(EmacsC-U0_9)
  key _2 Num2		= &Variable(10, 2) &Prefix(EmacsC-U0_9)
@@ -88,7 +88,7 @@ keymap2 EmacsC-U0_9 : EmacsC-U0_9C-U
  key C-U		= &Prefix(EmacsC-U0_9C-U)
 
 keymap2 EmacsC-U : EmacsC-U0_9C-U
- event prefixed		= &HelpVariable("ŒJ‚è•Ô‚µ")
+ event prefixed		= &HelpVariable("ç¹°ã‚Šè¿”ã—")
  key _0 Num0		= &Variable(0, 0) &Prefix(EmacsC-U0_9)
  key _1 Num1		= &Variable(0, 1) &Prefix(EmacsC-U0_9)
  key _2 Num2		= &Variable(0, 2) &Prefix(EmacsC-U0_9)
@@ -103,50 +103,50 @@ keymap2 EmacsC-U : EmacsC-U0_9C-U
 
 keymap	EmacsEdit
  key C-Space		= &Prefix(EmacsMark)			# Mark
- key M-BackSpace	= $EmacsEdit/backward-kill-word		# BS(’PŒê)
- key C-D		= Delete				# íœ
- key M-D		= $EmacsEdit/kill-word			# íœ(’PŒê)
+ key M-BackSpace	= $EmacsEdit/backward-kill-word		# BS(å˜èª)
+ key C-D		= Delete				# å‰Šé™¤
+ key M-D		= $EmacsEdit/kill-word			# å‰Šé™¤(å˜èª)
  key C-H		= BackSpace				# BS
  key C-J		= Return				# RETURN
- key C-K		= $EmacsEdit/kill-line			# s––‚Ü‚Åíœ
+ key C-K		= $EmacsEdit/kill-line			# è¡Œæœ«ã¾ã§å‰Šé™¤
  key C-M		= Return				# RETURN
- key C-O		= Return Left				# ˆês‘‚â‚·
- if ( !GANA ) key C-T	= $EmacsEdit/transpose-chars		# •¶š“ü‚ê‘Ö‚¦
+ key C-O		= Return Left				# ä¸€è¡Œå¢—ã‚„ã™
+ if ( !GANA ) key C-T	= $EmacsEdit/transpose-chars		# æ–‡å­—å…¥ã‚Œæ›¿ãˆ
  key C-W		= C-X					# CUT
  key M-W		= C-C					# COPY
  key C-U		= &Variable(0, 4) &Prefix(EmacsC-U)
  if ( !ZXCV ) key C-X	= &Prefix(EmacsC-X)
  key C-Y		= C-V					# PASTE
  key C-Slash		= C-Z					# UNDO
- key M-U		= $EmacsEdit/upcase-word		# ‘å•¶š
- key M-L		= $EmacsEdit/downcase-word		# ¬•¶š
+ key M-U		= $EmacsEdit/upcase-word		# å¤§æ–‡å­—
+ key M-L		= $EmacsEdit/downcase-word		# å°æ–‡å­—
 
 keymap2	EmacsMark
- key Home		= S-C-Home	&Prefix(EmacsMark)	# •¶“ª
- key End		= S-C-End	&Prefix(EmacsMark)	# •¶––
- key C-A		= S-Home	&Prefix(EmacsMark)	# s“ª
- key C-B		= S-Left	&Prefix(EmacsMark)	# ©
- key M-B		= S-C-Left	&Prefix(EmacsMark)	# ©(’PŒê)
- key C-E		= S-End		&Prefix(EmacsMark)	# s––
- key C-F		= S-Right	&Prefix(EmacsMark)	# ¨
- key M-F		= S-C-Right	&Prefix(EmacsMark)	# ¨(’PŒê)
- key C-G		= $EmacsMark/cancel &Undefined		# ƒLƒƒƒ“ƒZƒ‹
- key C-N		= S-Down	&Prefix(EmacsMark)	# «
- key C-P		= S-Up		&Prefix(EmacsMark)	# ª
- if ( !ZXCV ) key C-V	= S-Next	&Prefix(EmacsMark)	# Ÿ•Å
- key M-V		= S-Prior	&Prefix(EmacsMark)	# ‘O•Å
+ key Home		= S-C-Home	&Prefix(EmacsMark)	# æ–‡é ­
+ key End		= S-C-End	&Prefix(EmacsMark)	# æ–‡æœ«
+ key C-A		= S-Home	&Prefix(EmacsMark)	# è¡Œé ­
+ key C-B		= S-Left	&Prefix(EmacsMark)	# â†
+ key M-B		= S-C-Left	&Prefix(EmacsMark)	# â†(å˜èª)
+ key C-E		= S-End		&Prefix(EmacsMark)	# è¡Œæœ«
+ key C-F		= S-Right	&Prefix(EmacsMark)	# â†’
+ key M-F		= S-C-Right	&Prefix(EmacsMark)	# â†’(å˜èª)
+ key C-G		= $EmacsMark/cancel &Undefined		# ã‚­ãƒ£ãƒ³ã‚»ãƒ«
+ key C-N		= S-Down	&Prefix(EmacsMark)	# â†“
+ key C-P		= S-Up		&Prefix(EmacsMark)	# â†‘
+ if ( !ZXCV ) key C-V	= S-Next	&Prefix(EmacsMark)	# æ¬¡é 
+ key M-V		= S-Prior	&Prefix(EmacsMark)	# å‰é 
  key C-W		= C-X Left Right			# CUT
  key M-W		= C-C Left Right			# COPY
- key S-M-Comma		= S-C-Home	&Prefix(EmacsMark)	# •¶“ª
- key S-M-Period		= S-C-End	&Prefix(EmacsMark)	# •¶––
- key Left		= S-Left	&Prefix(EmacsMark)	# ©
- key Up			= S-Up		&Prefix(EmacsMark)	# ª
- key Right		= S-Right	&Prefix(EmacsMark)	# ¨
- key Down		= S-Down	&Prefix(EmacsMark)	# «
+ key S-M-Comma		= S-C-Home	&Prefix(EmacsMark)	# æ–‡é ­
+ key S-M-Period		= S-C-End	&Prefix(EmacsMark)	# æ–‡æœ«
+ key Left		= S-Left	&Prefix(EmacsMark)	# â†
+ key Up			= S-Up		&Prefix(EmacsMark)	# â†‘
+ key Right		= S-Right	&Prefix(EmacsMark)	# â†’
+ key Down		= S-Down	&Prefix(EmacsMark)	# â†“
  if ( MAP-ESCAPE-TO-META )
    key Escape		= &Prefix(EmacsMarkEscape) &EditNextModifier(M-)
    if ( KBD109 ) and ( ! KBD104on109 )
-     key ”¼Šp/‘SŠp	= &Prefix(EmacsMarkEscape) &EditNextModifier(M-)
+     key åŠè§’/å…¨è§’	= &Prefix(EmacsMarkEscape) &EditNextModifier(M-)
    endif
  endif
 

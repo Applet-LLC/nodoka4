@@ -1,11 +1,14 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // windowstool.h
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #ifndef _WINDOWSTOOL_H
 #define _WINDOWSTOOL_H
 
 #include "stringtool.h"
 #include <windows.h>
+#include <dwmapi.h>
 #include <tchar.h>
 #include <stdarg.h>
 
@@ -24,6 +27,13 @@ inline void DBG_PRINTF(const _TCHAR *fmt, ...)
 /// instance handle of this application
 extern HINSTANCE g_hInst;
 extern HWND m_hwndSetting;
+/// Hook DLL status (empty = OK; non-empty = error message shown in log and version dialog)
+extern tstring g_hookDllStatus;
+
+/// Verify a file's Authenticode signature with WinVerifyTrust.
+/// Returns true if the signature is valid, false if unsigned, tampered, or certificate invalid.
+/// Returns false (not an error) if the file does not exist.
+bool verifyDllSignature(const tstring &path);
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // resource
@@ -47,6 +57,7 @@ extern bool resizeWindow(HWND i_hwnd, int i_w, int i_h, bool i_doRepaint);
 @return rect of the window in client coordinates */
 extern bool getChildWindowRect(HWND i_hwnd, RECT *o_rc);
 extern bool myGetWindowRect(HWND i_hwnd, RECT *o_rc);
+extern bool getWindowBorderOffsets(HWND i_hwnd, RECT *o_border);
 
 /** set small icon to the specified window.
 @return handle of previous icon or NULL */
@@ -145,6 +156,28 @@ extern BOOL(WINAPI *getMonitorInfo)(HMONITOR hMonitor, LPMONITORINFO lpmi);
 
 /// EnumDisplayMonitors API
 extern BOOL(WINAPI *enumDisplayMonitors)(HDC hdc, LPRECT lprcClip, MONITORENUMPROC lpfnEnum, LPARAM dwData);
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Windows 10+ DPI Awareness API
+
+// DPI_AWARENESS_CONTEXT is defined only when _WIN32_WINNT >= 0x0A00.
+// Define it manually so we can use it even with older SDK targets.
+#ifndef DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+typedef void* DPI_AWARENESS_CONTEXT;
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT)(LONG_PTR)(-4))
+#endif
+
+/// RAII: temporarily switch the calling thread to per-monitor DPI awareness.
+/// All GetWindowRect / GetMonitorInfo / SetWindowPos calls inside the scope
+/// operate in physical pixels, which makes coordinate calculations consistent
+/// even when the process is DPI-unaware.
+class ScopedPerMonitorDpiAwareness
+{
+	DPI_AWARENESS_CONTEXT m_prev;
+public:
+	ScopedPerMonitorDpiAwareness();
+	~ScopedPerMonitorDpiAwareness();
+};
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // WindowsXP specific API

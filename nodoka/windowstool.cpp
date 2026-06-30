@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ï»¿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // windowstool.cpp
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #include "misc.h"
 
@@ -10,6 +12,9 @@
 #include <malloc.h>
 #include <shlwapi.h>
 #include <dwmapi.h>
+#include <wintrust.h>
+#include <softpub.h>
+#pragma comment(lib, "wintrust.lib")
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Global variables
@@ -19,6 +24,30 @@ HINSTANCE g_hInst = NULL;
 
 // Window Handle of Setting Dialog
 HWND m_hwndSetting = NULL;
+
+// Hook DLL status (empty = OK)
+tstring g_hookDllStatus;
+
+bool verifyDllSignature(const tstring &path)
+{
+	// Non-existent file: report as "not OK" so callers know the file can't be trusted.
+	// Callers that treat absence as normal should check file existence beforehand.
+	WINTRUST_FILE_INFO fi = {};
+	fi.cbStruct       = sizeof(fi);
+	fi.pcwszFilePath  = path.c_str();
+	GUID action = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+	WINTRUST_DATA wd  = {};
+	wd.cbStruct            = sizeof(wd);
+	wd.dwUIChoice          = WTD_UI_NONE;
+	wd.fdwRevocationChecks = WTD_REVOKE_NONE;
+	wd.dwUnionChoice       = WTD_CHOICE_FILE;
+	wd.pFile               = &fi;
+	wd.dwStateAction       = WTD_STATEACTION_VERIFY;
+	LONG r = WinVerifyTrust(NULL, &action, &wd);
+	wd.dwStateAction       = WTD_STATEACTION_CLOSE;
+	WinVerifyTrust(NULL, &action, &wd);
+	return r == ERROR_SUCCESS;
+}
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Functions
@@ -97,6 +126,27 @@ bool myGetWindowRect(HWND i_hwnd, RECT *o_rc)
 {
 	if (!DwmGetWindowAttribute(i_hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, o_rc, sizeof(RECT)))
 		return false;
+	return true;
+}
+
+// Get invisible border offsets introduced in Windows 10.
+// GetWindowRect() includes invisible resize handles; DWMWA_EXTENDED_FRAME_BOUNDS
+// returns the visually correct rect. The difference gives the border offsets.
+// o_border: {left, top, right, bottom} pixels between GetWindowRect and visual rect.
+// Add left/top to GetWindowRect.left/top to get the visual edge.
+// Subtract right/bottom from GetWindowRect.right/bottom to get the visual edge.
+bool getWindowBorderOffsets(HWND i_hwnd, RECT *o_border)
+{
+	o_border->left = o_border->top = o_border->right = o_border->bottom = 0;
+	RECT rcWin, rcDwm;
+	if (!GetWindowRect(i_hwnd, &rcWin))
+		return false;
+	if (FAILED(DwmGetWindowAttribute(i_hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &rcDwm, sizeof(RECT))))
+		return true; // DWM unavailable: no invisible border
+	o_border->left   = rcDwm.left   - rcWin.left;
+	o_border->top    = rcDwm.top    - rcWin.top;
+	o_border->right  = rcWin.right  - rcDwm.right;
+	o_border->bottom = rcWin.bottom - rcDwm.bottom;
 	return true;
 }
 
@@ -204,9 +254,9 @@ bool setForegroundWindow(HWND i_hwnd)
 	DWORD dwTargetID = GetWindowThreadProcessId(i_hwnd, NULL);
 	DWORD dwsptime;
 
-	if (dwForegroundID == dwTargetID) // “¯‚¶‚¾‚Á‚½‚Ì‚ÅASetForegroundWindow‚ğÀs‚µ‚ÄI—¹B
+	if (dwForegroundID == dwTargetID) // åŒã˜ã ã£ãŸã®ã§ã€SetForegroundWindowã‚’å®Ÿè¡Œã—ã¦çµ‚äº†ã€‚
 	{
-		if (IsIconic(i_hwnd)) // Å¬‰»‚³‚ê‚Ä‚¢‚½‚çAŒ³‚É–ß‚·B
+		if (IsIconic(i_hwnd)) // æœ€å°åŒ–ã•ã‚Œã¦ã„ãŸã‚‰ã€å…ƒã«æˆ»ã™ã€‚
 		{
 			ShowWindow(i_hwnd, SW_RESTORE);
 		}
@@ -216,12 +266,12 @@ bool setForegroundWindow(HWND i_hwnd)
 	{
 		if (IsIconic(i_hwnd))
 		{
-			ShowWindowAsync(i_hwnd, SW_RESTORE); // Å¬‰»‚³‚ê‚Ä‚¢‚½‚çAŒ³‚É–ß‚·B
+			ShowWindowAsync(i_hwnd, SW_RESTORE); // æœ€å°åŒ–ã•ã‚Œã¦ã„ãŸã‚‰ã€å…ƒã«æˆ»ã™ã€‚
 		}
 
 		if (!AttachThreadInput(dwTargetID, dwForegroundID, TRUE))
 		{
-			SetActiveWindow(i_hwnd); // SystemParametersInfo¸”s”ğ‚¯
+			SetActiveWindow(i_hwnd); // SystemParametersInfoå¤±æ•—é¿ã‘
 
 			SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT, 0, &dwsptime, 0);
 			SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT, 0, (void *)0, 0);
@@ -234,7 +284,7 @@ bool setForegroundWindow(HWND i_hwnd)
 			AttachThreadInput(dwTargetID, dwForegroundID, FALSE);
 		}
 		else
-		{ // AttachThreadInput‚É¸”s‚µ‚½‚ª‘Ê–Ú‰Ÿ‚µ‚Å‰º‹L‚ğÀsB
+		{ // AttachThreadInputã«å¤±æ•—ã—ãŸãŒé§„ç›®æŠ¼ã—ã§ä¸‹è¨˜ã‚’å®Ÿè¡Œã€‚
 			SetActiveWindow(i_hwnd);
 			SetForegroundWindow(i_hwnd);
 			BringWindowToTop(i_hwnd);
@@ -424,6 +474,40 @@ static BOOL WINAPI initializeEnumDisplayMonitors(
 // EnumDisplayMonitors API
 BOOL(WINAPI *enumDisplayMonitors)
 (HDC hdc, LPRECT lprcClip, MONITORENUMPROC lpfnEnum, LPARAM dwData) = initializeEnumDisplayMonitors;
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Windows 10+ DPI Awareness API
+
+typedef DPI_AWARENESS_CONTEXT(WINAPI *PFN_SetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT);
+
+static PFN_SetThreadDpiAwarenessContext s_pfnSetDpi = nullptr;
+static bool s_dpiApiInitialized = false;
+
+static void initializeDpiApis()
+{
+	if (s_dpiApiInitialized)
+		return;
+	s_dpiApiInitialized = true;
+	HMODULE hUser32 = GetModuleHandle(_T("user32.dll"));
+	if (!hUser32)
+		return;
+	s_pfnSetDpi = reinterpret_cast<PFN_SetThreadDpiAwarenessContext>(
+		GetProcAddress(hUser32, "SetThreadDpiAwarenessContext"));
+}
+
+ScopedPerMonitorDpiAwareness::ScopedPerMonitorDpiAwareness()
+	: m_prev(nullptr)
+{
+	initializeDpiApis();
+	if (s_pfnSetDpi)
+		m_prev = s_pfnSetDpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+}
+
+ScopedPerMonitorDpiAwareness::~ScopedPerMonitorDpiAwareness()
+{
+	if (s_pfnSetDpi && m_prev)
+		s_pfnSetDpi(m_prev);
+}
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Windows2000/XP specific API
