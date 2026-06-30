@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // array.h
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #ifndef _ARRAY_H
 #define _ARRAY_H
@@ -41,7 +43,7 @@ public:
 		: m_allocator(i_allocator), m_size(i_size),
 		  m_buf(m_allocator.allocate(m_size, 0))
 	{
-		stdext::unchecked_uninitialized_fill_n(m_buf, i_size, i_value);
+		std::uninitialized_fill_n(m_buf, i_size, i_value);
 	}
 
 	/// constructor
@@ -55,13 +57,13 @@ public:
 	}
 
 	/// copy constructor
-	Array(const Array &i_o) : m_size(0), m_buf(NULL) { operator=(i_o); }
+	Array(const Array& i_o) : m_size(0), m_buf(NULL) { operator=(i_o); }
 
 	/// destractor
 	~Array() { clear(); }
 
 	///
-	Array &operator=(const Array &i_o)
+	Array &operator=(const Array& i_o)
 	{
 		if (&i_o != this)
 		{
@@ -101,12 +103,12 @@ public:
 	///
 	size_type max_size() const { return -1; }
 	/// resize the array buffer.  NOTE: the original contents are cleared.
-	void resize(size_type i_size, const T &i_value = T())
+	void resize(size_type i_size, const T& i_value = T())
 	{
 		clear();
 		m_size = i_size;
 		m_buf = m_allocator.allocate(m_size, 0);
-		stdext::unchecked_uninitialized_fill_n(m_buf, i_size, i_value);
+		std::uninitialized_fill_n(m_buf, i_size, i_value);
 	}
 	/// resize the array buffer.
 	template <class InputIterator>
@@ -118,7 +120,7 @@ public:
 		std::uninitialized_copy(i_begin, i_end, m_buf);
 	}
 	/// expand the array buffer. the contents of it are copied to the new one
-	void expand(size_type i_size, const T &i_value = T())
+	void expand(size_type i_size, const T& i_value = T())
 	{
 		ASSERT(m_size <= i_size);
 		if (!m_buf)
@@ -127,7 +129,7 @@ public:
 		{
 			pointer buf = m_allocator.allocate(i_size, 0);
 			std::uninitialized_copy(m_buf, m_buf + m_size, buf);
-			stdext::unchecked_uninitialized_fill_n(buf + m_size, i_size - m_size, i_value);
+			std::uninitialized_fill_n(buf + m_size, i_size - m_size, i_value);
 			clear();
 			m_size = i_size;
 			m_buf = buf;

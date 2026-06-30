@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // engine.h
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #ifndef _ENGINE_H
 #define _ENGINE_H
@@ -8,6 +10,7 @@
 #include "setting.h"
 #include "msgstream.h"
 #include "hook.h"
+#include <map>
 #include <set>
 #include <queue>
 //#  include "rawinput.h"
@@ -156,6 +159,10 @@ private:
 		InterruptThreadReason_Resume,
 	};
 
+	enum TapHoldState  { TH_IDLE, TH_PENDING, TH_HOLDING };
+	enum TapDanceState { TD_IDLE, TD_COUNTING };
+	enum ComboState    { CO_IDLE, CO_PENDING, CO_PENDING_EVAL };
+
 	///
 	class InputHandler
 	{
@@ -195,6 +202,8 @@ private:
 
 	// engine thread state
 	HANDLE m_device;				   /// nodoka device
+	HANDLE m_driverMutex;			   /// Global named mutex serializing driver access across sessions
+	bool m_driverMutexHeld;			   /// true while this process actually holds m_driverMutex (pause() acquired it)
 	bool m_didNodokaStartDevice;	   /** Did the nodoka start the nodoka-device ? */
 	HANDLE m_threadEvent;			   /** 1. thread has been started	2. thread is about to end*/
 	HANDLE m_threadCheckModifierEvent; /** 1. thread has been started	2. thread is about to end*/
@@ -220,7 +229,9 @@ private:
 	InputHandler m_mouseHandler;
 
 	tstring m_nodokadVersion;					/// version of nodokad.sys
+	tstring m_kbdAddIdVersion;					/// version of kbdaddid.sys (empty if not installed/active)
 	HANDLE m_readEvent;							/** reading from nodoka device has been completed */
+	HANDLE m_reInjectEvent;						/** re-injected keys are waiting in m_inputQueue */
 	HANDLE m_interruptThreadEvent;				/// interrupt thread event
 	HANDLE m_interruptThreadCheckModifierEvent; /// interrupt thread CheckModifier event
 	HANDLE m_interruptThreadKeyboardPastEvent;  /// interrupt thread KeyboardPast event
@@ -231,7 +242,9 @@ private:
 	volatile InterruptThreadReason m_interruptThreadKeyboardPastReason;  /// interrupt thread reason
 	volatile InterruptThreadReason m_interruptThreadFor6pointReason;	 /// interrupt thread reason
 
-	OVERLAPPED m_ol;	  /** for async read/write of	nodoka device */
+	OVERLAPPED m_ol;	  /** for async read from nodoka device */
+	OVERLAPPED m_writeOl; /** for async write to nodoka device (separate from m_ol to avoid IRP conflicts) */
+	HANDLE m_writeEvent;  /** event for m_writeOl */
 	HANDLE m_hookPipe;	/// named pipe for &SetImeString
 	HMODULE m_sts4nodoka; /// DLL module for ThumbSense
 	HMODULE m_cts4nodoka; /// DLL module for ThumbSense
@@ -242,6 +255,72 @@ private:
 	bool volatile m_doCheckModifierForceTerminate; // terminate CheckModifier thread
 	bool volatile m_doKeyboardPastForceTerminate;  // terminate KeyboardPast thread
 	bool volatile m_doFor6pointForceTerminate;	 // terminate For6Point thread
+
+	// TapHold timer thread
+	HANDLE   m_tapHoldThreadHandle;
+	unsigned m_tapHoldThreadId;
+	HANDLE   m_tapHoldStartEvent;    ///< auto-reset: main→timer: key pressed, begin timing
+	HANDLE   m_tapHoldCancelEvent;   ///< auto-reset: main→timer: key released before threshold
+	HANDLE   m_tapHoldExpiredEvent;  ///< auto-reset: timer→main: threshold reached
+	bool volatile m_doTapHoldForceTerminate;
+	TapHoldState m_tapHoldState;
+	const TapHoldRule *m_tapHoldCurrentRule;
+	KEYBOARD_INPUT_DATA m_tapHoldKeyData;        ///< intercepted key-down event
+	volatile int m_tapHoldThreshold;             ///< effective threshold for current rule [ms]
+	Current m_tapHoldContext;                    ///< keymap context saved on PENDING entry
+	Modifier m_tapHoldModifier;                  ///< modifier state captured at TH_PENDING entry
+	bool                m_tapHoldNeedPartSecond; ///< true when hold was split: UP still needed
+	KEYBOARD_INPUT_DATA m_tapHoldBufferedKey;    ///< one buffered key-down for permissive hold
+	bool                m_tapHoldHasBufferedKey; ///< true when m_tapHoldBufferedKey is valid
+	Key*                m_tapHoldPermissiveOtherKey; ///< key pointer for the buffered key
+	Key*                m_tapHoldLastTapKey;     ///< key that last fired a tap action
+	DWORD               m_tapHoldLastTapTime;    ///< tick of last tap (for quick tap term)
+
+	// TapDance timer thread
+	HANDLE   m_tapDanceThreadHandle;
+	unsigned m_tapDanceThreadId;
+	HANDLE   m_tapDanceStartEvent;   ///< auto-reset: main→timer: begin/restart timing
+	HANDLE   m_tapDanceCancelEvent;  ///< auto-reset: main→timer: abort sequence
+	HANDLE   m_tapDanceExpiredEvent; ///< auto-reset: timer→main: timeout reached
+	bool volatile m_doTapDanceForceTerminate;
+	TapDanceState m_tapDanceState;
+	const TapDanceRule *m_tapDanceCurrentRule;
+	int m_tapDanceCount;                               ///< current tap count (1-3)
+	volatile int m_tapDanceTimeout;                    ///< effective timeout [ms]
+	std::vector<KEYBOARD_INPUT_DATA> m_tapDanceBuffered; ///< buffered events for re-injection
+	Current m_tapDanceContext;                           ///< keymap context saved on COUNTING entry
+	Modifier m_tapDanceModifier;                         ///< modifier state captured at TD_COUNTING entry
+
+	// Combo timer thread
+	HANDLE   m_comboThreadHandle;
+	unsigned m_comboThreadId;
+	HANDLE   m_comboStartEvent;    ///< auto-reset: main→timer: begin/restart timing
+	HANDLE   m_comboCancelEvent;   ///< auto-reset: main→timer: combo fired or aborted
+	HANDLE   m_comboExpiredEvent;  ///< auto-reset: timer→main: window exceeded
+	bool volatile m_doComboForceTerminate;
+	ComboState m_comboState;
+	std::vector<Key *> m_comboPressedKeys;            ///< sorted pressed keys in current attempt
+	std::vector<KEYBOARD_INPUT_DATA> m_comboBuffered; ///< buffered events for re-injection
+	volatile int m_comboWindow;                        ///< effective window [ms]
+	Current m_comboContext;                            ///< keymap context saved on PENDING entry
+	Modifier m_comboModifier;                          ///< modifier state captured at CO_PENDING entry
+	Setting::ComboDetectorMode m_comboDetectorMode;         ///< active mode (fixed during CO_PENDING)
+	Setting::ComboDetectorMode m_comboDetectorModePending;  ///< mode set by &SetComboDetector; applied at next CO_IDLE→CO_PENDING
+	// Optional parameter overrides set by &SetComboDetector(mode, window=N, …); -1 = use def option
+	int  m_comboWindowPending;             ///< -1 = use def option ComboWindow
+	int  m_comboOverlapRatioPending;       ///< -1 = use def option ComboOverlapRatio
+	int  m_comboNestedAlwaysMatchPending;  ///< -1 = use def option  (0=off, 1=on)
+	int  m_comboIdleThresholdPending;      ///< -1 = use def option ComboIdleThreshold
+	// Active values for the current CO_PENDING cycle (computed at CO_IDLE→CO_PENDING)
+	int  m_comboWindowActive;
+	int  m_comboOverlapRatioActive;
+	bool m_comboNestedAlwaysMatchActive;
+	int  m_comboIdleThresholdActive;
+	DWORD m_comboAllKeysDownTime;    ///< timestamp when all combo keys were down (CO_PENDING_EVAL)
+	bool  m_comboAllKeysDown;        ///< true when state is CO_PENDING_EVAL
+	std::map<Key*, DWORD> m_comboKeyDownTimes; ///< per-key press timestamps for overlap ratio calc
+	bool m_comboZeroLatencyActive;   ///< true when key1 was output immediately in zero-latency mode
+
 	bool volatile m_isLogMode;					   /// is logging mode ?
 	bool volatile m_isEnabled;					   /// is enabled  ?
 	bool volatile m_isSynchronizing;			   /// is synchronizing ?
@@ -258,6 +337,10 @@ private:
 																					on win32 ? */
 	Key *m_lastGeneratedKey;					 /// last generated key
 	Key *m_lastPressedKey[2];					 /// last pressed key
+	DWORD m_physModFirstPressedTime[8];			 /// for syncModifiersFromGetAsyncKeyState grace period
+	bool  m_physModWasPressed[8];				 /// previous m_isPressed state per physical modifier
+	volatile DWORD m_lastKeyEventTime;			 /// timestamp of last key event (for ModifierAutoClear)
+	volatile DWORD m_prevKeyEventTime;			 /// timestamp of key event before current (for ComboIdleThreshold)
 	ModifiedKey m_oneShotKey;					 /// one shot key
 	unsigned int m_oneShotRepeatableRepeatCount; /// repeat count of one shot key
 	bool m_isPrefix;							 /// is prefix ?
@@ -306,7 +389,7 @@ public:
 	unsigned m_threadKeyboardPastId;
 	unsigned m_threadFor6pointId;
 	///
-	void SendtoKeyboardHandler(int mode, int flag, USHORT MakeCode);
+	void SendtoKeyboardHandler(int mode, int flag, USHORT MakeCode, ULONG_PTR extraInfo = 0);
 	int m_keyboard_hook; // keyboard LL Hook mode or RawInput Hook
 	int m_mouse_hook;	// mouse LL Hook mode
 	int m_win8wa;
@@ -345,10 +428,28 @@ private:
 	///
 	void For6point();
 
+	/// TapHold timer thread
+	static unsigned int WINAPI tapHoldTimer(void *i_this);
+	void tapHoldTimer();
+
+	/// TapDance timer thread
+	static unsigned int WINAPI tapDanceTimer(void *i_this);
+	void tapDanceTimer();
+
+	/// Combo timer thread
+	static unsigned int WINAPI comboTimer(void *i_this);
+	void comboTimer();
+
+	/// re-inject a list of buffered key events to the front of m_inputQueue
+	void reInjectKeys(const std::vector<KEYBOARD_INPUT_DATA> &i_events);
+
+	/// check if i_key appears in any combo rule of the current keymap
+	bool isComboCandidate(const Key *i_key);
+
 	/// check focus window
 	bool checkFocusWindow();
 
-	// rawinput for �����L�[�{�[�h
+	// rawinput for 複数キーボード
 	//		int getUnitID();
 	//		UINT rawcbSize = 1024;
 	//		PRAWINPUT pRawInput = (PRAWINPUT)malloc(rawcbSize);
@@ -390,6 +491,12 @@ private:
 
 	/// pop all pressed key on win32
 	void keyboardResetOnWin32();
+
+	/// sync modifier state with physical keys (fixes stuck modifiers)
+	void syncModifiersFromGetAsyncKeyState();
+
+	/// clear stuck modifiers after inactivity timeout (ModifierAutoClear)
+	void modifierAutoClear();
 
 	/// get current modifiers
 	Modifier getCurrentModifiers(Key *i_key, bool i_isPressed);
@@ -623,6 +730,9 @@ private:
 	void funcMouseHook(FunctionParam *i_param, MouseHookType i_hookType, int i_hookParam);
 	/// cancel prefix
 	void funcCancelPrefix(FunctionParam *i_param);
+	/// set ComboDetector mode (and optional params) at runtime
+	void funcSetComboDetector(FunctionParam *i_param, Setting::ComboDetectorMode i_mode,
+	                          int i_window, int i_overlap, int i_nested, int i_idle);
 
 	// END OF FUNCTION DEFINITION
 #define FUNCTION_FRIEND
@@ -721,6 +831,12 @@ public:
 
 	/// get nodokad version
 	const tstring &getNodokadVersion() const { return m_nodokadVersion; }
+
+	/// detect kbdaddid driver and retrieve its file version
+	void detectKbdAddId();
+
+	/// get kbdaddid version (empty if not installed/active)
+	const tstring &getKbdAddIdVersion() const { return m_kbdAddIdVersion; }
 
 	/// get current keymap
 	const void get_keymaps();

@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // compiler_specific_func.cpp
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #include "compiler_specific_func.h"
 
@@ -13,9 +15,11 @@ tstring getCompilerVersionString()
 {
 	TCHAR buf[200];
 	_sntprintf_s(buf, NUMBER_OF(buf), _TRUNCATE,
-				 _T("Microsoft(R) 32-bit C/C++ Optimizing Compiler Version %d.%02d"),
+				 _T("Visual Studio 2022 v17.%d  (MSVC %d.%d.%d)"),
+				 _MSC_VER % 100 - 30,
 				 _MSC_VER / 100,
-				 _MSC_VER % 100);
+				 _MSC_VER % 100,
+				 _MSC_FULL_VER % 100000);
 	return tstring(buf);
 }
 

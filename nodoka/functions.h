@@ -3759,6 +3759,67 @@ public:
   }
 };
 
+class FunctionData_SetComboDetector : public FunctionData
+{
+public:
+  Setting::ComboDetectorMode m_mode;
+  int m_window;
+  int m_overlap;
+  int m_nested;
+  int m_idle;
+
+public:
+  static FunctionData *create()
+  {
+    FunctionData_SetComboDetector *fd
+      = new FunctionData_SetComboDetector;
+    return fd;
+  }
+  
+  virtual void load(SettingLoader *i_sl)
+  {
+    i_sl->getOpenParen(true, FunctionData_SetComboDetector::getName()); // throw ...
+    i_sl->load_ARGUMENT(&m_mode);
+    i_sl->getComma(false, FunctionData_SetComboDetector::getName()); // throw ...
+    i_sl->load_ARGUMENT(&m_window);
+    i_sl->getComma(false, FunctionData_SetComboDetector::getName()); // throw ...
+    i_sl->load_ARGUMENT(&m_overlap);
+    i_sl->getComma(false, FunctionData_SetComboDetector::getName()); // throw ...
+    i_sl->load_ARGUMENT(&m_nested);
+    i_sl->getComma(false, FunctionData_SetComboDetector::getName()); // throw ...
+    i_sl->load_ARGUMENT(&m_idle);
+    i_sl->getCloseParen(true, FunctionData_SetComboDetector::getName()); // throw ...
+  }
+
+  virtual void exec(Engine *i_engine, FunctionParam *i_param) const
+  {
+    i_engine->funcSetComboDetector(i_param, m_mode, m_window, m_overlap, m_nested, m_idle);
+  }
+
+  inline virtual const _TCHAR *getName() const
+  {
+    return _T("SetComboDetector");
+  }
+
+  virtual tostream &output(tostream &i_ost) const
+  {
+    i_ost << _T("&") << getName();
+    i_ost << _T("(");
+    i_ost << m_mode << _T(", ");
+    i_ost << m_window << _T(", ");
+    i_ost << m_overlap << _T(", ");
+    i_ost << m_nested << _T(", ");
+    i_ost << m_idle;
+    i_ost << _T(") ");
+    return i_ost;
+  }
+
+  virtual FunctionData *clone() const
+  {
+    return new FunctionData_SetComboDetector(*this);
+  }
+};
+
 #endif // FUNCTION_DATA
 
 #ifdef FUNCTION_FRIEND
@@ -3839,6 +3900,7 @@ friend class FunctionData_SetImeStatus;
 friend class FunctionData_SetImeString;
 friend class FunctionData_MouseHook;
 friend class FunctionData_CancelPrefix;
+friend class FunctionData_SetComboDetector;
 #endif // FUNCTION_FRIEND
 
 #ifdef FUNCTION_CREATOR
@@ -3920,5 +3982,6 @@ FunctionCreator functionCreators[] = {
   { _T("SetImeString"), FunctionData_SetImeString::create },
   { _T("MouseHook"), FunctionData_MouseHook::create },
   { _T("CancelPrefix"), FunctionData_CancelPrefix::create },
+  { _T("SetComboDetector"), FunctionData_SetComboDetector::create },
 };
 #endif // FUNCTION_CREATOR

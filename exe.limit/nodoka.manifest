@@ -3,8 +3,8 @@
   <assemblyIdentity
     type="win32"
     name="nodoka"
-    version="4.3.0.0"
-    processorArchitecture="X86"
+    version="4.3.1.0"
+    processorArchitecture="x86"
 />
   <description>nodoka</description>
   <dependency>
@@ -13,22 +13,12 @@
         type="win32"
         name="Microsoft.Windows.Common-Controls"
         version="6.0.0.0"
-        processorArchitecture="X86"
+        processorArchitecture="x86"
         publicKeyToken="6595b64144ccf1df"
         language="*"
-    />
+      />
     </dependentAssembly>
   </dependency>
-  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
-    <security>
-      <requestedPrivileges>
-        <requestedExecutionLevel
-          level="asInvoker"
-          uiAccess="true">
-        </requestedExecutionLevel>
-      </requestedPrivileges>
-    </security>
-  </trustInfo>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <!-- Windows 10 -->

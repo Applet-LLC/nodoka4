@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ï»¿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // setting.cpp
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #include "keymap.h"
 #include "errormessage.h"
@@ -146,7 +148,7 @@ KeySeq &KeySeq::operator=(const KeySeq &i_ks)
 KeySeq &KeySeq::add(const Action &i_action)
 {
 #ifdef FOR_LIMIT
-	m_actions.pop_back(); // KeySeq‚É‚Í1ŒÂ‚µ‚©•Û‘¶‚Å‚«‚È‚¢B
+	m_actions.pop_back(); // KeySeqã«ã¯1å€‹ã—ã‹ä¿å­˜ã§ããªã„ã€‚
 #endif
 	m_actions.push_back(i_action.clone());
 	return *this;
@@ -386,6 +388,9 @@ void Keymap::adjustModifier(Keyboard &i_keyboard)
 	}
 }
 
+// forward declaration (defined further below, used in describe())
+static int countModifierCareBits(const Modifier &m);
+
 // describe
 void Keymap::describe(tostream &i_ost, DescribeParam *i_dp) const
 {
@@ -490,6 +495,41 @@ void Keymap::describe(tostream &i_ost, DescribeParam *i_dp) const
 		i_dp->m_dk.push_back(i->m_modifiedKey);
 	}
 
+	// describe combo rules
+	for (const auto &cr : m_comboRules)
+	{
+		i_ost << _T(" combo");
+		if (countModifierCareBits(cr.m_modifier) > 0)
+			i_ost << _T(" ") << cr.m_modifier;
+		for (const Key *k : cr.m_keys)
+			i_ost << _T(" ") << k->getName();
+		i_ost << _T("\t= ") << *cr.m_action << std::endl;
+	}
+
+	// describe taphold rules
+	for (const auto &thr : m_tapHoldRules)
+	{
+		i_ost << _T(" taphold");
+		if (countModifierCareBits(thr.m_modifier) > 0)
+			i_ost << _T(" ") << thr.m_modifier;
+		i_ost << _T(" ") << thr.m_key->getName()
+			  << _T("\t= tap=") << *thr.m_tapAction
+			  << _T("  hold=") << *thr.m_holdAction << std::endl;
+	}
+
+	// describe tapdance rules
+	for (const auto &tdr : m_tapDanceRules)
+	{
+		i_ost << _T(" tapdance");
+		if (countModifierCareBits(tdr.m_modifier) > 0)
+			i_ost << _T(" ") << tdr.m_modifier;
+		i_ost << _T(" ") << tdr.m_key->getName() << _T("\t=");
+		for (int n = 0; n < 3; ++n)
+			if (tdr.m_tap[n])
+				i_ost << _T(" tap") << (n + 1) << _T("=") << *tdr.m_tap[n];
+		i_ost << std::endl;
+	}
+
 	i_ost << std::endl;
 
 	if (m_parentKeymap)
@@ -504,6 +544,105 @@ bool Keymap::setIfNotYet(KeySeq *i_keySeq, Keymap *i_parentKeymap)
 	m_defaultKeySeq = i_keySeq;
 	m_parentKeymap = i_parentKeymap;
 	return true;
+}
+
+// add combo rule
+void Keymap::addComboRule(const ComboRule &i_rule)
+{
+	// duplicate = same key set AND identical modifier condition (operator== checks both bitmasks)
+	for (const ComboRule &r : m_comboRules)
+		if (r.m_keys == i_rule.m_keys && r.m_modifier == i_rule.m_modifier)
+			throw ErrorMessage() << _T("combo rule already defined for this key set and modifier.");
+	m_comboRules.push_back(i_rule);
+}
+
+// add taphold rule
+void Keymap::addTapHoldRule(const TapHoldRule &i_rule)
+{
+	// duplicate = same key AND identical modifier condition
+	for (const TapHoldRule &r : m_tapHoldRules)
+		if (r.m_key == i_rule.m_key && r.m_modifier == i_rule.m_modifier)
+			throw ErrorMessage() << _T("taphold rule already defined for this key and modifier.");
+	m_tapHoldRules.push_back(i_rule);
+}
+
+// add tapdance rule
+void Keymap::addTapDanceRule(const TapDanceRule &i_rule)
+{
+	// duplicate = same key AND identical modifier condition
+	for (const TapDanceRule &r : m_tapDanceRules)
+		if (r.m_key == i_rule.m_key && r.m_modifier == i_rule.m_modifier)
+			throw ErrorMessage() << _T("tapdance rule already defined for this key and modifier.");
+	m_tapDanceRules.push_back(i_rule);
+}
+
+// Count the number of "care" (non-dontcare) modifier bits.
+// Higher count = more specific rule; used to resolve ambiguity when multiple rules match.
+// Example: "S-" rule has 1 care bit; all-dontcare rule has 0 â†’ "S-" wins when Shift is held.
+static int countModifierCareBits(const Modifier &m)
+{
+	int count = 0;
+	for (int t = Modifier::Type_begin; t != Modifier::Type_end; ++t)
+		if (!m.isDontcare(static_cast<Modifier::Type>(t)))
+			++count;
+	return count;
+}
+
+// search combo rule: returns the MOST SPECIFIC matching rule (highest care-bit count).
+// This ensures e.g. "combo S- J K" wins over "combo J K" (all-dontcare) when Shift is held.
+const ComboRule *Keymap::searchCombo(const std::vector<Key *> &i_keys, const Modifier &i_mod) const
+{
+	const ComboRule *best = NULL;
+	int bestCare = -1;
+	for (const ComboRule &r : m_comboRules)
+		if (r.m_keys == i_keys && r.m_modifier.doesMatch(i_mod))
+		{
+			int care = countModifierCareBits(r.m_modifier);
+			if (care > bestCare) { best = &r; bestCare = care; }
+		}
+	return best;
+}
+
+// search combo rule by original definition order (for strict-order mode), most-specific match
+const ComboRule *Keymap::searchComboOrdered(const std::vector<Key *> &i_orderedKeys, const Modifier &i_mod) const
+{
+	const ComboRule *best = NULL;
+	int bestCare = -1;
+	for (const ComboRule &r : m_comboRules)
+		if (r.m_orderedKeys == i_orderedKeys && r.m_modifier.doesMatch(i_mod))
+		{
+			int care = countModifierCareBits(r.m_modifier);
+			if (care > bestCare) { best = &r; bestCare = care; }
+		}
+	return best;
+}
+
+// search taphold rule: most-specific match
+const TapHoldRule *Keymap::searchTapHold(const Key *i_key, const Modifier &i_mod) const
+{
+	const TapHoldRule *best = NULL;
+	int bestCare = -1;
+	for (const TapHoldRule &r : m_tapHoldRules)
+		if (r.m_key == i_key && r.m_modifier.doesMatch(i_mod))
+		{
+			int care = countModifierCareBits(r.m_modifier);
+			if (care > bestCare) { best = &r; bestCare = care; }
+		}
+	return best;
+}
+
+// search tapdance rule: most-specific match
+const TapDanceRule *Keymap::searchTapDance(const Key *i_key, const Modifier &i_mod) const
+{
+	const TapDanceRule *best = NULL;
+	int bestCare = -1;
+	for (const TapDanceRule &r : m_tapDanceRules)
+		if (r.m_key == i_key && r.m_modifier.doesMatch(i_mod))
+		{
+			int care = countModifierCareBits(r.m_modifier);
+			if (care > bestCare) { best = &r; bestCare = care; }
+		}
+	return best;
 }
 
 // stream output

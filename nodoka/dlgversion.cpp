@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // dlgversion.cpp
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #include "misc.h"
 
@@ -8,6 +10,7 @@
 #include "windowstool.h"
 #include "compiler_specific_func.h"
 #include "layoutmanager.h"
+#include <sstream>
 
 #include <cstdio>
 #include <windowsx.h>
@@ -25,33 +28,19 @@ public:
 	{
 	}
 
-	/// WM_INITDIALOG
-	BOOL wmInitDialog(HWND /* i_focus */, LPARAM i_lParam)
+	/// Build the version text and set it on IDC_EDIT_builtBy.
+	static void setVersionText(HWND hwnd, const TCHAR *nodokadVersion)
 	{
-		TCHAR *nodokadVersion = (TCHAR *)i_lParam;
-		setSmallIcon(m_hwnd, IDI_ICON_nodoka);
-		setBigIcon(m_hwnd, IDI_ICON_nodoka);
-
 		_TCHAR modulebuf[1024];
-		CHECK_TRUE(GetModuleFileName(g_hInst, modulebuf,
-									 NUMBER_OF(modulebuf)));
+		CHECK_TRUE(GetModuleFileName(g_hInst, modulebuf, NUMBER_OF(modulebuf)));
 
 		_TCHAR buf[1024];
 		_sntprintf_s(buf, NUMBER_OF(buf), _TRUNCATE, loadString(IDS_version).c_str(),
 					 _T(VERSION)
-#if 0
-#ifndef NDEBUG
-				_T(" (DEBUG)")
-#endif // !NDEBUG
-#ifdef _UNICODE
-				_T(" (UNICODE)")
-#endif // !_UNICODE
-#endif
-
 #ifdef _WIN64
-						 _T(" for x64 ")
+					 _T(" for x64 ")
 #else
-						 _T(" for x86 ")
+					 _T(" for x86 ")
 #endif
 					 ,
 					 nodokadVersion,
@@ -60,8 +49,23 @@ public:
 					 _T(__DATE__) _T(" ") _T(__TIME__),
 					 getCompilerVersionString().c_str(),
 					 modulebuf);
+		tstring versionText(buf);
+		if (!g_hookDllStatus.empty())
+		{
+			versionText += _T("\r\n\r\n");
+			versionText += g_hookDllStatus;
+		}
+		Edit_SetText(GetDlgItem(hwnd, IDC_EDIT_builtBy), versionText.c_str());
+	}
 
-		Edit_SetText(GetDlgItem(m_hwnd, IDC_EDIT_builtBy), buf);
+	/// WM_INITDIALOG
+	BOOL wmInitDialog(HWND /* i_focus */, LPARAM i_lParam)
+	{
+		TCHAR *nodokadVersion = (TCHAR *)i_lParam;
+		setSmallIcon(m_hwnd, IDI_ICON_nodoka);
+		setBigIcon(m_hwnd, IDI_ICON_nodoka);
+
+		setVersionText(m_hwnd, nodokadVersion);
 
 		// set layout manager
 		typedef LayoutManager LM;
@@ -138,4 +142,13 @@ INT_PTR CALLBACK dlgVersion_dlgProc(HWND i_hwnd, UINT i_message, WPARAM i_wParam
 			return wc->defaultWMHandler(i_message, i_wParam, i_lParam);
 		}
 	return FALSE;
+}
+
+// Update the version dialog's text to reflect the current driver version string.
+// Call this before ShowWindow when the dialog may have been created before the
+// kbdaddid license was activated.
+void refreshVersionDialog(HWND hwndVersion, const tstring &driverVersionStr)
+{
+	if (!hwndVersion || !IsWindow(hwndVersion)) return;
+	DlgVersion::setVersionText(hwndVersion, driverVersionStr.c_str());
 }

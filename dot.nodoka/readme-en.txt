@@ -1,413 +1,437 @@
-About "Nodoka". This is change general-purpose key binding software.
+# About Nodoka, a General-Purpose Keybinding Remapping Software
 
-https://appletllc.com/ applet@bp.iij4u.or.jp 2020-03-10
+https://appletllc.com/  applet@bp.iij4u.or.jp 2026-06-27
 
+## 1. Overview
 
-1. Outline
-  You can use change key binding by setting file as dot.nodoka.
+This is a derivative version of the software “Madousai no Yuutsu” (“Windowmaker’s Melancholy”). Please note that the support and development organization are different.
 
-  Target OS are Windows 10 only.
-  Exe file and Device Driver with Code signing.
+Using a configuration file named `dot.nodoka`, you can freely remap the keyboard layout to a certain extent.
 
-  This is Shareware. Sample version is use on 30 minutes for trial.
-  There is no restriction of the use of 30 minutes to it.
+The supported OS is Windows 10 22H2 or later.
 
-  Retail version is 1800 Yen. buy at https://appletllc.com/%e3%82%bd%e3%83%95%e3%83%88%e3%82%a6%e3%82%a7%e3%82%a2/  You can use paypal.
+The device driver is WHQL-signed for Windows 10 22H2 on x86 (32-bit) and Windows 11 24H2 on x64 (64-bit).
 
-  License as Common Public License. You can get source code from http://sourceforge.jp/projects/nodoka4/
+The executable files, DLLs, and device driver are digitally signed.
 
+The trial version terminates automatically 30 minutes after startup.
 
-2. How to install, run, uninstall and customizing.
+This is shareware.
 
- (1) Install
+The source code is published under the EPL 2.0 (Eclipse Public License 2.0) at https://gitlab.com/appletllc/nodoka4.
 
-  at Administrator
-  To perform the installation, you must first install the device driver.
-  Open zip files. Open drivers folder.
-  If your OS is Windows 10 64bit, x64 folder. If your OS is 32bit, open the x86 folder.
-  Right-click the nodokad.inf file in the x64 or x86 folder of the driver folder in the obtained zip file and select Install.
+The full version, priced at USD 11 including tax, can be purchased from https://appletllc.com/%e3%82%bd%e3%83%95%e3%83%88%e3%82%a6%e3%82%a7%e3%82%a2/.
 
-  run nodoka-4.30_sample_setup.exe (as trial version), nodoka-4.30_setup.exe (as retail version).
+Payment is handled through Gumroad, and a credit card is required.
 
+## 2. Installation, Launch, Uninstallation, and Customization
 
- (2) Run
-  Double Clik for "Nodoka" short-cut at Start Menu. or Auto start at Start Up.
+There are limitations and known issues, so please see the following pages for details.
 
-  Shareware trial version exit on 30 miniutes.
+- Information page: https://appletllc.com/web/nodoka.htm
+- Q&A: https://appletllc.com/web/nodoka-QandA.htm
+- Help: https://appletllc.com/web/nodoka-doc/README-ja.html
 
+### (1) Installation
 
- (3) Uninstall
-  You can use Add Program applet at Control Panel.
+First, exit any running instance of Nodoka. If startup is enabled in Task Manager’s Startup apps, disable it.
 
- (4) How to use and customizing
-  You can edit dot.nodoka file for customizing for key binding.
-  See Help (README-en.html) File.
+To install Nodoka, you first need the Visual C++ v14 Redistributable Package.
 
-  When this file is opened, the file on Web is opened with a translation engine of
-Google.
-  It is a wrong translation. I am sorry.
+From the page below, download and install the x64 or x86 file according to your OS architecture, 64-bit or 32-bit:
 
-  setting file examples
-   https://www.appletllc.com/web/en/sample.htm
+- Download the latest supported Visual C++ Redistributable | Microsoft Learn  
+  https://learn.microsoft.com/ja-jp/cpp/windows/latest-supported-vc-redist?view=msvc-170  
+  https://aka.ms/vc14/vc_redist.x64.exe  
+  https://aka.ms/vc14/vc_redist.x86.exe
 
+Then restart Windows. Running the setup while Nodoka is not running helps prevent installation failure.
 
-3. User Support
+Run either `nodoka-4.31_sample_setup.exe` (trial version) or `nodoka-4.31_setup.exe` (full version) with administrator privileges.
 
-  http://jbbs.livedoor.jp/computer/41517/ You can use "for English user" thread.
+The device driver is installed during setup. A confirmation dialog may appear if necessary.
 
+After the files are installed, you will be prompted to restart, so please restart.
 
-4. Copyright Notice
+After rebooting, re-enable the Startup setting in Task Manager if you disabled it earlier.
 
-Nodoka Version 4.04 or Newer
-Copyright (C) 2008-2020 applet <applet@bp.iij4u.or.jp> All rights reserved.
+### (2) Running Nodoka
 
-License as CPL(Common Public License). Please read Common_Public_License_1_0.txt.
+Double-click “Nodoka” registered in the Start menu. If you register it in Startup, it will run automatically when you log in to Windows.
 
+In the trial version, it automatically exits 30 minutes after startup.
 
-MADO TSUKAI NO YUUTSU Version 3.30
+### (3) Uninstallation
 
-Copyright (C) 1999-2005, TAGA Nayuta <nayuta@users.sourceforge.net>
+Find “Nodoka” in Control Panel’s Add/Remove Programs and uninstall it.
+
+Even after uninstalling, files may remain in `c:\Program Files\nodoka` because running files cannot be deleted, and shortcuts may remain in the Start menu or Startup.
+
+In that case, delete them manually from Explorer.
+
+The device driver is removed at the same time.
+
+### (4) Usage and Customization
+
+Please refer to the help file mentioned above for usage and customization.
+
+There are also several configuration examples on the English page:
+
+https://www.appletllc.com/web/en/sample.htm
+
+## 3. Limitations and User Support
+
+Please refer to the help file mentioned in section 2.
+
+We make efforts to ensure stable operation, but if a malfunction occurs, whether in the trial version or the full version, the responsibility lies with the user. Thank you for your understanding.
+
+The user support bulletin board is here: https://jbbs.shitaraba.net/computer/41517/.
+
+You can use it to report bugs, request investigations, and exchange information with other users.
+
+## 4. Copyright Notice
+
+For Mado Version 4.00.0 and Nodoka Version 4.01 through 4.30:
+
+Copyright (C) 2008–2026 applet <applet@bp.iij4u.or.jp> All rights reserved.
+
+The license is CPL (Common Public License). For details, see `Common_Public_License_1_0.txt`. `Common_Public_License_1_0_JP.txt` is the Japanese reference translation.
+Note: these files were bundled with past versions (4.01 through 4.30).
+
+For Nodoka Version 4.31 or later:
+
+Copyright (C) 2008–2026 applet <applet@bp.iij4u.or.jp> All rights reserved.
+
+The license has been changed to EPL 2.0 (Eclipse Public License 2.0). For details, see `LICENSE.txt`. `LICENSE_JP.txt` is the Japanese reference translation.
+
+For Madousai no Yuutsu Version 3.30 and earlier:
+
+Copyright (C) 1999–2005, TAGA Nayuta <nayuta@users.sourceforge.net>  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-The name of the author may not be used to endorse or promote products derived from this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Redistributions of source code must retain the above copyright notice, this list of conditions, and the following disclaimer.  
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions, and the following disclaimer in the documentation and/or other materials provided with the distribution.  
+The name of the author may not be used to endorse or promote products derived from this software without specific prior written permission.  
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+Yet Another Mado tsukai no Yuutsu (YAMY)
 
-Yet Another Mado tsukai no Yuutsu(YAMY)
+Copyright (C) 2009, KOBAYASHI Yoshiaki <gimy@users.sourceforge.jp>  
+All rights reserved.
 
-  Copyright (C) 2009, KOBAYASHI Yoshiaki <gimy@users.sourceforge.jp>
-    All rights reserved.
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-  Redistribution and use in source and binary forms,
-  with or without modification, are permitted provided
-  that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice, this list of conditions, and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions, and the following disclaimer in the documentation and/or other materials provided with the distribution.
+3. The name of the author may not be used to endorse or promote products derived from this software without specific prior written permission.
 
-    1. Redistributions of source code must retain the above copyright
-       notice, this list of conditions and the following disclaimer.
-    2. Redistributions in binary form must reproduce the above
-       copyright notice, this list of conditions and the following
-       disclaimer in the documentation and/or other materials provided
-       with the distribution.
-    3. The name of the author may not be used to endorse or promote
-       products derived from this software without specific prior
-       written permission. 
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
-  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
-  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-  THE POSSIBILITY OF SUCH DAMAGE.
+Boost.Regex  
+Copyright (c) 1998–2007 John Maddock
 
-
-Boost.Regex 
-Copyright (c) 1998-2007 John Maddock
-
-Boost.Program_options
-Copyright (c) 2002-2004 Vladimir Prus
+Boost.Program_options  
+Copyright (c) 2002–2004 Vladimir Prus
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
-Permission is hereby granted, free of charge, to any person or organization
-obtaining a copy of the software and accompanying documentation covered by
-this license (the "Software") to use, reproduce, display, distribute,
-execute, and transmit the Software, and to prepare derivative works of the
-Software, and to permit third-parties to whom the Software is furnished to
-do so, all subject to the following:
+Permission is hereby granted, free of charge, to any person or organization obtaining a copy of the software and accompanying documentation covered by this license (the “Software”) to use, reproduce, display, distribute, execute, and transmit the Software, and to prepare derivative works of the Software, and to permit third-parties to whom the Software is furnished to do so, all subject to the following:
 
-The copyright notices in the Software and this entire statement, including
-the above license grant, this restriction and the following disclaimer,
-must be included in all copies of the Software, in whole or in part, and
-all derivative works of the Software, unless such copies or derivative
-works are solely in the form of machine-executable object code generated by
-a source language processor.
+The copyright notices in the Software and this entire statement, including the above license grant, this restriction and the following disclaimer, must be included in all copies of the Software, in whole or in part, and all derivative works of the Software, unless such copies or derivative works are solely in the form of machine-executable object code generated by a source language processor.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT
-SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
-FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Sirius  
+http://www.sirius.spline.tv/wiki/WikiStart
+
+The MIT License  
+Copyright (C) 2008–2010, MATSUMOTO Reiji <matsumoto@spline.oc.to>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## 5. Acknowledgements
+
+To TAGA Nayuta, who created the great and indispensable “Madousai no Yuutsu,” my sincere thanks.
+
+Also, to the anonymous person who created the 3.30.1 source for Vista and made it public in a 2ch thread, my sincere thanks.
+
+Also, to KOBAYASHI Yoshiaki, who developed YAMY, my sincere thanks.
+
+## 6. Release Notes
+
+### 2026-06-27 4.31
+
+The license has been changed from CPL (Common Public License) to EPL 2.0 (Eclipse Public License 2.0).
+
+#### (1) Changes to supported OSes and notes about the next version
+
+Previously, Windows 2000, XP, Vista, 7, 8, and 10 were supported. However, this version supports Windows 10 22H2 or later only.
+
+It can also run on Windows 10 version 1903 (May 2019 Update), but on older versions than that, installation may result in an abnormal state such as inability to input keystrokes.
+
+Windows Server is not supported. Judging from the kernel version, installation should be possible on Windows Server 2022 or later. On Windows Server 2019 or earlier, issues will occur.
+
+For Windows 10 32-bit (x86), this 4.31 release will be the last; the next version is planned to support Windows 11 only.
+
+The next version is also planned to be a major upgrade, and the following features are envisioned:
+
+- Implementation of Combo / TapDance / TapHold.
+- Full support for multiple keyboards.
+- A trial GUI-based configuration tool.
+
+These plans are not finalized, so implementation is not guaranteed, but Combo / TapDance / TapHold have already been experimentally implemented and can be tried in this version. See the end of this Readme.
+
+#### (2) Bug fixes and specification changes
+
+1. Windows 11 support for the device driver and a fix for the inability to input keys during Windows Update.
+2. An improvement for the problem where modifier keys remain pressed.
+3. Fixes to the LL Hook implementation.
+4. Fixes for cooperation issues with applications running with administrator privileges.
+5. Improved coordinate accuracy in window move/maximize functions.
+6. Fixed a configuration file loading bug.
+7. Changes to the development environment.
+8. Remote Desktop support.
+9. Experimental implementation for the next version.
+
+1) Windows 11 support for the device driver and a fix for the inability to input keys during Windows Update
+
+When Windows is updated or upgraded, the code has been redesigned as a primitive driver for Windows 10 version 1903 or later so that the driver registration state is handled correctly.
+
+The version number has been changed to 1.38 (previously 1.33). Versions 1.34, 1.35, 1.36, and 1.37 were skipped.
+
+Installation was changed back from INF-based installation to setup-based installation, as before.
+
+The x86 (32-bit) version is WHQL-signed on Windows 10 22H2, and the x64 (64-bit) version is WHQL-signed on Windows 11 24H2.
+
+Because it is now a primitive driver, it is compatible with Windows Update. The device driver installation destination has changed from `C:\Windows\System32\drivers` to per-driver folders under `C:\Windows\System32\DriverStore\FileRepository`.
+
+If you install Nodoka 4.31 in an environment that already has 4.30 (nodokad 1.31), the old driver settings are removed and the new driver settings are written to the registry.
+
+So far, we have not encountered cases where Windows Update from Windows 10 20H2 to 21H2 or 22H2 causes key input to stop working while Nodoka is installed and version 4.31 is used.
+
+At least the likelihood has been reduced. However, there are cases where `nodokad.sys` is not present, and in that case the installation may need to be repeated.
+
+If you still encounter a state where you cannot type on the login screen after Windows Update, you can try the following.
+
+If the on-screen keyboard works on the login screen, use that.
+
+If the on-screen keyboard does not work, force shutdown several times during the boot screen just before the login screen to enter recovery mode, then boot using the last known good configuration to recover.
+
+2) Added mitigations for modifier keys remaining pressed
+
+The following two options were added. They are disabled by default. Both coexist with the existing `def option CheckModifier`.
+
+They are intended for cases where Shift or Ctrl frequently remain stuck down, and are worth trying if needed.
+
+- `def option SyncModifierGracePeriod = <ms>`  (example: 500; 0 disables the feature)  
+
+  When performing key remapping, there may be a delay of several tens of milliseconds before the system reflects the key output (a delay in the LL Hook and an asynchronous WriteFile to the device driver). If the next key is pressed during this delay, `GetAsyncKeyState` will return 0, causing legitimate modifier keys to be incorrectly cleared.
+
+To prevent this false positive, the grace period ignores clearing within a specified number of milliseconds after a modifier key is recorded as "pressed," thus preventing false positives. **A value of approximately 500 ms** is recommended. If this does not appear to be occurring, no configuration is necessary.
+
+- `def option ModifierAutoClear = <seconds>`  (example: 5; 0 disables the feature)  
+
+This function measures the time elapsed since pressing a modifier key (Shift, Ctrl, Alt, Win) and, after the specified time has passed, sends an Up signal to the modifier key, automatically clearing it.
+
+It's easier to specify than CheckModifer, but it doesn't offer fine-grained control.
+
+As a side note, it seems that Hyper-V environments employ a workaround of periodically sending Up signals to each modifier key. This can sometimes be observed in the log window.
 
 
-sirius  http://www.sirius.spline.tv/wiki/WikiStart
-The MIT License
-Copyright (C) 2008-2010, MATSUMOTO Reiji <matsumoto@spline.oc.to>
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+3) Fixes to the LL Hook implementation
 
+A bug where logs were not displayed when the log dialog had focus was fixed.
 
-5. Thanks,
+In `engine.cpp`, the LL Hook callback handling was changed to use Events rather than Windows Messages. This is the same implementation as YAMY.
 
- MADO TSUKAI NO YUUTSU develop by Mr.Nayuta TAGA,. Thanks, a lot of.
+As a result, the polling-based key input delay was reduced from 5 ms to none, improving responsiveness.
 
- Version 3.30.1 by Nobody at 2ch.net. Thank you very much.
+4) Cooperation with administrator-privilege applications
 
+Even though `uiAccess=true` was written in the manifest, things were not working properly, such as being unable to retrieve window information from administrator-privilege applications, so this was fixed.
 
-6. Short Histroy
+However, if you look at the debug output in DebugView, applications using Microsoft Edge WebView2 refuse DLL loading, so window information cannot be obtained.
 
-  2020-03-10   "Nodoka" 4.30 released
-   Specification changes
-   - Supported Windows 10 only.
-     However, since restrictions other than device drivers have not been resolved, information related to installation on Windows 10 and
-     Please be sure to read the information about the restrictions of the throat as they are summarized in "Help for Windows 10".
+Also, executables such as `nodoka64.exe` with `uiAccess=true` will show an error dialog and fail to function properly if run outside `Program Files`, so `nodoka64_nua.exe` was prepared. Its manifest sets `uiAccess=false`.
 
-   - The signature of the device driver was changed to that of the attestation signature for Windows 10.
-     It can be used on a PC with Secure Boot enabled.
-   - Emergency device drivers that are less necessary to use have been removed.
-   - The installation of the device driver has been separated from the setup.
-     Therefore, it must be performed before installing the app.
-   - In the setup, when the existence of the device driver is confirmed, the check of "Do not use the device driver" is removed.
-     The way of checking and the meaning are different from the setup of 4.29.
+If an application does not allow key remapping or window information retrieval, you may be able to work around it by launching `nodoka64_hil.exe` directly so that it runs with higher privileges.
 
-   Fix
-   - In the key input log, the degraded bug in 4.29 where the extended key E0E1- is always displayed has been fixed.
-   - In the setting file of the gamepad support, the value of Wait [ms] of the input loop was changed from 5ms or 10ms to 50ms.
+Alternatively, running `nodoka64_nua.exe` with administrator privileges may also work.
 
-  2015-09-17   "Nodoka" 4.29 Release.
-        - for Windows 10
-        �@To celebrate the Windows 10 support, at 4.29 evaluation version has abolished the restrictions that
-        �@can be used only 30 minutes. However there is a use-by date up to 2015-12-27.
-          exe file minifest have Windows 7,8,8.1,10 compatible flag.
-          check Don't Install Device Driver at Nodoka upgrade install. 
-          and other install informationa at Windows 10 on Help. Please see it.
-    
-        - Other
-          nodokad device driver to kbdclass driver's next at install. for VMware vmkbd.
-          key logging add E0E1- extend key.
-   
-  2015-07-28   "Nodoka" 4.28 Release.
-        - fix High integrity level revise.
-              def option SendTextDelay probrem.
+5) Improved coordinate accuracy in window move/maximize functions
 
-  2014-11-16   "Nodoka" 4.27 Release.
-        - add Add configuration file, disable input the keyboard with malicious by BadUSB.
-              Extend of the lock key.
-              Alias additional modifier key name.
-              Additional startup argument -g to specify the integrity level.
-              Delete of nodoka64_hil.exe and nodoka_hil.exe.
-        - fix Three or more of the multi-monitor support.
-              In some function, work only during key up.
-              Multiple keyboard support extended and modification, Bluetooth keyboard support added.
-              Additional pen button key definition of Surface Pro 3.
-\        
-  2014-04-22   "Nodoka" 4.26 Release.
-        - add Windows 8 Workaround. add option Alt-Tab, Win-X are not customized key.
-              Setup option and nodoka startup -w argument. 
-        - fix Remote side mouse click can not use at Remote Desktop with mouse hook.
-        
-  2013-10-01   "Nodoka" 4.25a Release.
-        - fix Internet Explorer fail at IME on with IE Protected mode.
-              Version number will remain in 4.25, because just replace sirius_hook_for_nodoka_x86, _x64.dll.
+In `&WindowMaximize`, `&WindowHMaximize`, `&WindowVMaximize`, `&WindowMoveTo`, `&WindowMonitorTo`, `&WindowResizeTo`, `&WindowResizeToPer`, `&WindowResizeMoveTo`, and `&WindowResizeMoveToPer`, the problem of window coordinate calculations not being performed in physical pixels in DPI environments above 125% was fixed.
 
-  2013-09-23   "Nodoka" 4.25 Release.
-        - fix Explorer thumbnail view trouble by sirius_hook.
-        - fix Device Driver Mode do not use Change Uesr.
+It was also corrected to use the accurate window rectangle excluding the invisible border (shadow area) introduced by DWM on Windows 10 and later.
 
-  2013-07-03   "Nodoka" 4.24 Release.
-        - add
-         Nodoka
-          ScancodeMap keymap change funcion for keyboard LL Hook from YAMY.
-          as -n option, Use Administrator
-          define USEFIXNLS at read-keyboard-define.nodoka.
+6) Configuration file loading bug fix
 
-         setup.
-          add Don't Install Device Driver mode.
-          add -n option for ScancodeMap revise mode.
-          
-        - fix
-          Don't effect mouse hook at remote desktop.
-          Single click to Twice key down at Mouse Hook.
-          add Dummy key at def option FakeUp.
+A bug where the first 1 or 2 bytes were skipped was fixed.
 
-  2013-05-04   "Nodoka" 4.23 Release.
-        - add
-         setup.
-          set to Environment NODOKA
-          do not revise shortcut & dot.nodoka file option
-          add NodokaGuiEdit shortcut
-         NodokaGuiEdit
-          open include file from NodokaGuiEDIT
-          select file encoding
-          add setting dialog for window & font customize
-          open Home directory by explorer
-          
-        - fix
-          remove current directory from Home directory
-          do not forget setup option
-          
-        - other
-          add include relative discribe.
-          rewrite dot.nodoka file for NodokaGuiEdit.and add new setting samples on contrib.
+Support for UTF-8 BOM was also added, so files can now be loaded in ASCII, Shift-JIS, UTF-8 with or without BOM, or UTF-16.
 
-  2013-04-07   "Nodoka" 4.22 Release.
-        - add New NodokaGuiEdit.
-        - add -y argument nodoka64.exe do not view setting dialog.
-        - add def option FakeUp for detect UnitID timming
-        - add def option UseDoublePress as -DP modifier.
-        - fix &DescribeBinding Alt<->Control key exchange.
+7) Development environment changes
 
-  2012-12-12   "Nodoka" 4.21 Release.
-        - add HIL version for LL Hook mode at Windows 8.
-        - add setup check option for Windows 8.
-        - add setting dialog at double running.
-        - chg Renewal Digital Sign for Device Driver.
-        - chg go setup at detect other kbdclass filter driver.
-        
-  2012-10-28   "Nodoka" 4.20 Release.
-        - fix detect Modifiyer IC- at Microsoft Word.
-        - add def option UnitID. You can use 8 keyboards.
-        - chg Change key release at Ctrl-Alt key combination. U-Ctrl U-Alt -> U-Alt U-Ctrl . 
+The build environment was migrated from Visual Studio 2005 plus DDK to Visual Studio 2022 plus EWDK.
 
-  2011-12-20   "Nodoka" 4.19a Release.
-       - fix   Version 4.19 have probrem as key remap fail at window.
-               exe version number is same. but, readme/help version number is 4.19a
-  2011-12-18   Cancel 4.19 release.
-  2011-12-17   "Nodoka" 4.19 Release.
-        - fix  Front display Setting-Window
-               Mouse LL Hook & Keyboard LL Hook to Lightweight.
-               Occasionally a key repeat bug fixes.
-               Application Error by sirius_hook bug fixes.
-        - chg  .nodoka file support  Symbolic link
-        - add  New Argument -L, -l are open Log-Window.
-  
-  2011-08-08   "Nodoka" 4.18 Release.
-        - fix  Fail Open Common Memory at IE8,IE9 Low Integrity Level.
-               Hold down the state becomes the Touchpad sts4nodoka.
-        - chg  It will run  LL Hook mode at detect error on Remote Desktop.
-               If there is no help in the doc folder, using the help of the same folder as the executable.
-               Without written to the registry, the symbol-without the -DUSE104.
-        - add  Set/Unset Use Text Services Framework. def option UseTSF, &UseTSF().
+At the same time, all source code was converted to UTF-8.
 
-  2011-02-15   "Nodoka" 4.17 Release.
-        - fix  Quick Start & GUI Edit button is inactive at not install .NET Framework 4.
-        - chg  Revival dotnet_starter.exe for GUIEdit quick start.
-               GUIEdit was able to splash window on startup.
-        - add  Limited version of the macro function that excludes nodoka64_limit.exe, nodoka_limit.exe.
-               Press detection Modifier key leave as def option CheckModifier
-  
-  2010-11-15   "Nodoka" 4.16 Release.
-		- fix sirius_hook_x86,x64.dll fail SHGetMalloc(), allocateCommonValue()
-		- chg remove callWndProcRet() at nodoka.dll, nodoka64.dll
-		- add SendMessageTimeout(WM_NULL) at exit nodoka_helper.exe
+64-bit pointer casts that were left over from the 64-bit port were also fixed, such as `DWORD -> DWORD_PTR` and `(HWND) -> (HWND)(ULONG_PTR)`, reducing build warnings.
 
-  2010-11-07   "Nodoka" 4.15 Release.
-		- fix setup.exe small dialog. setup64.exe for update install at x64.
-		      nodoka.exe, nodoka64.exe key customize and mouse hook d'nt use at Change User.
-		- chg Make native code GuiEdit.exe use ngen.exe at setup.
-�@�@	- add use TSF(Text Services Framework). add Modifier IH-,IK-,IJ-,IW-
-		       &WaitKey output key and do Function pause time.
-		       sts4nodoka64.dll Synaptics touch pad at x64.
-		       argument 
-		        -p pause toggle
-		        -r view menu
+All executable files, DLL files, and SYS files are EV-signed.
 
-  2010-06-07   "Nodoka" 4.14 Release.
-		- fix  def option KeybaordDelay's repeating yield.
-		- chg  icon color option need -c.
-		- add  nodoka.exe argument add -m Mouse LL Hook and -k Keyboard LL Hook.
-		       &MouseMoveTo(), &MouseMonitorTo(), &MouseMonitor()
-		       new Modifiyer -K0, -K1, -K2, -K3 as use multi keybord.
-		       dotnet_starter.exe for GuiEdit.exe.
-		       104.mayu, 109.mayu, 104on109.mayu, 109on104.mayu
+DLLs loaded from `nodoka64.exe` must be digitally signed. This is one of the measures used to mitigate DLL injection vulnerabilities.
 
-  2010-05-04   "Nodoka" 4.13 Release.
-		- add mouse hook, GuiEdit, key-repeat, set desktop icon list view, detect FocusChange. 
-		- fix gamepad.dll memory leak, Application Error with non BOM UTF-16 setting file, KL- mode.
-		- and etc.
-		
-  2010-03-30   "Nodoka" 4.12 Release.
-		- modify Current use setting file is visible at Setting Dialog listview.
-		- modify Detect other keyboard filter driver, Installation terminates.
-		- modify Setup Dialog notice.
-		- and etc.
-		
-  2009-12-17   "Nodoka" 4.11a Release.
-		- fix upgrade setup fail at Windows Vista x64.
+Azure Artifact Signing has not been obtained.
 
-  2009-12-15   "Nodoka" 4.11 Release.
-		- fix Use shared memory instead of registry, improve performance.
-		      and remove not use registry.
-		- fix Application error at read UTF-8 setting file.
-		- fix DLL Detach, Use SendNotifyMessage().
-		- fix Upgrade install fail at Windows 7 x64.
-		- fix Running during intallation, you can quit Nodoka.
-		- add &MayuDialog, &CancelPrefix and Load Mayu Plugin.
-		  add YAMY copyright notice.
+8) Remote Desktop support
 
-  2009-10-18   "Nodoka" 4.10 Release.
-		- add Code signing on exe, device driver.
-		- add uiAccess="true"
-		- add x64 version.
-		
-  2009-07-26   "Nodoka" 4.09 Release.
-        - add  &WindowResizePer, &WindowResizeMoveToPer
-        - add  def option CaretBlinkTime
-        - add  SendMessageTimeout WM_NULL at nodoka.exe exit.
-        
-  2009-06-18	"Nodoka" 4.08 Release.
-		- add  NODOKA shell value.
-		- add  def option SendTextDelay for &SendText.
-		- add  gamepad plugin (as test)
-		- add  busy cursol at loading dot.nodoka setting file.
+In a Remote Desktop environment, the software traditionally operates in LL Hook mode. However, if you add `-f` to the startup arguments for `nodoka64.exe`, it will run in device-driver mode.
 
-  2009-04-12	"Nodoka" 4.07a Release. Only BugFix.
-		- fix  Repeating Shift key then, &LoadSetting with Shift Key.
-		- fix  Do not efect &HelpMessage at Windows XP
+In Hyper-V environments, `-f` is required if you want to use the device driver.
 
-  2009-03-23	"Nodoka" 4.07 Release, build at Visual Sudio 2005
-		add function
-		- &SendText()
-		- &WindowResiseMoveTo()
-		- &SetForegroundWindow()
-		- &SetImeConvStatus()
-		- Support Alps TouchPad and Add New Touchpad Modifier TL-,TLS-, TR-, TRS-
-		- Modify to detect Kana-Lock
-  
-  2008-11-23	"Nodoka" 4.06 Release
-		- Modify &SendPostMessage (as Test version) for Send/Post Message to Any Window.
-		- Add &SendPostMessage( PostTray, [exe file name fullpath], TitleName, message_id, 0, 0) for PostMessage to Tray Icon.
-		- fix Windows SDK 6.1 cdebug option.
+This feature had already been implemented starting with 4.27. This is because in the RDP functionality of Windows 7 and later, the Remote Desktop Keyboard Device composed of `terminpt.sys` exists in the same way as other keyboards, making it possible to cooperate with `nodokad.sys`. Reference information is available at the following site:
 
-  2008-10-28	"Nodoka" 4.05 Release
-		- Add $NodokaVal (as Test version) for &ShellExecute. use Window Class/Tilte name for execute file.
-		- Add &SendMessage (as Test version) for Send Message to Any Window.
-		- fix c0000005 Access vioration
-		- Work Around for press shift-key at boot time
+- How to enable a third-party driver to intercept and disable the SAS keyboard sequence in Remote Desktop Protocol (RDP) sessions for Windows 7, Windows Server 2008 R2, Windows 8 and Windows Server 2012  
+  http://web.archive.org/web/20150111112645/http://support.microsoft.com/kb/2867446
 
-  2008-09-27	"Nodoka" 4.04 Release
-		- Add Function Change Icon Color and &IconColor()
-		- Edit File button at Setting Window.
+Note that `nodokad.sys` does not support multiple sessions on Windows Server.
 
-  2008-09-03	"Nodoka" 4.03 Release
-  2008-08-10	"Nodoka" 4.02 Release
-                - support for IE7
+9) Experimental implementation for the next version
 
-  2008-08-02	"Nodoka" 4.01 Release
-                - Change Program Name.
+The following three proposals are being worked on. Of these, Combo / TapDance / TapHold can be tried in this 4.31 version.
 
-  2008-07-20	"Mayu" 4.00.00 Release
+- GUI configuration editor.  
+  This is a separate application, so it is not implemented in 4.31.
+
+- Full support for multiple keyboards.  
+  Code for multiple-keyboard support using the unpublished `kdbaddid.sys` driver has been implemented, but it will not work in environments without that driver.  
+  This function binds external keyboards to K1 through K7 modifiers on a per-device or per-instance basis.  
+  Unlike the implementation in 4.20, keys can be distinguished from the very start of key down processing.
+
+- Implementation to verify Combo / TapDance / TapHold details.  
+  The documentation is as follows. The reason the maximum number of keys for Combo is six is that it was designed with Braille six-dot input in mind.  
+  Also, using many simultaneous keys in Combo may require an N-key rollover keyboard, so it may not always work exactly as configured.
+
+--- Combo
+
+Realize key remapping through simultaneous pressing of 2 to 6 keys.
+
+`combo [modifier-] KEY1 KEY2 [KEY3 … KEY6] [window=<ms>] = ACTION`
+
+# Combo options
+
+`def option ComboWindow = <ms>`  
+Default: 50  
+Time window for the timeout method.
+
+`def option ComboDetector = timeout | immediate | rollover | strict-order | zero-latency`  
+Specify the simultaneous-press detection method.
+
+`def option ComboIdleThreshold = <ms>`  
+Default: 0 (disabled)  
+Grace period for simultaneous-press detection.
+
+`def option ComboOverlapRatio = <0–100>`  
+Default: 0 (disabled)  
+Adds overlap ratio to simultaneous-press judgment to improve accuracy.
+
+`def option ComboNestedAlwaysMatch = on | off`  
+Default: off  
+If the first key of the Combo remains pressed after timeout, continue Combo detection mode.  
+This option only works in modes with timers: `timeout`, `strict-order`, and `zero-latency`.
+
+Meaning of `ComboDetector` modes:
+
+- `timeout`: Timeout-based mode (default). Fires if all keys are pressed within `ComboWindow`.
+- `immediate`: No timer. Fires immediately the moment all keys are pressed.
+- `rollover`: No timer. Allows interruption by keys outside the combo.
+- `strict-order`: Requires presses to occur in the defined order.
+- `zero-latency`: Outputs `key1` immediately, and if the combo is completed, cancels it with IME backspace correction.  
+  Works when IME is on; when IME is off, it behaves like `immediate`.
+
+`&SetComboDetector` function  
+This changes Combo-related parameters from the point of execution onward.
+
+`&SetComboDetector(mode, window, overlap, nested, idle)`
+
+Only `mode` is a string; the remaining arguments are numeric only.
+
+`&SetComboDetector(immediate, -1, -1, -1, -1)`  
+`&SetComboDetector(rollover, 80, -1, -1, -1)`
+
+Argument | Type | Meaning
+---|---|---
+mode | mode name | `timeout` / `immediate` / `rollover` / `strict-order` / `zero-latency`
+window | ms / -1 | Combo window
+overlap | 0–100 / -1 | Overlap ratio threshold
+nested | 0 or 1 / -1 | `ComboNestedAlwaysMatch`
+idle | ms / -1 | `ComboIdleThreshold`
+
+--- TapDance
+
+Performs different actions for single / double / triple taps within a given time period.
+
+# Global option (outside keymap)
+
+`def option TapDanceTimeout = <ms>`  
+Default: 300
+
+# Rule definition (inside keymap)
+
+`tapdance [modifier-] KEY [=]`
+- `tap1=ACTION`  Required for one tap.
+- `[tap2=ACTION]`  Optional for two taps.
+- `[tap3=ACTION]`  Optional for three taps.
+- `[timeout=<ms>]`  Timeout specific to this rule; omitted to use the global value.
+
+`tapdance Escape = tap1=Escape  tap2=C-OpenBracket  timeout=200`
+
+--- TapHold
+
+Determines whether a key press is a short press (tap) or a long press (hold) based on the press duration, and performs different actions.
+
+# Global option (outside keymap)
+
+`def option TapHoldThreshold = <ms>`  
+Default: 200  
+Threshold for tap/hold judgment.
+
+`def option TapHoldInterrupt = tap | hold`  
+Default: tap  
+If another key is pressed while TapHold is being judged, treat it as the specified tap or hold.
+
+`def option TapHoldPermissiveHold = on | off`  
+Default: off  
+Hold is confirmed only after the other key’s DOWN→UP completes.
+
+`def option TapHoldOnOtherKeyPress = on | off`  
+Default: off  
+Hold is confirmed the moment another key goes DOWN.
+
+`def option TapHoldQuickTapTerm = 120`  
+0 = disabled, default: 0  
+If the same key is pressed again within the specified time after the previous tap, do not hold it pending; treat it as a tap.
+
+# Rule definition (inside keymap)
+
+`taphold [modifier-] KEY [=]`
+- `tap=ACTION`
+- `hold=ACTION`
+- `[threshold=<ms>]`  Threshold specific to this rule; omitted to use the global value.
+- `[interrupt=tap|hold]`  Interrupt behavior specific to this rule; omitted to use the global value.
+
+Per-rule `def option` settings can override the global ones.
+
+`taphold A  tap=a     hold=Shift_L              permissive_hold=on`  
+`taphold T  tap=t     hold=&Layer(layer_edit)   hold_on_other_key=on`  
+`taphold SP tap=Space hold=&Layer(num)          quick_tap_term=120`
+
+`taphold F  tap=F  hold=C-                     # F: short press -> f / long press -> Ctrl`
 

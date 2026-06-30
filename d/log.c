@@ -1,3 +1,7 @@
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
+
+#pragma warning(disable:4996)
 #if DBG
 
 #include <ntddk.h>
@@ -57,8 +61,10 @@ void nodokaLogEnque(const char *fmt, ...)
 	entry->log.Length = 0;
 	entry->log.MaximumLength = BUF_MAX_SIZE;
 	entry->log.Buffer = (PWSTR)ExAllocatePoolWithTag(NonPagedPool, BUF_MAX_SIZE, NODOKA_LOG_BUFFER_TAG);
-	if (!(entry->log.Buffer))
+	if (!(entry->log.Buffer)) {
+		ExFreePoolWithTag(entry, NODOKA_LOG_ENTRY_TAG);
 		return;
+	}
 
 	RtlZeroMemory(entry->log.Buffer, BUF_MAX_SIZE); 
 

@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // hook.h
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #ifndef _HOOK_H
 #define _HOOK_H
@@ -41,6 +43,15 @@ inline void DBG_PRINT(const _TCHAR *fmt, ...)
 	OutputDebugString(buf);
 }
 
+// Debug ビルドでは常時有効。Release では既定で no-op。
+// 現場診断で Release でも有効化したい場合は NODOKA_VERBOSE_LOG を定義する
+// （nodokad.c の NODOKAD_LOG と同じ考え方）。
+#if defined(_DEBUG) || defined(NODOKA_VERBOSE_LOG)
+#define NODOKA_TRACE(...) DBG_PRINT(__VA_ARGS__)
+#else
+#define NODOKA_TRACE(...) ((void)0)
+#endif
+
 // for ChangeWindowMessageFilter
 typedef BOOL(__stdcall *FUNCTYPE)(UINT, DWORD);
 #define MSGFLT_ADD 1
@@ -49,6 +60,10 @@ typedef BOOL(__stdcall *FUNCTYPE)(UINT, DWORD);
 typedef BOOL(__stdcall *FUNCTYPE7)(HWND, UINT, DWORD, int);
 #define MSGFLT_RESET 0
 #define MSGFLT_ALLOW 1
+
+// dwExtraInfo の魔法値：nodoka が LL フックモードで自己注入したキーを識別する
+// LLKHF_INJECTED が uiAccess 自己注入時に設定されない問題の回避策
+#define NODOKA_SELF_INJECT_EXTRA_INFO 0x4E444B41UL  // 'NDKA'
 
 // for myGetRawInputData
 typedef UINT(CALLBACK *FUNCTYPE4)(HANDLE, UINT, LPVOID, PUINT, UINT);
@@ -173,7 +188,7 @@ struct NotifyLog : public Notify
 };
 
 ///
-enum MouseHookType
+enum MouseHookType : int
 {
 	MouseHookType_None = 0,			   /// none
 	MouseHookType_Wheel = 1 << 0,	  /// wheel
@@ -207,6 +222,9 @@ public:
 	bool m_UseTSF;				   ///
 	CcommonValues *pCv;			   ///
 	bool m_RDP;					   ///
+	int m_UseKbdAddId;			   // kbdaddidモード有効フラグ
+	DWORD m_kbdAddId_extraInfo[8]; // kbdaddid ExtraInfo値テーブル
+	UINT  m_kbdAddId_unitId[8];    // 対応するUnitIDテーブル
 };
 
 ///
@@ -219,6 +237,7 @@ extern DllImport bool installHooks();
 extern DllImport bool uninstallHooks();
 extern DllImport int installKeyboardHook(INPUT_DETOUR i_keyboardDetour, Engine *i_engine, bool i_install);
 extern DllImport int installMouseHook(INPUT_DETOUR i_mouseDetour, Engine *i_engine, bool i_install);
+extern DllImport void installLocalKeyboardHook(DWORD i_threadId, bool i_install);
 extern DllImport bool notify(void *data, size_t sizeof_data);
 extern DllImport void notifyLockState();
 #endif // !_HOOK_CPP

@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // function.h
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #ifndef _FUNCTION_H
 #define _FUNCTION_H
@@ -79,8 +81,8 @@ extern tostream &operator<<(tostream &i_ost, GravityType i_data);
 /// get value of GravityType
 extern bool getTypeValue(GravityType *o_type, const tstring &i_name);
 
-/// enum MouseHookType is defined in hook.h
-extern enum MouseHookType;
+/// enum MouseHookType is defined in hook.h — forward-declare with explicit underlying type (C++11)
+enum MouseHookType : int;
 
 /// stream output
 extern tostream &operator<<(tostream &i_ost, MouseHookType i_data);

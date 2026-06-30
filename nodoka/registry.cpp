@@ -1,5 +1,7 @@
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // registry.cpp
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 
 #include "registry.h"
 #include "stringtool.h"
@@ -153,7 +155,7 @@ bool Registry::write(HKEY i_root, const tstring &i_path,
 		return false;
 	RegSetValueEx(hkey, i_name.c_str(), NULL, REG_SZ,
 				  (BYTE *)i_value.c_str(),
-				  (i_value.size() + 1) * sizeof(tstring::value_type));
+				  static_cast<DWORD>((i_value.size() + 1) * sizeof(tstring::value_type)));
 	RegCloseKey(hkey);
 	return true;
 }
@@ -218,7 +220,7 @@ bool Registry::write(HKEY i_root, const tstring &i_path,
 	}
 	RegSetValueEx(hkey, i_name.c_str(), NULL, REG_MULTI_SZ,
 				  (BYTE *)value.c_str(),
-				  (value.size() + 1) * sizeof(tstring::value_type));
+				  static_cast<DWORD>((value.size() + 1) * sizeof(tstring::value_type)));
 	RegCloseKey(hkey);
 	return true;
 }

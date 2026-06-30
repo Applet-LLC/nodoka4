@@ -1,5 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // keyque.c
+// Copyright 2008-2026 applet <applet@bp.iij4u.or.jp>
+// License: EPL-2.0 - https://www.eclipse.org/legal/epl-2.0/
 #include <ntddk.h>
 #include <ntddkbd.h>
 #include <devioctl.h>
@@ -48,7 +50,11 @@ NTSTATUS KqInitialize(KeyQue *kq)
 
 	NumberOfBytes = kq->lengthof_que * sizeof(KEYBOARD_INPUT_DATA);
 
-	kq->que = ExAllocatePoolWithTag(NonPagedPool, NumberOfBytes, NODOKA_POOL_TAG);
+	//
+	// ExAllocatePoolWithTag is deprecated on modern WDK. Use ExAllocatePool2
+	// with POOL_FLAG_NON_PAGED instead to keep the same allocation semantics.
+	//
+	kq->que = (KEYBOARD_INPUT_DATA*)ExAllocatePool2(POOL_FLAG_NON_PAGED, NumberOfBytes, NODOKA_POOL_TAG);
 
 	kq->insert = kq->que;
 	kq->remove = kq->que;
@@ -75,8 +81,13 @@ void KqClear(KeyQue *kq)
 
 NTSTATUS KqFinalize(KeyQue *kq)
 {
-	if (kq->que)
+	if (kq->que) {
 		ExFreePoolWithTag(kq->que, NODOKA_POOL_TAG);
+		kq->que    = NULL;
+		kq->count  = 0;
+		kq->insert = NULL;
+		kq->remove = NULL;
+	}
 	return STATUS_SUCCESS;
 }
 
