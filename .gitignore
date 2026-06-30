@@ -1,0 +1,63 @@
+# Build output directories
+Release/
+Win32/
+x64/
+Debug/
+
+# Visual Studio user-specific files
+*.vcxproj.user
+*.vcproj.*.user
+
+# Compiled outputs (except specifically tracked binaries)
+*.obj
+*.pdb
+*.exp
+*.lib
+*.aps
+*.tlog/
+*.log
+*.lastbuildstate
+*.FileListAbsolute.txt
+*.Build.CppClean.log
+*.dll.recipe
+vcpkg.applocal.log
+
+# Backup and temporary files
+*.bak
+*.old
+*.20260610
+*.20260610A
+*.20260610B
+*.fix20260609
+
+# WDK/DVL analysis artifacts
+*.sarif
+*.DVL.XML
+*.hlkx
+vc140.pdb
+vc143.pdb
+RCa*
+
+# SVN metadata
+.svn/
+
+# AI tool artifacts
+.cursor/
+.specstory/
+
+# Installer outputs (build artifacts in distrib)
+distrib/files/nodoka-*.exe
+distrib/files/nodoka-*_setup.exe
+distrib/files/nodoka-*_sample_setup.exe
+distrib/*.log
+distrib/*.DDF
+distrib/temp/
+distrib/opened/
+distrib/Sample/
+
+# Specific temp/intermediate files in distrib
+distrib/__nodoka__.sed
+
+# Driver build outputs (except tracked sys in d.sign)
+error/
+old/
