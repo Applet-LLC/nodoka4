@@ -34,6 +34,7 @@
 #include "windowstool.h"
 #include "rawinput.h"
 #include "fixscancodemap.h"
+#include "sessiontrace.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <process.h>
@@ -138,6 +139,7 @@ private:
 	// ScancodeMap reload and engine start
 	void connect()
 	{
+		SESSTRACE(m_log, _T("enter sessionState=") << m_sessionState);
 		if (!m_sessionState)
 		{
 			if (m_escapeNlsKeys && m_engine.getIsEnabled())
@@ -147,12 +149,15 @@ private:
 		}
 		if (m_engine.m_keyboard_hook == 0)
 		{
+			SESSTRACE(m_log, _T("calling m_engine.resume()"));
 			if (!m_engine.resume())
 			{
+				SESSTRACE(m_log, _T("m_engine.resume() failed, quitting"));
 				m_engine.prepairQuit();
 				PostMessage(m_hwndTaskTray, WM_CLOSE, 0, 0);
 				return;
 			}
+			SESSTRACE(m_log, _T("m_engine.resume() returned"));
 			m_log << _T("resume engine") << std::endl;
 		}
 		else
@@ -164,11 +169,13 @@ private:
 				showTasktrayIcon();
 			}
 		}
+		SESSTRACE(m_log, _T("exit"));
 	}
 
 	// ScancodeMap original and engine pause
 	void disconnect()
 	{
+		SESSTRACE(m_log, _T("enter sessionState=") << m_sessionState);
 		if (!m_sessionState)
 		{
 			if (m_escapeNlsKeys && m_engine.getIsEnabled())
@@ -178,7 +185,9 @@ private:
 		}
 		if (m_engine.m_keyboard_hook == 0)
 		{
+			SESSTRACE(m_log, _T("calling m_engine.pause()"));
 			m_engine.pause();
+			SESSTRACE(m_log, _T("m_engine.pause() returned"));
 			m_log << _T("pause engine") << std::endl;
 		}
 		else
@@ -190,6 +199,7 @@ private:
 				showTasktrayIcon();
 			}
 		}
+		SESSTRACE(m_log, _T("exit"));
 	}
 
 	/// register class for tasktray
@@ -212,6 +222,7 @@ private:
 	/// notify handler
 	BOOL notifyHandler(COPYDATASTRUCT *cd)
 	{
+		SESSTRACE(m_log, _T("enter dwData=") << cd->dwData);
 		switch (cd->dwData)
 		{
 		case Notify::Type_setFocus:
@@ -305,6 +316,7 @@ private:
 		case Notify::Type_show:
 		{
 			NotifyShow *n = (NotifyShow *)cd->lpData;
+			SESSTRACE(m_log, _T("Type_show m_show=") << n->m_show << _T(" isMDI=") << n->m_isMDI << _T(" calling m_engine.setShow()"));
 			switch (n->m_show)
 			{
 			case NotifyShow::Show_Maximized:
@@ -318,6 +330,7 @@ private:
 				m_engine.setShow(false, false, n->m_isMDI);
 				break;
 			}
+			SESSTRACE(m_log, _T("Type_show m_engine.setShow() returned"));
 			break;
 		}
 
@@ -329,6 +342,7 @@ private:
 			break;
 		}
 		}
+		SESSTRACE(m_log, _T("exit dwData=") << cd->dwData);
 		return true;
 	}
 
@@ -503,6 +517,9 @@ private:
 				const char *m = "";
 				const char *action = "";
 				DWORD stateBefore = This->m_sessionState;
+				SESSTRACE(This->m_log, _T("WM_WTSSESSION_CHANGE wParam=") << i_wParam
+					<< _T(" stateBefore=") << stateBefore
+					<< _T(" hookMode=") << This->m_engine.m_keyboard_hook);
 				switch (i_wParam)
 				{
 				case WTS_CONSOLE_CONNECT:
@@ -533,8 +550,27 @@ private:
 				case WTS_REMOTE_CONNECT:
 					m = "WTS_REMOTE_CONNECT";
 					This->m_sessionState &= ~Nodoka::SESSION_DISCONNECTED;
-					This->connect();
-					action = "connect()";
+					// Driver mode only: mirror WTS_CONSOLE_CONNECT and defer connect()
+					// until WTS_SESSION_UNLOCK while the session is locked. Without this,
+					// a reconnect that arrives before the lock screen is dismissed (e.g.
+					// via Windows App) fires connect() here AND again at
+					// WTS_SESSION_UNLOCK (since SESSION_LOCKED is only cleared there),
+					// producing two resume() calls with no intervening pause(). The
+					// second resume() sends a Resume signal to CheckModifier/KeyboardPast
+					// while they are not inside their Pause-wait loop; their outer
+					// switch has no case for a stray Resume (falls through
+					// default:/ASSERT, a no-op in Release), so the ack never arrives and
+					// resume()'s wait loop spins forever on the UI thread -> "応答なし".
+					if (This->m_engine.m_keyboard_hook == 0 &&
+					    (This->m_sessionState & Nodoka::SESSION_LOCKED))
+					{
+						action = "deferred(LOCKED)";
+					}
+					else
+					{
+						action = "connect()";
+						This->connect();
+					}
 					if (This->m_engine.m_keyboard_hook == 0)
 					{
 						This->m_log << _T("Detect Remote desktop connection.") << std::endl;

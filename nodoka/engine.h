@@ -205,6 +205,10 @@ private:
 	HANDLE m_driverMutex;			   /// Global named mutex serializing driver access across sessions
 	bool m_driverMutexHeld;			   /// true while this process actually holds m_driverMutex (pause() acquired it)
 	bool m_didNodokaStartDevice;	   /** Did the nodoka start the nodoka-device ? */
+	bool m_stopped;					   /** true once stop() has run; guards against double-teardown
+											   (stop() is called explicitly from ~Nodoka() and again
+											   from ~Engine(), which would otherwise touch already-NULLed
+											   handles). */
 	HANDLE m_threadEvent;			   /** 1. thread has been started	2. thread is about to end*/
 	HANDLE m_threadCheckModifierEvent; /** 1. thread has been started	2. thread is about to end*/
 	HANDLE m_threadKeyboardPastEvent;  /** 1. thread has been started	2. thread is about to end*/

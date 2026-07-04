@@ -63,6 +63,15 @@ extern ULONG KqDeque(KeyQue *kq, OUT KEYBOARD_INPUT_DATA *buf, IN ULONG lengthof
 */
 
 /*
+ NODOKAD_LOG: enable NODOKAD_TRACE in a Release build (viewable in DebugView
+ with "Capture Kernel" enabled). No-op in Release when left undefined.
+ Enable: uncomment the next line, or add NODOKAD_LOG to the project's
+ preprocessor definitions. DBG (checked) builds always have tracing active
+ regardless of this switch.
+*/
+//#define NODOKAD_LOG
+
+/*
  NODOKAD_TRACE: debug trace macro.
  DBG build: always active (DbgPrintEx).
  Release build with NODOKAD_LOG defined: also active (viewable in DebugView with Capture Kernel).
@@ -257,6 +266,7 @@ NTSTATUS NodokaSessionNotificationCallback(
 	UNREFERENCED_PARAMETER(IoObject);
 	UNREFERENCED_PARAMETER(NotificationPayload);
 	UNREFERENCED_PARAMETER(PayloadLength);
+	UNREFERENCED_PARAMETER(Event); // only used by DEBUG_LOG/NODOKAD_TRACE, both no-ops in Release without NODOKAD_LOG
 
 	DEBUG_LOG(("nodokad: NodokaSessionNotificationCallback event=%x", Event));
 
@@ -883,6 +893,10 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 
 	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
 
+	NODOKAD_TRACE("filterReadCompletion: isOpen=%ld wasCleanupInitiated=%d -> %s\n",
+		detourDevExt->isOpen, detourDevExt->wasCleanupInitiated,
+		(detourDevExt->isOpen && !detourDevExt->wasCleanupInitiated) ? "intercept" : "passthrough");
+
 	if (detourDevExt->isOpen && !detourDevExt->wasCleanupInitiated)
 		{
 		// if detour is opened, key datum are forwarded to detour
@@ -1099,6 +1113,8 @@ NTSTATUS detourClose(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 
 	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
 	InterlockedDecrement(&detourDevExt->isOpen);
+	NODOKAD_TRACE("detourClose: isOpen=%ld after decrement wasCleanupInitiated=%d\n",
+		detourDevExt->isOpen, detourDevExt->wasCleanupInitiated);
 	KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
 
 	irp->IoStatus.Status = STATUS_SUCCESS;
