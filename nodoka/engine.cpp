@@ -25,6 +25,7 @@
 #include "nodoka.h"
 #include "hookdata.h"
 #include "rawinput.h"
+#include "sessiontrace.h"
 
 #include <iomanip>
 #include <imm.h>
@@ -1936,10 +1937,12 @@ void Engine::keyboardHandler()
 			// and detourCleanup cancels the pending IRP via CloseHandle.
 			// The stale overlapped event fires later and is consumed harmlessly
 			// as an ABORTED result in the WAIT_OBJECT_0 case.
+			SESSTRACE(m_log, _T("outer WAIT_OBJECT_0+1 reason=") << m_interruptThreadReason);
 			switch (m_interruptThreadReason)
 			{
 			default:
 			{
+				SESSTRACE(m_log, _T("outer: unexpected reason=") << m_interruptThreadReason);
 				ASSERT(false);
 				break;
 			}
@@ -1954,11 +1957,13 @@ void Engine::keyboardHandler()
 				// (spurious wakeup). The keyboard handler exits the Pause handler
 				// early and reaches here when resume() sends the Resume signal.
 				// Just ack so resume() can exit its do-loop and release the mutex.
+				SESSTRACE(m_log, _T("outer: Resume received (safety net), acking"));
 				CHECK_TRUE(SetEvent(m_threadEvent));
 				break;
 
 			case InterruptThreadReason_Pause:
 			{
+				SESSTRACE(m_log, _T("outer: Pause received, acking and entering INNER wait loop"));
 				CHECK_TRUE(SetEvent(m_threadEvent));
 				// Loop until we get Resume (or Terminate).
 				// A spurious wakeup can occur when close() cancels the pending
@@ -1971,6 +1976,7 @@ void Engine::keyboardHandler()
 				{
 					while (WaitForMultipleObjects(1, &m_interruptThreadEvent, FALSE, INFINITE) != WAIT_OBJECT_0)
 						;
+					SESSTRACE(m_log, _T("INNER wait woke, reason=") << m_interruptThreadReason);
 					switch (m_interruptThreadReason)
 					{
 					case InterruptThreadReason_Terminate:
@@ -1982,10 +1988,20 @@ void Engine::keyboardHandler()
 
 					default:
 						// Spurious wakeup (e.g., IRP cancellation signalled the
-						// shared overlapped/interrupt event). Re-wait.
+						// shared overlapped/interrupt event), OR another Pause
+						// request arrived while already inside this INNER loop
+						// (e.g. a second pause() call before the matching resume()
+						// -- see connect()/disconnect() call-count in nodoka.cpp).
+						// Either way this thread does NOT ack m_threadEvent here,
+						// so a caller waiting on a second pause() will spin in its
+						// do-while(WaitForSingleObject(...) != WAIT_OBJECT_0) loop
+						// forever, blocking the UI thread. If this trace repeats
+						// with reason=InterruptThreadReason_Pause, that is the bug.
+						SESSTRACE(m_log, _T("INNER: spurious/unmatched reason=") << m_interruptThreadReason << _T(", re-waiting"));
 						break;
 					}
 				}
+				SESSTRACE(m_log, _T("INNER: Resume received, exiting INNER loop and acking"));
 				CHECK_TRUE(SetEvent(m_threadEvent));
 				break;
 			}
@@ -3245,8 +3261,19 @@ void Engine::CheckModifier()
 			case InterruptThreadReason_Terminate:
 				goto break_while;
 
+			case InterruptThreadReason_Resume:
+				// Stray/unpaired Resume (e.g. resume() called twice without an
+				// intervening pause()): we are not inside the Pause-wait loop below,
+				// so there is nothing to undo. Ack anyway so the caller's
+				// WaitForSingleObject(m_threadCheckModifierEvent, ...) do-while loop
+				// does not spin forever on the UI thread.
+				SESSTRACE(m_log, _T("CheckModifier: stray Resume received (not paused), acking"));
+				CHECK_TRUE(SetEvent(m_threadCheckModifierEvent));
+				break;
+
 			case InterruptThreadReason_Pause:
 			{
+				SESSTRACE(m_log, _T("CheckModifier: Pause received, acking"));
 				CHECK_TRUE(SetEvent(m_threadCheckModifierEvent));
 
 				while (WaitForSingleObject(handle, INFINITE) != WAIT_OBJECT_0)
@@ -3258,6 +3285,7 @@ void Engine::CheckModifier()
 					case InterruptThreadReason_Resume:
 						break;
 					}
+				SESSTRACE(m_log, _T("CheckModifier: wait done reason=") << m_interruptThreadCheckModifierReason << _T(", acking"));
 				CHECK_TRUE(SetEvent(m_threadCheckModifierEvent));
 			}
 			}
@@ -3362,8 +3390,20 @@ void Engine::KeyboardPast()
 
 			case InterruptThreadReason_Terminate:
 				goto break_while;
+
+			case InterruptThreadReason_Resume:
+				// Stray/unpaired Resume (e.g. resume() called twice without an
+				// intervening pause()): we are not inside the Pause-wait loop below,
+				// so there is nothing to undo. Ack anyway so the caller's
+				// WaitForSingleObject(m_threadKeyboardPastEvent, ...) do-while loop
+				// does not spin forever on the UI thread.
+				SESSTRACE(m_log, _T("KeyboardPast: stray Resume received (not paused), acking"));
+				CHECK_TRUE(SetEvent(m_threadKeyboardPastEvent));
+				break;
+
 			case InterruptThreadReason_Pause:
 			{
+				SESSTRACE(m_log, _T("KeyboardPast: Pause received, acking"));
 				CHECK_TRUE(SetEvent(m_threadKeyboardPastEvent));
 				while (WaitForMultipleObjects(1, &m_interruptThreadKeyboardPastEvent, FALSE, INFINITE) != WAIT_OBJECT_0)
 				{
@@ -3377,6 +3417,7 @@ void Engine::KeyboardPast()
 						break;
 					}
 				}
+				SESSTRACE(m_log, _T("KeyboardPast: wait done reason=") << m_interruptThreadKeyboardPastReason << _T(", acking"));
 				CHECK_TRUE(SetEvent(m_threadKeyboardPastEvent));
 			}
 			break;
@@ -3689,6 +3730,7 @@ Engine::Engine(tomsgstream &i_log, int i_keyboard_hook, int i_mouse_hook, int i_
 	  m_driverMutex(NULL),
 	  m_driverMutexHeld(false),
 	  m_didNodokaStartDevice(false),
+	  m_stopped(false),
 	  m_threadEvent(NULL),
 	  m_threadCheckModifierEvent(NULL),
 	  m_threadKeyboardPastEvent(NULL),
@@ -4040,6 +4082,18 @@ void Engine::start()
 // stop keyboard handler thread
 void Engine::stop()
 {
+	// stop() is called explicitly from ~Nodoka() and again from ~Engine() when
+	// m_engine is destroyed afterward. Without this guard the second call touches
+	// handles the first call already closed and NULLed (CloseHandle(NULL),
+	// WaitForSingleObject(NULL, ...)), which is undefined behavior and can hang
+	// or assert depending on build/runtime.
+	if (m_stopped)
+	{
+		OutputDebugString(_T("nodoka Engine::stop() already stopped, skipping\n"));
+		return;
+	}
+	m_stopped = true;
+
 	/*
 	if (m_threadFor6pointEvent)
 	{
@@ -4226,6 +4280,8 @@ void Engine::stop()
 
 bool Engine::pause()
 {
+	SESSTRACE(m_log, _T("enter m_device=") << (m_device != INVALID_HANDLE_VALUE)
+		<< _T(" keyboard_hook=") << m_keyboard_hook);
 	/*
 	do {
 		m_interruptThreadFor6pointReason = InterruptThreadReason_Pause;
@@ -4243,50 +4299,66 @@ bool Engine::pause()
 		// the same thread &Sync (WM_COPYDATA) and the tasktray icon clicks depend on.
 		// A bounded wait here keeps a slow/stuck peer session from freezing this session's
 		// message loop forever; m_driverMutexHeld tracks whether resume() must release it.
+		SESSTRACE(m_log, _T("waiting for m_driverMutex"));
 		m_driverMutexHeld = (WaitForSingleObject(m_driverMutex, 3000) == WAIT_OBJECT_0);
+		SESSTRACE(m_log, _T("m_driverMutex wait done held=") << m_driverMutexHeld);
 		if (!m_driverMutexHeld)
 		{
 			Acquire a(&m_log, 0);
 			m_log << _T("pause(): m_driverMutex acquire timed out, proceeding without it") << std::endl;
 		}
+		SESSTRACE(m_log, _T("signalling InterruptThreadReason_Pause, waiting for ack"));
 		do
 		{
 			m_interruptThreadReason = InterruptThreadReason_Pause;
 			SetEvent(m_interruptThreadEvent);
 		} while (WaitForSingleObject(m_threadEvent, 100) != WAIT_OBJECT_0);
+		SESSTRACE(m_log, _T("InterruptThreadReason_Pause ack received, calling close()"));
 		close();
+		SESSTRACE(m_log, _T("close() returned"));
 	}
 
+	SESSTRACE(m_log, _T("signalling KeyboardPast Pause, waiting for ack"));
 	do
 	{
 		m_interruptThreadKeyboardPastReason = InterruptThreadReason_Pause;
 		SetEvent(m_interruptThreadKeyboardPastEvent);
 	} while (WaitForSingleObject(m_threadKeyboardPastEvent, 2000) != WAIT_OBJECT_0);
+	SESSTRACE(m_log, _T("KeyboardPast Pause ack received"));
 
+	SESSTRACE(m_log, _T("signalling CheckModifier Pause, waiting for ack"));
 	do
 	{
 		m_interruptThreadCheckModifierReason = InterruptThreadReason_Pause;
 		SetEvent(m_interruptThreadCheckModifierEvent);
 	} while (WaitForSingleObject(m_threadCheckModifierEvent, 2000) != WAIT_OBJECT_0);
+	SESSTRACE(m_log, _T("CheckModifier Pause ack received"));
 
+	SESSTRACE(m_log, _T("exit"));
 	return true;
 }
 
 bool Engine::resume()
 {
+	SESSTRACE(m_log, _T("enter m_device=") << (m_device != INVALID_HANDLE_VALUE)
+		<< _T(" keyboard_hook=") << m_keyboard_hook);
 	if ((m_device == INVALID_HANDLE_VALUE) && (m_keyboard_hook == 0))
 	{ // nodokad close済 かつ Keyboard LL Hook/RawInput hookが使われていないとき
+		SESSTRACE(m_log, _T("calling open()"));
 		if (!open())
 		{
+			SESSTRACE(m_log, _T("open() failed"));
 			// Only release if pause() actually acquired it (see pause()'s timed wait).
 			if (m_driverMutexHeld) { ReleaseMutex(m_driverMutex); m_driverMutexHeld = false; }
 			return false; // FIXME
 		}
+		SESSTRACE(m_log, _T("open() succeeded, signalling InterruptThreadReason_Resume, waiting for ack"));
 		do
 		{
 			m_interruptThreadReason = InterruptThreadReason_Resume;
 			SetEvent(m_interruptThreadEvent);
 		} while (WaitForSingleObject(m_threadEvent, 100) != WAIT_OBJECT_0);
+		SESSTRACE(m_log, _T("InterruptThreadReason_Resume ack received, releasing m_driverMutex held=") << m_driverMutexHeld);
 		if (m_driverMutexHeld) { ReleaseMutex(m_driverMutex); m_driverMutexHeld = false; }
 	}
 
@@ -4297,18 +4369,23 @@ bool Engine::resume()
 	} while (WaitForSingleObject(m_threadFor6pointEvent, 2000) != WAIT_OBJECT_0);
 	*/
 
+	SESSTRACE(m_log, _T("signalling CheckModifier Resume, waiting for ack"));
 	do
 	{
 		m_interruptThreadCheckModifierReason = InterruptThreadReason_Resume;
 		SetEvent(m_interruptThreadCheckModifierEvent);
 	} while (WaitForSingleObject(m_threadCheckModifierEvent, 2000) != WAIT_OBJECT_0);
+	SESSTRACE(m_log, _T("CheckModifier Resume ack received"));
 
+	SESSTRACE(m_log, _T("signalling KeyboardPast Resume, waiting for ack"));
 	do
 	{
 		m_interruptThreadKeyboardPastReason = InterruptThreadReason_Resume;
 		SetEvent(m_interruptThreadKeyboardPastEvent);
 	} while (WaitForSingleObject(m_threadKeyboardPastEvent, 2000) != WAIT_OBJECT_0);
+	SESSTRACE(m_log, _T("KeyboardPast Resume ack received"));
 
+	SESSTRACE(m_log, _T("exit"));
 	return true;
 }
 
@@ -4816,9 +4893,14 @@ bool Engine::setLockState4(bool bDoublePress)
 bool Engine::setShow(bool i_isMaximized, bool i_isMinimized,
 					 bool i_isMDI)
 {
+	SESSTRACE(m_log, _T("waiting for m_cs"));
 	Acquire a(&m_cs);
+	SESSTRACE(m_log, _T("acquired m_cs"));
 	if (m_isSynchronizing)
+	{
+		SESSTRACE(m_log, _T("m_isSynchronizing, returning false"));
 		return false;
+	}
 	Acquire b(&m_log, 1);
 	Modifier::Type max, min;
 	if (i_isMDI == true)
