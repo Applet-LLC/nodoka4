@@ -7,6 +7,7 @@
 #define _INSTALLER_H
 
 #define NODOKAD_FILTER_KEY _T("System\\CurrentControlSet\\Control\\Class\\{4D36E96B-E325-11CE-BFC1-08002BE10318}")
+#define NODOKAD_SERVICE_KEY _T("SYSTEM\\CurrentControlSet\\Services\\nodokad")
 
 #define DBG_PRINT_LENGTH 1440
 

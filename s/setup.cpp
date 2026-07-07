@@ -617,6 +617,15 @@ private:
 
 			if (g_flags == Flag_Usb)
 				CHECK_TRUE(reg.write(_T("isUsbDriver"), DWORD(1)));
+
+			// Fix I: heartbeat/staleness 安全網を有効化する。
+			// nodokad.c の DriverEntry が
+			// HKLM\SYSTEM\CurrentControlSet\Services\nodokad の
+			// HeartbeatTimeout (REG_DWORD, 秒) を読み込む。3 = detourRead() が
+			// 3秒間呼ばれなければ強制パススルー (0=無効, 255=常時パススルー)。
+			// サービスキーは直前の createDriverService() で作成済み。
+			CHECK_TRUE(Registry::write(HKEY_LOCAL_MACHINE, NODOKAD_SERVICE_KEY,
+									   _T("HeartbeatTimeout"), DWORD(3)));
 		}
 		else
 		{
