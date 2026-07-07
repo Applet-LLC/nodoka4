@@ -112,7 +112,21 @@ typedef struct _DetourDeviceExtension
 	KeyQue readQue; // when IRP_MJ_READ, the contents of readQue are returned
 	HANDLE openProcessId; // PID of the process that currently has the device open (0 = none)
 	ULONG openSessionId;  // session ID of the process that currently has the device open
+	// Fix I: last time the app's read loop showed proof of life, in
+	// KeQueryInterruptTime units (100ns, since boot). Set on detourCreate (grace
+	// period on fresh open), refreshed on every detourRead() entry, and (J2)
+	// refreshed by DetourShouldIntercept whenever a detour READ is parked in irpq
+	// (app blocked in ReadFile = alive, however long since the last keystroke).
+	// Read/written under lock.
+	ULONGLONG heartbeatTick;
 	} DetourDeviceExtension;
+
+// J1b: how long after a self-cancel a CANCELLED completion is still attributed
+// to that cancel (100ns units). Must exceed the worst-case delay between
+// releasing filterDevExt->lock and the IoCancelIrp call landing (thread
+// preemption), yet stay short enough that a genuine external cancel (device
+// teardown) racing an unrelated recent detourWrite is unlikely: 50ms.
+#define SELF_CANCEL_WINDOW_100NS (50 * 10000ULL)
 
 typedef struct _FilterDeviceExtension
 	{
@@ -126,6 +140,19 @@ typedef struct _FilterDeviceExtension
 #endif
 	KSPIN_LOCK lock; // lock below datum
 	PIRP irpq;
+	// READ IRP this driver itself cancelled (detourCreate/detourWrite) so the
+	// completion routine can tell "our" STATUS_CANCELLED (rewrite to SUCCESS so
+	// win32k re-issues the READ) from an external cancel such as RIM device
+	// teardown (must pass through untouched; see bugcheck 0x18 fix). Compared by
+	// pointer only, never dereferenced. Guarded by lock.
+	PIRP selfCancelledIrp;
+	// J1b: KeQueryInterruptTime of the most recent self-cancel issued on this
+	// filter (0 = never). Secondary match for filterReadCompletion's guard: a
+	// CANCELLED completion arriving shortly after we issued a cancel is treated
+	// as ours even when selfCancelledIrp was already consumed. Covers the narrow
+	// window where our IoCancelIrp (issued outside the lock) lands on a recycled
+	// IRP address after the marked IRP completed naturally. Guarded by lock.
+	ULONGLONG selfCancelTick;
 	KeyQue readQue; // when IRP_MJ_READ, the contents of readQue are returned
 #ifdef USE_TOUCHPAD
 	BOOLEAN isTouched;
@@ -149,6 +176,12 @@ NTSTATUS filterRemoveCompletion(IN PDEVICE_OBJECT, IN PIRP, IN PVOID);
 
 NTSTATUS filterGenericCompletion (IN PDEVICE_OBJECT, IN PIRP, IN PVOID);
 NTSTATUS filterReadCompletion    (IN PDEVICE_OBJECT, IN PIRP, IN PVOID);
+
+// Fix I: heartbeat/staleness safety net. Must be called with detourDevExt->lock held.
+// Replaces the plain "isOpen && !wasCleanupInitiated" intercept check at both call
+// sites so a hung app (read loop silent) or the registry "through mode only" switch
+// can force passthrough even when isOpen/wasCleanupInitiated alone would say intercept.
+BOOLEAN DetourShouldIntercept(IN DetourDeviceExtension*);
 
 _Dispatch_type_(IRP_MJ_CREATE)
 _Dispatch_type_(IRP_MJ_CREATE_NAMED_PIPE)
@@ -217,6 +250,21 @@ PDRIVER_DISPATCH _IopInvalidDeviceRequest; // Default dispatch function
 static PDEVICE_OBJECT g_detourDevObj = NULL;
 // Fix G: registration handle for IoRegisterContainerNotification (session disconnect/logoff)
 static PVOID g_containerRegistration = NULL;
+
+// Fix I: heartbeat/staleness safety net. Read from
+// HKLM\SYSTEM\CurrentControlSet\Services\nodokad\HeartbeatTimeout (REG_DWORD) in
+// DriverEntry. Disabled (0) by default -- this is a last-resort safety net for
+// hangs that Fix A/B/C/G do not cover (app-level bugs unrelated to any session
+// state transition), not a normally-active mechanism.
+//   0       : disabled -- behavior identical to no heartbeat code at all.
+//   1-254   : seconds. If the app has NO detour READ parked AND has not entered
+//             detourRead() for this long while the device is supposed to be
+//             intercepting (J2: a parked READ counts as proof of life and keeps
+//             refreshing the tick), force passthrough.
+//   255     : "through mode only" -- force passthrough unconditionally, regardless
+//             of isOpen/wasCleanupInitiated/timer. Emergency kill switch reachable
+//             via the registry alone, without reinstalling the driver.
+static ULONG g_heartbeatTimeoutSec = 0;
 
 // Fix F: process termination callback — fires when any process exits.
 // If the exiting process is the one that has the detour device open, set
@@ -314,7 +362,7 @@ NTSTATUS NodokaSessionNotificationCallback(
 
 #define NODOKAD_MODE L""
 static UNICODE_STRING NodokaDriverVersion =
-UnicodeString(L"$Revision: 1.38 $" NODOKAD_MODE);
+UnicodeString(L"$Revision: 1.40 $" NODOKAD_MODE);
 
 
 
@@ -350,7 +398,8 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT driverObject,
 	PDEVICE_OBJECT detourDevObj = NULL;
 	DetourDeviceExtension *detourDevExt = NULL;
 	ULONG start = 0;
-	RTL_QUERY_REGISTRY_TABLE query[2];
+	ULONG heartbeatTimeoutValue = 0; // Fix I: default 0 = disabled when the value is absent
+	RTL_QUERY_REGISTRY_TABLE query[3];
 
 	UNREFERENCED_PARAMETER(registryPath);
 
@@ -361,7 +410,15 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT driverObject,
 	query[0].Name = L"Start";
 	query[0].Flags = RTL_QUERY_REGISTRY_DIRECT;
 	query[0].EntryContext = &start;
+	// Fix I: HKLM\SYSTEM\CurrentControlSet\Services\nodokad\HeartbeatTimeout (REG_DWORD).
+	// 0=disabled (default), 1-254=timeout seconds, 255=through mode only. See
+	// g_heartbeatTimeoutSec comment for details.
+	query[1].Name = L"HeartbeatTimeout";
+	query[1].Flags = RTL_QUERY_REGISTRY_DIRECT;
+	query[1].EntryContext = &heartbeatTimeoutValue;
 	RtlQueryRegistryValues(RTL_REGISTRY_SERVICES, L"nodokad", query, NULL, NULL);
+	g_heartbeatTimeoutSec = heartbeatTimeoutValue;
+	DEBUG_LOG(("nodokad: HeartbeatTimeout=%lu", g_heartbeatTimeoutSec));
 	if (start == 0x03) {
 		g_isPnP = TRUE;
 		DEBUG_LOG(("nodokad: is PnP"));
@@ -461,6 +518,12 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT driverObject,
 
 			// Fix G: register session disconnect/logoff notification.
 			// IoObject=detourDevObj scopes the callback to sessions with the device open.
+			// Note: IoSessionStateNotification's EventMask only supports CREATION,
+			// TERMINATION, CONNECT, DISCONNECT, LOGON, LOGOFF (see
+			// IO_SESSION_STATE_VALID_EVENT_MASK in wdm.h) -- there is no LOCK/UNLOCK
+			// event in this kernel API, so a plain Win+L lock (session stays connected
+			// and logged on) cannot be caught here at all. That gap is covered instead
+			// by the heartbeat safety net (Fix I, g_heartbeatTimeoutSec) below.
 			{
 			IO_SESSION_STATE_NOTIFICATION sessionNotif;
 			NTSTATUS cbStatus;
@@ -865,12 +928,50 @@ NTSTATUS filterRemoveCompletion(IN PDEVICE_OBJECT deviceObject, IN PIRP irp, IN 
 	}
 
 
-// 
+// Fix I: heartbeat/staleness safety net (see g_heartbeatTimeoutSec comment above).
+// Callable at DISPATCH_LEVEL; caller must hold detourDevExt->lock.
+BOOLEAN DetourShouldIntercept(IN DetourDeviceExtension *detourDevExt)
+	{
+	if (g_heartbeatTimeoutSec == 255)
+		return FALSE; // registry kill switch: through mode only
+
+	if (!detourDevExt->isOpen || detourDevExt->wasCleanupInitiated)
+		return FALSE;
+
+	if (g_heartbeatTimeoutSec != 0) {
+		// J2: a parked detour READ proves the app is alive (blocked in ReadFile),
+		// no matter how long ago the last keystroke was. Refresh the tick so the
+		// timeout only measures time during which the app has NO read outstanding
+		// and has not entered detourRead() -- i.e. a genuinely stalled read loop.
+		// Without this, heartbeatTick went stale during any normal typing pause
+		// longer than the timeout; the first key afterwards then leaked through
+		// raw, the app's parked READ never completed, the tick never refreshed,
+		// and interception never resumed (sticky passthrough).
+		if (detourDevExt->irpq != NULL) {
+			detourDevExt->heartbeatTick = KeQueryInterruptTime();
+			} else {
+				ULONGLONG now = KeQueryInterruptTime();
+				ULONGLONG elapsed100ns = now - detourDevExt->heartbeatTick;
+				if (elapsed100ns > (ULONGLONG)g_heartbeatTimeoutSec * 10000000ULL) {
+					NODOKAD_TRACE("DetourShouldIntercept: heartbeat timeout (%lu s) exceeded -> passthrough\n",
+						g_heartbeatTimeoutSec);
+					return FALSE;
+					}
+			}
+		}
+
+	return TRUE;
+	}
+
+
+//
 NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 															IN PIRP irp, IN PVOID context)
 	{
 	NTSTATUS status;
 	KIRQL currentIrql, cancelIrql;
+	BOOLEAN selfCancelled;
+	BOOLEAN recentSelfCancel = FALSE;
 	FilterDeviceExtension *filterDevExt =
 		(FilterDeviceExtension*)deviceObject->DeviceExtension;
 	PDEVICE_OBJECT detourDevObj = filterDevExt->detourDevObj;
@@ -883,6 +984,19 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 
 	KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
 	filterDevExt->irpq = NULL;
+	// Consume the self-cancel mark unconditionally: this IRP is completing, so
+	// the pointer must not linger and false-match a future IRP at the same address.
+	selfCancelled = (filterDevExt->selfCancelledIrp == irp);
+	if (selfCancelled)
+		filterDevExt->selfCancelledIrp = NULL;
+	// J1b: secondary self-cancel attribution. If detourCreate/detourWrite issued
+	// a cancel on this filter only moments ago, a CANCELLED completing now is
+	// almost certainly the fallout of that cancel (possibly landed on a recycled
+	// IRP address after the marked IRP completed naturally) and must be rewritten
+	// below like a direct match, or win32k stops re-issuing READs for this device.
+	if (filterDevExt->selfCancelTick != 0 &&
+	    KeQueryInterruptTime() - filterDevExt->selfCancelTick < SELF_CANCEL_WINDOW_100NS)
+		recentSelfCancel = TRUE;
 	KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 	if (irp->PendingReturned) {
 		status = STATUS_PENDING;
@@ -891,13 +1005,33 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 			status = STATUS_SUCCESS;
 		}
 
+	// Pass unsuccessful completions through untouched — EXCEPT cancellations this
+	// driver issued itself. detourCreate/detourWrite cancel the parked READ to
+	// take over the device / to deliver injected keys; win32k does not re-issue
+	// a READ after seeing STATUS_CANCELLED, so those self-cancels must keep being
+	// rewritten to STATUS_SUCCESS below or the keyboard goes dead the moment the
+	// detour opens. When RIM (win32kbase) tears down a raw input device it cancels
+	// its pending READ itself and must see the cancellation status; rewriting that
+	// external STATUS_CANCELLED to STATUS_SUCCESS makes RIM's teardown
+	// over-dereference its RawInputManager object (bugcheck 0x18
+	// REFERENCE_BY_POINTER in rimDereferenceDev).
+	if (!NT_SUCCESS(irp->IoStatus.Status) &&
+	    !(irp->IoStatus.Status == STATUS_CANCELLED &&
+	      (selfCancelled || recentSelfCancel))) {
+		NODOKAD_TRACE("filterReadCompletion: status=0x%08X -> passthrough (unsuccessful, external)\n",
+			irp->IoStatus.Status);
+		return irp->IoStatus.Status;
+		}
+
 	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
 
+	{
+	BOOLEAN shouldIntercept = DetourShouldIntercept(detourDevExt);
 	NODOKAD_TRACE("filterReadCompletion: isOpen=%ld wasCleanupInitiated=%d -> %s\n",
 		detourDevExt->isOpen, detourDevExt->wasCleanupInitiated,
-		(detourDevExt->isOpen && !detourDevExt->wasCleanupInitiated) ? "intercept" : "passthrough");
+		shouldIntercept ? "intercept" : "passthrough");
 
-	if (detourDevExt->isOpen && !detourDevExt->wasCleanupInitiated)
+	if (shouldIntercept)
 		{
 		// if detour is opened, key datum are forwarded to detour
 			if (irp->IoStatus.Status == STATUS_SUCCESS)
@@ -966,6 +1100,7 @@ _filterReadCompletion_after_detour_irp_unlocked:
 		{
 		KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
 		}
+	}
 
 	if (status == STATUS_SUCCESS)
 		irp->IoStatus.Status = STATUS_SUCCESS;
@@ -1076,6 +1211,7 @@ NTSTATUS detourCreate(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	detourDevExt->irpOwnerFileObject = NULL;
 	detourDevExt->openProcessId = PsGetCurrentProcessId(); // Fix F: track opening process
 	detourDevExt->openSessionId = openSessionId;           // Fix 6: track opening session
+	detourDevExt->heartbeatTick = KeQueryInterruptTime();  // Fix I: grace period on fresh open
 	KqClear(&detourDevExt->readQue);
 	filterDevObj = detourDevExt->filterDevObj;
 	KeReleaseSpinLock(&detourDevExt->lock, currentIrql);
@@ -1088,6 +1224,10 @@ NTSTATUS detourCreate(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 		KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
 		irpCancel = filterDevExt->irpq;
 		filterDevExt->irpq = NULL;
+		if (irpCancel) {
+			filterDevExt->selfCancelledIrp = irpCancel; // mark as our own cancel
+			filterDevExt->selfCancelTick = KeQueryInterruptTime(); // J1b
+			}
 		kbdClassDevObj = filterDevExt->kbdClassDevObj;
 		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 		if (irpCancel) {
@@ -1137,6 +1277,9 @@ NTSTATUS detourRead(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	DEBUG_LOG(("nodokad: detourRead()"));
 
 	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
+	// Fix I: every entry proves the app's read loop is alive (whether this call
+	// is served immediately from readQue or goes pending waiting for a key).
+	detourDevExt->heartbeatTick = KeQueryInterruptTime();
 	if (irpSp->Parameters.Read.Length == 0)
 		status = STATUS_SUCCESS;
 	else if (irpSp->Parameters.Read.Length % sizeof(KEYBOARD_INPUT_DATA))
@@ -1216,24 +1359,28 @@ NTSTATUS detourWrite(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 
 			irpCancel = filterDevExt->irpq;
 			filterDevExt->irpq = NULL;
+			if (irpCancel) {
+				filterDevExt->selfCancelledIrp = irpCancel; // mark as our own cancel
+				filterDevExt->selfCancelTick = KeQueryInterruptTime(); // J1b
+				}
 			kbdClassDevObj = filterDevExt->kbdClassDevObj;
 			KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 			if (irpCancel) {
-				// Fix 1 (Sync drop investigation): mirror nodokaUnloadDriver's retry.
-				// IoCancelIrp returns FALSE when the cancel routine has already been
-				// cleared (the lower driver is completing this IRP naturally, e.g. a
-				// real key arrived at the same moment). That case self-resolves via
-				// filterReadCompletion()'s own queue drain, so a short bounded retry
-				// here only guards against a cancel attempt landing in that brief
-				// window; it does not change behavior in the common case where the
-				// IRP is genuinely still pending.
-				int retry = 100;
-				LARGE_INTEGER interval;
-				interval.QuadPart = -1000; // 100us in 100-nanosecond units
-				while (!CancelKeyboardClassRead(irpCancel, kbdClassDevObj) && --retry > 0)
-					KeDelayExecutionThread(KernelMode, FALSE, &interval);
-				NODOKAD_TRACE("detourWrite: cancel %s (retries left=%d)\n",
-					retry > 0 ? "ok" : "gave up", retry);
+				// J1: single attempt only; the former Fix 1 retry loop is removed.
+				// IoCancelIrp returns FALSE when the cancel routine has already
+				// been cleared -- the lower driver is completing this IRP naturally
+				// (a real key arrived at the same moment) and that case
+				// self-resolves via filterReadCompletion()'s own queue drain.
+				// Retrying is not merely useless but fatal: once the IRP may have
+				// completed, its memory can be recycled (lookaside) for the next
+				// parked READ, and a retried IoCancelIrp then cancels that fresh,
+				// unmarked READ. win32k sees the resulting STATUS_CANCELLED pass
+				// through, never re-issues a READ, and the keyboard dies
+				// mid-typing. The residual race of this single call is covered by
+				// the J1b selfCancelTick window in filterReadCompletion.
+				if (!CancelKeyboardClassRead(irpCancel, kbdClassDevObj)) {
+					NODOKAD_TRACE("detourWrite: cancel declined, irp completing naturally (self-resolves)\n");
+					}
 				}
 			status = STATUS_SUCCESS;
 			} else {
@@ -1417,7 +1564,7 @@ NTSTATUS filterRead(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	DEBUG_LOG(("nodokad: filterRead()"));
 
 	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
-	if (detourDevExt->isOpen && !detourDevExt->wasCleanupInitiated)
+	if (DetourShouldIntercept(detourDevExt))
 		// read from que
 		{
 		ULONG len = irpSp->Parameters.Read.Length;
