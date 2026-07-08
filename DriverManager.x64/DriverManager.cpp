@@ -497,8 +497,13 @@ bool InstallDriver(const std::wstring& driverName, const std::wstring& classGuid
     //    注意: ステージング対象が既存のActiveなパッケージよりDriverVerで古い場合、
     //    DiInstallDriverWはエラーを返さず「成功」するが、DriverStore内部では
     //    supersededとして新フォルダだけ作り、既存のActiveパッケージは変更されない。
+    // DIIRFLAG_FORCE_INF: ユーザーが手動でINFを選んだ場合と同様、ドライバランキング比較
+    // （署名レベル・DriverVer）を無視してこのINFを強制的にステージングする。
+    // Flags=0だとDriverVerが既存Active版と同一（例: EV署名版とWHQL提出版が同じdate/versionを
+    // 持つ場合）の際に「既存より優れていない」と判定され、新パッケージが有効化されない
+    // （pnputilでの明示アンインストール→再インストールが必要になっていた問題の原因）。
     BOOL rebootRequired = FALSE;
-    if (!DiInstallDriverW(NULL, infPath.c_str(), 0, &rebootRequired)) {
+    if (!DiInstallDriverW(NULL, infPath.c_str(), DIIRFLAG_FORCE_INF, &rebootRequired)) {
         std::wcerr << L"DiInstallDriverW failed. Error: " << GetLastError() << std::endl;
         return false;
     }
