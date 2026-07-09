@@ -153,6 +153,15 @@ typedef struct _FilterDeviceExtension
 	// window where our IoCancelIrp (issued outside the lock) lands on a recycled
 	// IRP address after the marked IRP completed naturally. Guarded by lock.
 	ULONGLONG selfCancelTick;
+	// J1c: set once IRP_MN_SURPRISE_REMOVAL/IRP_MN_REMOVE_DEVICE reaches this
+	// filter, never cleared (the device object is deleted after remove). While
+	// set, filterReadCompletion treats every CANCELLED completion as external:
+	// on BT reconnect the wake keystroke drives a detourWrite (opening the J1b
+	// 50ms window) and the stale device's teardown cancel within the same
+	// window, so time-based attribution alone rewrites RIM's teardown cancel
+	// to SUCCESS and re-triggers bugcheck 0x18. Teardown wins over the
+	// self-cancel rescue. Guarded by lock.
+	BOOLEAN removePending;
 	KeyQue readQue; // when IRP_MJ_READ, the contents of readQue are returned
 #ifdef USE_TOUCHPAD
 	BOOLEAN isTouched;
@@ -972,6 +981,7 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 	KIRQL currentIrql, cancelIrql;
 	BOOLEAN selfCancelled;
 	BOOLEAN recentSelfCancel = FALSE;
+	BOOLEAN removePending;
 	FilterDeviceExtension *filterDevExt =
 		(FilterDeviceExtension*)deviceObject->DeviceExtension;
 	PDEVICE_OBJECT detourDevObj = filterDevExt->detourDevObj;
@@ -997,6 +1007,8 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 	if (filterDevExt->selfCancelTick != 0 &&
 	    KeQueryInterruptTime() - filterDevExt->selfCancelTick < SELF_CANCEL_WINDOW_100NS)
 		recentSelfCancel = TRUE;
+	// J1c: device removal in progress overrides both self-cancel attributions.
+	removePending = filterDevExt->removePending;
 	KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 	if (irp->PendingReturned) {
 		status = STATUS_PENDING;
@@ -1015,11 +1027,16 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 	// external STATUS_CANCELLED to STATUS_SUCCESS makes RIM's teardown
 	// over-dereference its RawInputManager object (bugcheck 0x18
 	// REFERENCE_BY_POINTER in rimDereferenceDev).
+	// J1c: once removal is pending on this filter, every cancellation is
+	// teardown fallout — even one a detourWrite issued or marked moments ago —
+	// and must reach RIM untouched (the device is going away; there is no READ
+	// worth rescuing).
 	if (!NT_SUCCESS(irp->IoStatus.Status) &&
 	    !(irp->IoStatus.Status == STATUS_CANCELLED &&
-	      (selfCancelled || recentSelfCancel))) {
-		NODOKAD_TRACE("filterReadCompletion: status=0x%08X -> passthrough (unsuccessful, external)\n",
-			irp->IoStatus.Status);
+	      (selfCancelled || recentSelfCancel) &&
+	      !removePending)) {
+		NODOKAD_TRACE("filterReadCompletion: status=0x%08X -> passthrough (unsuccessful, external%s)\n",
+			irp->IoStatus.Status, removePending ? ", removePending" : "");
 		return irp->IoStatus.Status;
 		}
 
@@ -1679,6 +1696,16 @@ NTSTATUS filterPnP(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 		//
 		// Forward remove to lower driver and perform cleanup in completion routine.
 		//
+		{
+		KIRQL currentIrql;
+		// J1c: kbdclass cancels/fails the reads we forwarded only after it sees
+		// this IRP, which passes through us first — so setting the flag here
+		// guarantees filterReadCompletion classifies those cancellations as
+		// teardown, not as fallout of a recent detourCreate/detourWrite cancel.
+		KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
+		filterDevExt->removePending = TRUE;
+		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
+		}
 		IoCopyCurrentIrpStackLocationToNext(irp);
 		IoSetCompletionRoutine(irp, filterRemoveCompletion, deviceObject, TRUE, TRUE, TRUE);
 		return IoCallDriver(filterDevExt->kbdClassDevObj, irp);
