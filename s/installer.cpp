@@ -805,8 +805,11 @@ int uninstallStep1(const _TCHAR *i_uninstallOption)
 	_TCHAR commandLine[512];
 	HANDLE hProcessOrig =
 		OpenProcess(SYNCHRONIZE, TRUE, GetCurrentProcessId());
-	_sntprintf_s(commandLine, NUMBER_OF(commandLine), _TRUNCATE, _T("%s %s %d"),
-				 tmp_setup_exe, i_uninstallOption, hProcessOrig);
+	// HANDLE 値をコマンドライン文字列で子プロセスへ渡す。Windows はハンドル値が
+	// 32bit に収まることを保証しているため HandleToULong で ULONG 化して %lu で渡し、
+	// 受け側 (uninstallStep2) は ULongToHandle で復元する（HANDLE を %d で扱う警告を回避）。
+	_sntprintf_s(commandLine, NUMBER_OF(commandLine), _TRUNCATE, _T("%s %s %lu"),
+				 tmp_setup_exe, i_uninstallOption, HandleToULong(hProcessOrig));
 	STARTUPINFO si;
 	::ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
@@ -824,7 +827,8 @@ int uninstallStep1(const _TCHAR *i_uninstallOption)
 void uninstallStep2(const _TCHAR *argByStep1)
 {
 	// clone EXE: When original EXE terminates, delete it
-	HANDLE hProcessOrig = (HANDLE)_ttoi(argByStep1);
+	// 送り側 (uninstallStep1) が HandleToULong で 10 進文字列化したハンドルを復元する。
+	HANDLE hProcessOrig = ULongToHandle(_tcstoul(argByStep1, NULL, 10));
 	WaitForSingleObject(hProcessOrig, INFINITE);
 	CloseHandle(hProcessOrig);
 }

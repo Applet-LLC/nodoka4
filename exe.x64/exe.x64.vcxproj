@@ -349,6 +349,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\nodoka\array.h" />
+    <ClInclude Include="..\nodoka\sessiontrace.h" />
     <ClInclude Include="..\sirius_sdk\commonValues.h" />
     <ClInclude Include="..\nodoka\compiler_specific.h" />
     <ClInclude Include="..\nodoka\compiler_specific_func.h" />

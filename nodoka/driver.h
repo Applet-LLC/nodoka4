@@ -14,6 +14,18 @@
 /// Ioctl value
 #include "..\d\ioctl.h"
 
+/// nodokad2 (kbfiltr 型 KMDF, inverted call) プロトコル定義。
+/// アプリはこれで新旧どちらのドライバとも会話できる (feature flag で選択)。
+#include "..\d2\public2.h"
+
+/// nodokad2 コントロールデバイスの Win32 名。
+#define NODOKA2_DEVICE_FILE_NAME _T("\\\\.\\Nodoka2Ctl")
+///
+#define NODOKA2_DRIVER_NAME _T("nodokad2")
+
+/// GET_EVENTS 1 回で受け取る最大イベント数 (バッチ)。
+#define NODOKA2_BATCH_MAX 32
+
 /// derived from w2kddk/inc/ntddkbd.h
 class KEYBOARD_INPUT_DATA
 {

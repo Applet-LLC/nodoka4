@@ -558,6 +558,7 @@
     <ClInclude Include="nodokarc.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="registry.h" />
+    <ClInclude Include="sessiontrace.h" />
     <ClInclude Include="setting.h" />
     <ClInclude Include="stringtool.h" />
     <ClInclude Include="target.h" />

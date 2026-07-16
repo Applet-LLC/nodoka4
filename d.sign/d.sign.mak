@@ -43,7 +43,9 @@ TARGET_BIN	= ..\Win32\Release\nodoka.exe		\
 TARGET_SYS	= ..\Win32\Release\d\nodokad.sys	\
 		..\Win32\Release\d\nodokad.cat		\
 		..\x64\Release\d.x64\nodokad.sys	\
-		..\x64\Release\d.x64\nodokad.cat
+		..\x64\Release\d.x64\nodokad.cat	\
+		..\x64\Release\d2.x64\nodokad2.sys	\
+		..\x64\Release\d2.x64\nodokad2.cat
 
 
 

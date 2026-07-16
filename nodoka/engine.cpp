@@ -1065,7 +1065,34 @@ void Engine::injectInputOut(KEYBOARD_INPUT_DATA *i_kid)
 	}
 	else
 	{
-		if (m_device != INVALID_HANDLE_VALUE && m_keyboard_hook == 0)
+		if (m_device != INVALID_HANDLE_VALUE && m_keyboard_hook == 0 && m_driverV2)
+		{
+			// v2: IOCTL_NODOKA2_INJECT で 1 件注入。宛先は任意の生存インスタンス
+			// (TargetDeviceId=0)。ドライバは上位コールバックを直接呼ぶため
+			// レガシーのような readQue 溢れによる欠落は発生しない。
+			i_kid->Reserved = (USHORT)0;
+			i_kid->ExtraInformation = (ULONG)0;
+
+			unsigned char injBuf[sizeof(NODOKA2_INJECT_INPUT)];
+			NODOKA2_INJECT_INPUT *inj = reinterpret_cast<NODOKA2_INJECT_INPUT *>(injBuf);
+			inj->TargetDeviceId = 0;
+			inj->Count = 1;
+			inj->Events[0].DeviceId = 0;
+			inj->Events[0].UnitId = i_kid->UnitId;
+			inj->Events[0].MakeCode = i_kid->MakeCode;
+			inj->Events[0].Flags = i_kid->Flags;
+			inj->Events[0].Reserved = 0;
+			inj->Events[0].ExtraInformation = 0;
+
+			DWORD bytes = 0;
+			if (!DeviceIoControl(m_device, IOCTL_NODOKA2_INJECT,
+								 injBuf, sizeof(injBuf), NULL, 0, &bytes, &m_writeOl))
+			{
+				if (GetLastError() == ERROR_IO_PENDING)
+					GetOverlappedResult(m_device, &m_writeOl, &bytes, TRUE);
+			}
+		}
+		else if (m_device != INVALID_HANDLE_VALUE && m_keyboard_hook == 0)
 		{
 			DWORD m_len = 0;
 			i_kid->Reserved = (USHORT)0;
@@ -1835,18 +1862,19 @@ void Engine::keyboardHandler()
 			goto rewait;
 		}
 
-		if (!ReadFile(m_device, &kid, sizeof(kid), &len, &m_ol))
 		{
-			// PENDING以外のエラーは、ループの先頭に戻って、再度 ReadFileを実行できるようにする。
-			if (GetLastError() != ERROR_IO_PENDING)
-			{
+			// レガシー: ReadFile で 1 件。v2: バッチ残があれば同期返却、無ければ
+			// GET_EVENTS を overlapped 発行。driverReadKey が両者を隠蔽する。
+			int rr = driverReadKey(&kid, &len);
+			if (rr == 1)
+			{ // 同期で 1 件取得できたので抜ける。
+				goto quit_loop;
+			}
+			else if (rr < 0)
+			{ // PENDING 以外のエラー: ループ先頭へ戻って再発行できるようにする。
 				continue; // 外側のwhile loop
-			}			  // if (GetLastError()
-						  // ReadFile()がPENDINGだったのでシグナル等を処理する。
-		}
-		else
-		{ // ReadFile()が成功したので抜ける。
-			goto quit_loop;
+			}
+			// rr == 0: PENDING。シグナル等を処理する (rewait へフォールスルー)。
 		}
 	rewait:
 		dwWaitTime = 5;
@@ -1926,6 +1954,10 @@ void Engine::keyboardHandler()
 				// bbi = true のまま維持し、次ループで ReadFile を再発行する。
 				continue;
 			}
+			// v2: 完了した GET_EVENTS のバッチを解析し先頭イベントを kid へ。
+			// 空バッチ (通常発生しない) なら bbi=true のまま再発行させる。
+			if (m_driverV2 && !driverCompleteRead(len, &kid))
+				continue;
 			break;		  // switch/case break;
 
 		case WAIT_OBJECT_0 + 1: // m_interruptThreadEvent
@@ -3727,6 +3759,8 @@ Engine::Engine(tomsgstream &i_log, int i_keyboard_hook, int i_mouse_hook, int i_
 	  m_mouse_hook(i_mouse_hook),
 	  m_win8wa(i_win8wa),
 	  m_device(INVALID_HANDLE_VALUE),
+	  m_driverV2(false),
+	  m_v2Pos(0),
 	  m_driverMutex(NULL),
 	  m_driverMutexHeld(false),
 	  m_didNodokaStartDevice(false),
@@ -3870,13 +3904,29 @@ Engine::Engine(tomsgstream &i_log, int i_keyboard_hook, int i_mouse_hook, int i_
 	{
 		g_hookDataExe->m_device = true;
 
-		TCHAR versionBuf[256];
-		DWORD length = 0;
+		if (m_driverV2)
+		{
+			// v2: プロトコルバージョン (ULONG) を取得して文字列化。
+			ULONG ver = 0;
+			DWORD length = 0;
+			if (DeviceIoControl(m_device, IOCTL_NODOKA2_GET_VERSION, NULL, 0,
+								&ver, sizeof(ver), &length, NULL) && length == sizeof(ver))
+			{
+				TCHAR buf[64];
+				_stprintf_s(buf, _T("nodokad2 v%u.%u"), (ver >> 16) & 0xFFFF, ver & 0xFFFF);
+				m_nodokadVersion = tstring(buf);
+			}
+		}
+		else
+		{
+			TCHAR versionBuf[256];
+			DWORD length = 0;
 
-		if (DeviceIoControl(m_device, IOCTL_NODOKA_GET_VERSION, NULL, 0,
-							versionBuf, sizeof(versionBuf), &length, NULL) &&
-			length && length < sizeof(versionBuf)) // fail safe
-			m_nodokadVersion = tstring(versionBuf, length / 2);
+			if (DeviceIoControl(m_device, IOCTL_NODOKA_GET_VERSION, NULL, 0,
+								versionBuf, sizeof(versionBuf), &length, NULL) &&
+				length && length < sizeof(versionBuf)) // fail safe
+				m_nodokadVersion = tstring(versionBuf, length / 2);
+		}
 	}
 	// create event for sync
 	CHECK_TRUE(m_eSync = CreateEvent(NULL, FALSE, FALSE, NULL));
@@ -3895,6 +3945,30 @@ Engine::Engine(tomsgstream &i_log, int i_keyboard_hook, int i_mouse_hook, int i_
 	m_msllHookCurrent.dwExtraInfo = 0;
 }
 
+// feature flag: nodokad2 (v2) を使うか。
+// HKCU\Software\appletkan\nodoka\useDriverV2 (DWORD, 既定 0) を優先、無ければ HKLM を見る。
+// 1 = v2 (\\.\Nodoka2Ctl), それ以外/未設定 = レガシー nodokad。
+static bool readUseDriverV2Flag()
+{
+	static const TCHAR *subKey = _T("Software\\appletkan\\nodoka");
+	static const TCHAR *valName = _T("useDriverV2");
+	HKEY roots[2] = { HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE };
+	for (int i = 0; i < 2; ++i)
+	{
+		HKEY hKey = NULL;
+		if (RegOpenKeyEx(roots[i], subKey, 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+		{
+			DWORD type = 0, val = 0, cb = sizeof(val);
+			LONG r = RegQueryValueEx(hKey, valName, NULL, &type,
+									 reinterpret_cast<LPBYTE>(&val), &cb);
+			RegCloseKey(hKey);
+			if (r == ERROR_SUCCESS && type == REG_DWORD)
+				return val != 0;
+		}
+	}
+	return false;
+}
+
 // open nodoka device
 bool Engine::open()
 {
@@ -3905,51 +3979,57 @@ bool Engine::open()
 		OutputDebugString(_T("nodoka Engine::open() failed\n"));
 		return false;
 	}
-	// open nodoka m_device
-	m_device = CreateFile(NODOKA_DEVICE_FILE_NAME, GENERIC_READ | GENERIC_WRITE,
-						  0, NULL, OPEN_EXISTING,
-						  FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
 
-	if (m_device != INVALID_HANDLE_VALUE)
+	// どちらのドライバと会話するかを決める (feature flag)。
+	m_driverV2 = readUseDriverV2Flag();
+	m_v2Pos = 0;
+	m_v2Out.hdr.Count = 0;
+	const TCHAR *devName = m_driverV2 ? NODOKA2_DEVICE_FILE_NAME : NODOKA_DEVICE_FILE_NAME;
+	OutputDebugString(m_driverV2 ? _T("nodoka Engine::open() using nodokad2 (v2)\n")
+								 : _T("nodoka Engine::open() using nodokad (legacy)\n"));
+
+	// open nodoka m_device (PnP スタック構築完了前の race に備え最大 ~6 秒リトライ)。
+	for (int i = 0; i <= 30; i++)
 	{
-		OutputDebugString(_T("nodoka Engine::open() success\n"));
-		return true;
-	}
-	{
-		DWORD err0 = GetLastError();
-		TCHAR buf[256];
-		_stprintf_s(buf, _T("nodoka Engine::open() initial CreateFile failed err=%lu\n"), err0);
-		OutputDebugString(buf);
-
-		// STATUS_INTERNAL_ERROR (err=1359): nodokad はロード済みだが別プロセスが既に開いている。
-		// リトライしても無意味なので即終了。
-		if (err0 == ERROR_INTERNAL_ERROR)
-		{
-			OutputDebugString(_T("nodoka Engine::open() failed: device already open by another process\n"));
-			return false;
-		}
-
-		// ERROR_FILE_NOT_FOUND (err=2) など: PnP スタック構築完了前に起動した race condition。
-		// DIF_PROPERTYCHANGE は管理者権限が必要なため使用しない。
-		// PnP による DriverEntry 完了を待ちながらリトライ（最大 6 秒）。
-	}
-
-	for (int i = 0; i < 30; i++)
-	{
-		Sleep(200);
-		m_device = CreateFile(NODOKA_DEVICE_FILE_NAME, GENERIC_READ | GENERIC_WRITE,
-			0, NULL, OPEN_EXISTING,
-			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
+		if (i > 0)
+			Sleep(200);
+		m_device = CreateFile(devName, GENERIC_READ | GENERIC_WRITE,
+							  0, NULL, OPEN_EXISTING,
+							  FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
 		if (m_device != INVALID_HANDLE_VALUE)
 		{
 			OutputDebugString(_T("nodoka Engine::open() success\n"));
+			// v2: 既定は素通し。明示的に intercept を有効化してから使い始める。
+			if (m_driverV2)
+			{
+				ULONG mode = NODOKA2_MODE_INTERCEPT;
+				DWORD bytes = 0;
+				DeviceIoControl(m_device, IOCTL_NODOKA2_SET_MODE, &mode, sizeof(mode),
+								NULL, 0, &bytes, NULL);
+			}
 			return true;
 		}
-		if (i == 0 || i == 14 || i == 29)
+
+		DWORD err0 = GetLastError();
+		if (i == 0)
 		{
-			DWORD erri = GetLastError();
+			TCHAR buf[256];
+			_stprintf_s(buf, _T("nodoka Engine::open() initial CreateFile failed err=%lu\n"), err0);
+			OutputDebugString(buf);
+
+			// STATUS_INTERNAL_ERROR (err=1359): ロード済みだが別プロセスが既に開いている。
+			// リトライしても無意味なので即終了。
+			if (err0 == ERROR_INTERNAL_ERROR)
+			{
+				OutputDebugString(_T("nodoka Engine::open() failed: device already open by another process\n"));
+				return false;
+			}
+			// ERROR_FILE_NOT_FOUND (err=2) など: PnP スタック構築完了前の race。リトライへ。
+		}
+		else if (i == 15 || i == 30)
+		{
 			TCHAR buf[128];
-			_stprintf_s(buf, _T("nodoka Engine::open() retry[%d] CreateFile failed err=%lu\n"), i, erri);
+			_stprintf_s(buf, _T("nodoka Engine::open() retry[%d] CreateFile failed err=%lu\n"), i, err0);
 			OutputDebugString(buf);
 		}
 	}
@@ -3965,6 +4045,67 @@ void Engine::close()
 		CHECK_TRUE(CloseHandle(m_device));
 	}
 	m_device = INVALID_HANDLE_VALUE;
+}
+
+// 1 キーイベントをドライバから取得する (レガシー ReadFile / v2 GET_EVENTS を隠蔽)。
+// 戻り値: 1 = o_kid に同期取得, 0 = 非同期発行 (pending), -1 = 非 pending エラー。
+int Engine::driverReadKey(KEYBOARD_INPUT_DATA *o_kid, DWORD *o_len)
+{
+	if (!m_driverV2)
+	{
+		// レガシー: 1 件を overlapped ReadFile。
+		if (!ReadFile(m_device, o_kid, sizeof(*o_kid), o_len, &m_ol))
+			return (GetLastError() == ERROR_IO_PENDING) ? 0 : -1;
+		return 1;
+	}
+
+	// v2: まだ排出していないバッチイベントがあれば同期返却。
+	if (m_v2Pos < m_v2Out.hdr.Count)
+	{
+		const NODOKA2_EVENT &ev = m_v2Out.hdr.Events[m_v2Pos++];
+		o_kid->UnitId = ev.UnitId;
+		o_kid->MakeCode = ev.MakeCode;
+		o_kid->Flags = ev.Flags;
+		o_kid->Reserved = ev.Reserved;
+		o_kid->ExtraInformation = ev.ExtraInformation;
+		*o_len = sizeof(*o_kid);
+		return 1;
+	}
+
+	// バッチが空: GET_EVENTS を overlapped 発行する。
+	DWORD bytes = 0;
+	if (!DeviceIoControl(m_device, IOCTL_NODOKA2_GET_EVENTS, NULL, 0,
+						 &m_v2Out, sizeof(m_v2Out), &bytes, &m_ol))
+		return (GetLastError() == ERROR_IO_PENDING) ? 0 : -1;
+
+	// 同期完了 (イベントが既に溜まっていた)。ドライバは 0 件で完了しないが念のため確認。
+	if (driverCompleteRead(bytes, o_kid))
+	{
+		*o_len = sizeof(*o_kid);
+		return 1;
+	}
+	return 0;
+}
+
+// GetOverlappedResult 成功後、v2 バッチを解析して先頭イベントを o_kid へ取り出す。
+// 戻り値: true = o_kid に有効イベントあり, false = 空バッチ。
+bool Engine::driverCompleteRead(DWORD i_len, KEYBOARD_INPUT_DATA *o_kid)
+{
+	UNREFERENCED_PARAMETER(i_len);
+	if (!m_driverV2)
+		return true; // レガシーは o_kid が既に埋まっている。
+
+	m_v2Pos = 0;
+	if (m_v2Out.hdr.Count == 0 || m_v2Pos >= m_v2Out.hdr.Count)
+		return false;
+
+	const NODOKA2_EVENT &ev = m_v2Out.hdr.Events[m_v2Pos++];
+	o_kid->UnitId = ev.UnitId;
+	o_kid->MakeCode = ev.MakeCode;
+	o_kid->Flags = ev.Flags;
+	o_kid->Reserved = ev.Reserved;
+	o_kid->ExtraInformation = ev.ExtraInformation;
+	return true;
 }
 
 // detect kbdaddid and retrieve its version from registry Parameters\Version

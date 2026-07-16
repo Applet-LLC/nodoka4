@@ -1,0 +1,111 @@
+;
+; nodokad2.inf
+; (c) 2026 Applet LLC
+; Keyboard class filter driver (kbfiltr 型 KMDF, inverted call).
+; CONNECT フックのため kbdaddid と同じ modern AddFilter(FilterPosition=Upper) で登録。
+;
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = Keyboard
+ClassGuid   = {4D36E96B-E325-11CE-BFC1-08002BE10318}
+Provider    = %ProviderName%
+CatalogFile = nodokad2.cat
+DriverVer   = 07/09/2026,2.0.0.1
+PnpLockdown = 1
+
+; ========================================
+; Install (x64 のみ)
+; ========================================
+
+[DefaultInstall.NTamd64]
+CopyFiles = nodokad2_Files_Driver
+AddReg    = nodokad2_Service_AddReg
+
+[DefaultInstall.NTamd64.Filters]
+AddFilter = nodokad2,, nodokad2_UpperFilter
+
+[nodokad2_UpperFilter]
+FilterPosition = Upper
+
+[DefaultInstall.NTamd64.Services]
+AddService = nodokad2,0x00000002,nodokad2_Service_Install
+AddReg     = nodokad2_Service_AddReg
+
+[DefaultInstall.NTamd64.Wdf]
+KmdfService = nodokad2, nodokad2_wdfsect
+
+; ========================================
+; Installer-compatible sections
+; (SetupInstallServicesFromInfSectionW / setup.exe 用)
+; ========================================
+
+[nodokad2_Install.NTamd64]
+CopyFiles = nodokad2_Files_Driver
+AddReg    = nodokad2_Service_AddReg
+
+[nodokad2_Install.NTamd64.Filters]
+AddFilter = nodokad2,, nodokad2_UpperFilter
+
+[nodokad2_Install.NTamd64.Services]
+AddService = nodokad2,0x00000002,nodokad2_Service_Install
+AddReg     = nodokad2_Service_AddReg
+
+[nodokad2_Install.NTamd64.Wdf]
+KmdfService = nodokad2, nodokad2_wdfsect
+
+[nodokad2_wdfsect]
+KmdfLibraryVersion = 1.15
+
+; ========================================
+; Uninstall
+; ========================================
+
+[DefaultUninstall.NTamd64]
+LegacyUninstall = 1
+
+[DefaultUninstall.NTamd64.Services]
+DelService = nodokad2,0x200
+
+; ========================================
+; Files
+; ========================================
+
+[DestinationDirs]
+DefaultDestDir        = 13
+nodokad2_Files_Driver = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,
+
+[SourceDisksFiles]
+nodokad2.sys = 1
+
+[nodokad2_Files_Driver]
+nodokad2.sys
+
+; ========================================
+; Registry
+; ========================================
+
+[nodokad2_Service_AddReg]
+HKR,,Security,,"D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GA;;;WD)(A;;GA;;;AU)"
+
+; ========================================
+; Service
+; ========================================
+
+[nodokad2_Service_Install]
+DisplayName    = %SvcDesc%
+ServiceType    = 1                  ; SERVICE_KERNEL_DRIVER
+StartType      = 3                  ; SERVICE_DEMAND_START
+ErrorControl   = 1                  ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\nodokad2.sys
+LoadOrderGroup = "Keyboard Class"
+Dependencies   = kbdclass
+
+[Strings]
+ProviderName = "Applet LLC"
+DiskName     = "nodokad2 Installation Disk"
+SvcDesc      = "nodokad2 Service"
+DriverDesc   = "Applet LLC キーボードクラス フィルタドライバ (v2)"

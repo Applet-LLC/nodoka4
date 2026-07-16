@@ -95,6 +95,16 @@ const SetupFile::Data g_setupFiles[] =
 		DN(File, W2kx86, "nodokadx86.cat", ToDest, "nodokad\\nodokad.cat"),
 		DN(File, W2kx86, "nodokad.pdb",    ToDest, "nodokad\\nodokad.pdb"),
 
+		// nodokad2 (kbfiltr 型 KMDF フィルタ, v2) driver package for DriverManager.
+		// x64 のみ。現状は「コピーのみ」で自動インストールはしない（手動導入段階）。
+		// DriverManager.exe install nodokad2 を手動実行すると、DriverManager が
+		// exe_dir\nodokad2\nodokad2.inf を参照してインストールする。
+		SN(Dir, AMD64,  "nodokad2", ToDest), // mkdir
+		DN(File, AMD64,  "nodokad2.sys", ToDest, "nodokad2\\nodokad2.sys"),
+		DN(File, AMD64,  "nodokad2.inf", ToDest, "nodokad2\\nodokad2.inf"),
+		DN(File, AMD64,  "nodokad2.cat", ToDest, "nodokad2\\nodokad2.cat"),
+		DN(File, AMD64,  "nodokad2.pdb", ToDest, "nodokad2\\nodokad2.pdb"),
+
 		// setting files
 		SN(File, ALL, "104.nodoka", ToDot),
 		SN(File, ALL, "104on109.nodoka", ToDot),
