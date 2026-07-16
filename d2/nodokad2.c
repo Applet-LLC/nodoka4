@@ -35,6 +35,7 @@ WDFQUEUE   g_PendingQueue    = NULL;
 
 LIST_ENTRY g_InstanceList;
 KSPIN_LOCK g_InstanceLock;
+volatile LONG g_LastActiveDeviceId = 0;
 
 volatile LONG g_ClientConnected = 0;
 volatile LONG g_InterceptMode   = NODOKA2_MODE_PASSTHROUGH;
@@ -125,6 +126,7 @@ Nodoka2UnlinkInstance(
         RemoveEntryList(&ctx->ListEntry);
         ctx->Linked = FALSE;
     }
+    // g_LastActiveDeviceId は値なのでクリア不要 (注入時に生存解決・フォールバックする)。
     KeReleaseSpinLock(&g_InstanceLock, irql);
 }
 
@@ -346,6 +348,18 @@ Nodoka2ServiceCallback(
 
     count = (ULONG)(InputDataEnd - InputDataStart);
 
+#if DBG || defined(NODOKAD2_TRACE)
+    // 診断: 各デバイスから「最初の」イベントだけトレースする (毎キーではない)。
+    // RDP キーボード等の入力が実際に ServiceCallback を通っているかの確認用。
+    if (!ctx->FirstEventTraced) {
+        ctx->FirstEventTraced = TRUE;
+        N2_TRACE("first event from DeviceId=0x%08X (connected=%d, clientConnected=%ld, mode=%ld)\n",
+                 ctx->DeviceId, ctx->Connected,
+                 InterlockedCompareExchange(&g_ClientConnected, 0, 0),
+                 InterlockedCompareExchange(&g_InterceptMode, 0, 0));
+    }
+#endif
+
 #ifdef NODOKAD2_SUBSCRIPTION
     //
     // 刻印: ライセンス有効かつ DeviceId 決定済みのときのみ。
@@ -368,6 +382,9 @@ Nodoka2ServiceCallback(
 
         if (Nodoka2Enqueue(ctx->DeviceId, InputDataStart, count)) {
             // 飲み込み成功: 上位へは転送しない。全件消費を報告。
+            // 「打っているキーボード」の DeviceId を記録 → TargetDeviceId=0 の注入先にする
+            // (RDP/マルチセッションで出力を入力と同じセッションへ戻すため)。値の記録なので安全。
+            InterlockedExchange(&g_LastActiveDeviceId, (LONG)ctx->DeviceId);
             *InputDataConsumed = count;
             Nodoka2TryCompletePending();
             return;

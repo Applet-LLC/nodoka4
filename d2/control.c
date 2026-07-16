@@ -183,6 +183,7 @@ Nodoka2DoInject(
     ULONG        count;
     PKEYBOARD_INPUT_DATA kdata;
     ULONG        consumed = 0;
+    ULONG        targetDeviceId = 0;  // 実際に注入した宛先の DeviceId (刻印・トレース用)
 
     if (InLen < FIELD_OFFSET(NODOKA2_INJECT_INPUT, Events)) {
         return STATUS_BUFFER_TOO_SMALL;
@@ -199,27 +200,55 @@ Nodoka2DoInject(
 
     //
     // 宛先インスタンスの CONNECT_DATA をロック下でコピー。
-    // TargetDeviceId==0 は最初の生存インスタンス。
+    //   - TargetDeviceId != 0: その DeviceId のインスタンス (明示ルーティング)。
+    //   - TargetDeviceId == 0: 「打っているキーボード」= g_LastActiveDeviceId のインスタンスを
+    //     優先。生存していなければ最初の生存インスタンスにフォールバック。
+    //     これで RDP/マルチセッション環境でも出力が入力と同じセッションへ戻る。
+    // すべてロック下で g_InstanceList を走査して解決するため UAF は起きない。
     //
-    RtlZeroMemory(&target, sizeof(target));
-    KeAcquireSpinLock(&g_InstanceLock, &irql);
-    for (entry = g_InstanceList.Flink; entry != &g_InstanceList; entry = entry->Flink) {
-        PFILTER_CONTEXT c = CONTAINING_RECORD(entry, FILTER_CONTEXT, ListEntry);
-        if (!c->Connected) {
-            continue;
+    {
+        LONG lastActive = InterlockedCompareExchange(&g_LastActiveDeviceId, 0, 0);
+        ULONG wantId = (In->TargetDeviceId != 0) ? In->TargetDeviceId
+                     : (lastActive != 0) ? (ULONG)lastActive : 0;
+
+        RtlZeroMemory(&target, sizeof(target));
+        KeAcquireSpinLock(&g_InstanceLock, &irql);
+
+        // まず wantId (明示 or last-active) に一致する生存インスタンスを探す。
+        if (wantId != 0) {
+            for (entry = g_InstanceList.Flink; entry != &g_InstanceList; entry = entry->Flink) {
+                PFILTER_CONTEXT c = CONTAINING_RECORD(entry, FILTER_CONTEXT, ListEntry);
+                if (c->Connected && c->DeviceId == wantId) {
+                    target = c->UpperConnectData;
+                    targetDeviceId = c->DeviceId;
+                    found = TRUE;
+                    break;
+                }
+            }
         }
-        if (In->TargetDeviceId == 0 || c->DeviceId == In->TargetDeviceId) {
-            target = c->UpperConnectData;
-            found = TRUE;
-            break;
+
+        // 見つからない & TargetDeviceId==0 なら最初の生存インスタンスへフォールバック。
+        if (!found && In->TargetDeviceId == 0) {
+            for (entry = g_InstanceList.Flink; entry != &g_InstanceList; entry = entry->Flink) {
+                PFILTER_CONTEXT c = CONTAINING_RECORD(entry, FILTER_CONTEXT, ListEntry);
+                if (c->Connected) {
+                    target = c->UpperConnectData;
+                    targetDeviceId = c->DeviceId;
+                    found = TRUE;
+                    break;
+                }
+            }
         }
+
+        KeReleaseSpinLock(&g_InstanceLock, irql);
     }
-    KeReleaseSpinLock(&g_InstanceLock, irql);
 
     if (!found || target.ClassService == NULL) {
         N2_TRACE("INJECT: no target instance (TargetDeviceId=0x%08X)\n", In->TargetDeviceId);
         return STATUS_DEVICE_NOT_CONNECTED;
     }
+    N2_TRACE("INJECT: %lu key(s) -> DeviceId=0x%08X (requested 0x%08X)\n",
+             count, targetDeviceId, In->TargetDeviceId);
 
     //
     // NODOKA2_EVENT -> KEYBOARD_INPUT_DATA へ変換 (非ページプール)。
@@ -237,10 +266,10 @@ Nodoka2DoInject(
         kdata[i].Reserved         = In->Events[i].Reserved;
         kdata[i].ExtraInformation = In->Events[i].ExtraInformation;
 #ifdef NODOKAD2_SUBSCRIPTION
-        // 注入キーにも由来キーボードの DeviceId を刻印 (ライセンス有効時)。
-        if (g_LicenseValid && In->TargetDeviceId != 0) {
+        // 注入キーにも実際の宛先キーボードの DeviceId を刻印 (ライセンス有効時)。
+        if (g_LicenseValid && targetDeviceId != 0) {
             kdata[i].ExtraInformation =
-                (kdata[i].ExtraInformation & 0x0000FFFFUL) | (In->TargetDeviceId & 0xFFFF0000UL);
+                (kdata[i].ExtraInformation & 0x0000FFFFUL) | (targetDeviceId & 0xFFFF0000UL);
         }
 #endif
     }

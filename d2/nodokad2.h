@@ -74,6 +74,7 @@ typedef struct _FILTER_CONTEXT {
 
     BOOLEAN      Connected;   // CONNECT フック済みか
     BOOLEAN      Linked;      // g_InstanceList に接続済みか
+    BOOLEAN      FirstEventTraced; // 診断: 最初の intercept イベントを 1 回だけトレース済みか
 } FILTER_CONTEXT, *PFILTER_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(FILTER_CONTEXT, FilterGetContext)
@@ -87,6 +88,13 @@ extern WDFQUEUE   g_PendingQueue;      // GET_EVENTS inverted call 用 manual qu
 
 extern LIST_ENTRY g_InstanceList;      // FILTER_CONTEXT.ListEntry の連結
 extern KSPIN_LOCK g_InstanceLock;
+
+// 最後に intercept イベントを出したキーボードの DeviceId (ポインタでなく値で保持)。
+// TargetDeviceId=0 の注入は「打っているキーボード」= この DeviceId のインスタンスへ
+// 向けることで、RDP/マルチセッション環境でも出力が入力と同じセッションに戻る。
+// 値で持つため削除競合による UAF は原理的に起きない (注入時にロック下で生存解決し、
+// 見つからなければ先頭へフォールバック)。0 は「未確定」。
+extern volatile LONG g_LastActiveDeviceId;
 
 extern volatile LONG g_ClientConnected; // コントロールデバイス open 中か
 extern volatile LONG g_InterceptMode;   // NODOKA2_MODE_*
