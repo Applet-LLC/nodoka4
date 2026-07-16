@@ -166,6 +166,18 @@ typedef struct _FilterDeviceExtension
 #ifdef USE_TOUCHPAD
 	BOOLEAN isTouched;
 #endif
+	// Fix K: signaled whenever no filter READ completion is in flight for this
+	// device (i.e. safe to free). Cleared under lock by filterRead when it
+	// parks a new READ; set by filterReadCompletion just before it returns, on
+	// every exit path. The parked READ is forwarded to kbdclass/the HID stack,
+	// a third-party driver whose own cancel/completion timing we do not
+	// control, so filterReadCompletion may still be running on another CPU
+	// after our IoCancelIrp call returns. Teardown paths that delete this
+	// device (filterRemoveCompletion, nodokaUnloadDriver) wait on this event
+	// after cancelling irpq and before IoDeleteDevice, closing the
+	// use-after-free window where a delayed completion would touch freed
+	// device-extension memory.
+	KEVENT irpqRetiredEvent;
 	} FilterDeviceExtension;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -371,7 +383,7 @@ NTSTATUS NodokaSessionNotificationCallback(
 
 #define NODOKAD_MODE L""
 static UNICODE_STRING NodokaDriverVersion =
-UnicodeString(L"$Revision: 1.40 $" NODOKAD_MODE);
+UnicodeString(L"$Revision: 1.42 $" NODOKAD_MODE);
 
 
 
@@ -648,6 +660,9 @@ NTSTATUS nodokaAddDevice(IN PDRIVER_OBJECT driverObject,
 
 	KeInitializeSpinLock(&filterDevExt->lock);
 	filterDevExt->irpq = NULL;
+	// Fix K: signaled = no parked READ outstanding (safe to free), which is
+	// true until filterRead parks the first one.
+	KeInitializeEvent(&filterDevExt->irpqRetiredEvent, NotificationEvent, TRUE);
 	status = KqInitialize(&filterDevExt->readQue);
 	if (!NT_SUCCESS(status)) goto error;
 #ifdef USE_TOUCHPAD
@@ -759,7 +774,8 @@ VOID nodokaUnloadDriver(IN PDRIVER_OBJECT driverObject)
 		IoDetachDevice(filterDevExt->kbdClassDevObj);
 		// cancel filter IRP_MJ_READ
 		KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
-		// TODO: at this point, the irp may be completed (but what can I do for it ?)
+		// Fix K: the irp may already be completing concurrently; see the
+		// irpqRetiredEvent wait below, which covers that case before delete.
 		// finalize read que
 		KqFinalize(&filterDevExt->readQue);
 		cancelIrp = filterDevExt->irpq;
@@ -776,6 +792,20 @@ VOID nodokaUnloadDriver(IN PDRIVER_OBJECT driverObject)
 			while (!CancelKeyboardClassRead(cancelIrp, kbdClassDevObj) && --retry > 0)
 				KeDelayExecutionThread(KernelMode, FALSE, &interval);
 			}
+		// Fix K: the retry loop above only confirms the cancel was accepted by
+		// kbdclass/the HID stack, not that filterReadCompletion (this driver's
+		// own completion routine for that IRP) has finished running -- that
+		// stack owns the IRP's actual completion timing. Wait for it before
+		// IoDeleteDevice frees filterDevExt below. DriverUnload always runs at
+		// PASSIVE_LEVEL, so waiting here is legal.
+		{
+		LARGE_INTEGER timeout;
+		timeout.QuadPart = -(5 * 1000 * 10000LL); // 5s, relative, 100ns units
+		if (KeWaitForSingleObject(&filterDevExt->irpqRetiredEvent, Executive,
+			KernelMode, FALSE, &timeout) == STATUS_TIMEOUT) {
+			NODOKAD_TRACE("nodokaUnloadDriver: timed out waiting for filterReadCompletion to retire irpq -- deleting device anyway\n");
+			}
+		}
 		// delete device objects
 		delObj= devObj;
 		devObj = devObj->NextDevice;
@@ -924,6 +954,23 @@ NTSTATUS filterRemoveCompletion(IN PDEVICE_OBJECT deviceObject, IN PIRP irp, IN 
 		IoCancelIrp(cancelIrp);
 	}
 
+	// Fix K: cancelIrp was forwarded to kbdclass/the HID stack, so its
+	// completion (filterReadCompletion) may still be running on another CPU
+	// after IoCancelIrp returns -- that completion touches filterDevExt,
+	// which IoDeleteDevice below is about to free. Wait for it to finish
+	// (IRP_MJ_PNP is always processed at PASSIVE_LEVEL, so waiting here is
+	// legal). Bounded timeout as a safety net: a hang would be worse than the
+	// pre-existing rare UAF this closes, and normal completion is sub-ms
+	// (see the PERF EMPTY-COMPLETE/INJECT/REAL-COMPLETE trace analysis).
+	{
+	LARGE_INTEGER timeout;
+	timeout.QuadPart = -(5 * 1000 * 10000LL); // 5s, relative, 100ns units
+	if (KeWaitForSingleObject(&filterDevExt->irpqRetiredEvent, Executive,
+		KernelMode, FALSE, &timeout) == STATUS_TIMEOUT) {
+		NODOKAD_TRACE("filterRemoveCompletion: timed out waiting for filterReadCompletion to retire irpq -- deleting device anyway\n");
+		}
+	}
+
 	// Detach from lower device stack and delete this filter device
 	if (filterDevExt->kbdClassDevObj) {
 		IoDetachDevice(filterDevExt->kbdClassDevObj);
@@ -1037,6 +1084,10 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 	      !removePending)) {
 		NODOKAD_TRACE("filterReadCompletion: status=0x%08X -> passthrough (unsuccessful, external%s)\n",
 			irp->IoStatus.Status, removePending ? ", removePending" : "");
+		// Fix K: filterDevExt->irpq was already cleared above; no further
+		// access to filterDevExt happens on this path, so it is safe to free
+		// from this point on.
+		KeSetEvent(&filterDevExt->irpqRetiredEvent, IO_NO_INCREMENT, FALSE);
 		return irp->IoStatus.Status;
 		}
 
@@ -1104,12 +1155,16 @@ _filterReadCompletion_after_detour_irp_unlocked:
 			// Sync drop investigation: note that filterDevExt->irpq is NOT re-armed
 			// here. Until kbdclass issues a brand new IRP_MJ_READ (-> filterRead()),
 			// any further detourWrite() in the meantime has nothing to wake.
-			NODOKAD_TRACE("filterReadCompletion: queue empty at drain, irpq left unarmed\n");
+			// PERF: temporary instrumentation to measure double-completion frequency
+			// (empty keep-alive now, real data shortly after via detourWrite cancel) —
+			// remove once the win32kbase 0x18 hypothesis is confirmed/ruled out.
+			NODOKAD_TRACE("PERF EMPTY-COMPLETE t=%llu irp=%p (queue empty at drain, irpq left unarmed)\n",
+				KeQueryInterruptTime(), irp);
 			irp->IoStatus.Status = STATUS_SUCCESS;
 			irp->IoStatus.Information = 0;
 			} else {
-				NODOKAD_TRACE("filterReadCompletion: drained %lu byte(s) from queue\n",
-					(ULONG)irp->IoStatus.Information);
+				NODOKAD_TRACE("PERF REAL-COMPLETE t=%llu irp=%p bytes=%lu\n",
+					KeQueryInterruptTime(), irp, (ULONG)irp->IoStatus.Information);
 			}
 		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 		}
@@ -1125,6 +1180,9 @@ _filterReadCompletion_after_detour_irp_unlocked:
 	// (Driver Verifier 0xC9/0x224: kbdclass synchronous completion on Win10 x86).
 	if (irp->IoStatus.Status == (NTSTATUS)STATUS_PENDING)
 		irp->IoStatus.Status = STATUS_CANCELLED;
+	// Fix K: last touch of filterDevExt on this path (the lock at line ~1113
+	// was already released); safe to free filterDevExt from this point on.
+	KeSetEvent(&filterDevExt->irpqRetiredEvent, IO_NO_INCREMENT, FALSE);
 	return irp->IoStatus.Status;
 	}
 
@@ -1381,6 +1439,12 @@ NTSTATUS detourWrite(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 				filterDevExt->selfCancelTick = KeQueryInterruptTime(); // J1b
 				}
 			kbdClassDevObj = filterDevExt->kbdClassDevObj;
+			// PERF: temporary instrumentation, see filterReadCompletion. irpq!=NULL
+			// here means a freshly re-parked READ is about to be cancelled to
+			// deliver this injected key -- pair with the nearest preceding
+			// PERF EMPTY-COMPLETE to measure the double-completion gap.
+			NODOKAD_TRACE("PERF INJECT t=%llu enq=%lu irpq=%p\n",
+				KeQueryInterruptTime(), len, irpCancel);
 			KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 			if (irpCancel) {
 				// J1: single attempt only; the former Fix 1 retry loop is removed.
@@ -1617,6 +1681,9 @@ NTSTATUS filterRead(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	NODOKAD_TRACE("filterRead: queue empty, parking read (irp=%p)\n", irp);
 	KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
 	filterDevExt->irpq = irp;
+	// Fix K: this READ is now outstanding against kbdclass/the HID stack;
+	// teardown must wait for filterReadCompletion before freeing filterDevExt.
+	KeClearEvent(&filterDevExt->irpqRetiredEvent);
 	KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
 
 	IoCopyCurrentIrpStackLocationToNext(irp);
