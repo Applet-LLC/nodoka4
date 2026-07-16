@@ -9,17 +9,29 @@
  * After signtool signing:
  *   [stub.exe bytes][CAB data][SFXTrailer][WIN_CERTIFICATE]
  *
- * On launch: extracts the embedded CAB to a temp dir and runs AppLaunched.
+ * On launch: extracts the embedded CAB to a secure temp dir (random name,
+ * owner-only DACL) and runs AppLaunched.
+ *
+ * wextract-compatible options:
+ *   /T:<full path>  extract into the given folder instead of the temp dir
+ *   /C              extract only, do not run AppLaunched; when /T is omitted,
+ *                   a folder-browse dialog prompts for the destination
  */
 
 #define WIN32_LEAN_AND_MEAN
 #define _WIN32_WINNT 0x0600
 #include <windows.h>
+#include <shellapi.h>
+#include <shlobj.h>
 #include <fdi.h>
 #include <strsafe.h>
 #include <fcntl.h>
 
+#include "..\secure_temp.h"
+
 #pragma comment(lib, "cabinet.lib")
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "ole32.lib")
 
 // -----------------------------------------------------------------------
 // SFX trailer (must match main.cpp exactly)
@@ -89,6 +101,83 @@ static void OpenLog(LPCWSTR selfPath) {
 }
 
 // -----------------------------------------------------------------------
+// Command line (wextract-compatible subset): /C  /T:<full path>
+// -----------------------------------------------------------------------
+struct Options {
+    BOOL  extractOnly;          // /C : extract, do not run AppLaunched
+    WCHAR targetDir[MAX_PATH];  // /T:<path>, empty = default temp folder
+};
+
+// Returns FALSE on an unrecognized argument (copied to badArg).
+static BOOL ParseCommandLine(Options *opt, WCHAR *badArg, size_t badCch) {
+    ZeroMemory(opt, sizeof(*opt));
+    badArg[0] = L'\0';
+
+    int argc = 0;
+    LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (!argv) return TRUE;
+
+    BOOL ok = TRUE;
+    for (int i = 1; i < argc; i++) {
+        LPCWSTR a = argv[i];
+        if (a[0] == L'/' || a[0] == L'-') {
+            if ((a[1] == L'C' || a[1] == L'c') && a[2] == L'\0') {
+                opt->extractOnly = TRUE;
+                continue;
+            }
+            if ((a[1] == L'T' || a[1] == L't') && a[2] == L':' && a[3] != L'\0') {
+                StringCchCopyW(opt->targetDir, MAX_PATH, a + 3);
+                continue;
+            }
+        }
+        StringCchCopyW(badArg, badCch, a);
+        ok = FALSE;
+        break;
+    }
+    LocalFree(argv);
+    return ok;
+}
+
+static void ShowUsage(LPCWSTR badArg) {
+    WCHAR msg[512];
+    if (badArg && badArg[0])
+        StringCchPrintfW(msg, ARRAYSIZE(msg), L"Unknown option: %s\n\n", badArg);
+    else
+        msg[0] = L'\0';
+    StringCchCatW(msg, ARRAYSIZE(msg),
+        L"Usage: <package> [/T:<full path>] [/C]\n"
+        L"/T:<full path> -- Specifies working folder to extract into\n"
+        L"/C -- Extract files only (prompts for a folder when /T is omitted)");
+    MessageBoxW(NULL, msg, L"nexpress", MB_ICONERROR);
+}
+
+// Folder-browse dialog for "/C" without "/T:" (IExpress-compatible).
+// Returns FALSE when the user cancels.
+static BOOL BrowseForExtractFolder(WCHAR *out, size_t cch) {
+    HRESULT hrCo = CoInitializeEx(NULL,
+        COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+
+    BROWSEINFOW bi;
+    ZeroMemory(&bi, sizeof(bi));
+    bi.hwndOwner = NULL;
+    bi.lpszTitle = L"Select the folder to extract the files into:";
+    bi.ulFlags   = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX;
+
+    BOOL ok = FALSE;
+    LPITEMIDLIST pidl = SHBrowseForFolderW(&bi);
+    if (pidl) {
+        WCHAR path[MAX_PATH];
+        if (SHGetPathFromIDListW(pidl, path)) {
+            StringCchCopyW(out, cch, path);
+            ok = TRUE;
+        }
+        CoTaskMemFree(pidl);
+    }
+    if (SUCCEEDED(hrCo)) CoUninitialize();
+    return ok;
+}
+
+// -----------------------------------------------------------------------
 // FDI callbacks
 // -----------------------------------------------------------------------
 static FNALLOC(fdi_alloc) { return HeapAlloc(GetProcessHeap(), 0, cb); }
@@ -118,12 +207,56 @@ static FNSEEK (fdi_seek)  { return (long)SetFilePointer((HANDLE)hf,dist,NULL,see
 // -----------------------------------------------------------------------
 // Extraction context and notification callback
 // -----------------------------------------------------------------------
-struct ExtractCtx { WCHAR destDir[MAX_PATH]; };
+struct ExtractCtx {
+    WCHAR  destDir[MAX_PATH];
+    BOOL   userDest;    // /T: folder chosen by the user (overwrite allowed)
+    WCHAR **files;      // full paths of extracted files (for /T-mode cleanup)
+    int    fileCount;
+    int    fileCap;
+};
+
+static void ctx_track(ExtractCtx *ctx, LPCWSTR path) {
+    if (ctx->fileCount >= ctx->fileCap) {
+        int cap = ctx->fileCap ? ctx->fileCap * 2 : 32;
+        WCHAR **p = ctx->files
+            ? (WCHAR **)HeapReAlloc(GetProcessHeap(), 0, ctx->files, cap * sizeof(WCHAR *))
+            : (WCHAR **)HeapAlloc(GetProcessHeap(), 0, cap * sizeof(WCHAR *));
+        if (!p) return;
+        ctx->files   = p;
+        ctx->fileCap = cap;
+    }
+    size_t bytes = (wcslen(path) + 1) * sizeof(WCHAR);
+    WCHAR *copy = (WCHAR *)HeapAlloc(GetProcessHeap(), 0, bytes);
+    if (!copy) return;
+    memcpy(copy, path, bytes);
+    ctx->files[ctx->fileCount++] = copy;
+}
+
+// Free the tracked list; when deleteFiles, also delete the files themselves
+// (used for /T: folders, which must never be deleted recursively as a whole).
+static void ctx_cleanup(ExtractCtx *ctx, BOOL deleteFiles) {
+    for (int i = 0; i < ctx->fileCount; i++) {
+        if (deleteFiles) DeleteFileW(ctx->files[i]);
+        HeapFree(GetProcessHeap(), 0, ctx->files[i]);
+    }
+    if (ctx->files) HeapFree(GetProcessHeap(), 0, ctx->files);
+    ctx->files = NULL;
+    ctx->fileCount = ctx->fileCap = 0;
+}
 
 static FNFDINOTIFY(fdi_notify) {
     switch (fdint) {
     case fdintCOPY_FILE: {
         ExtractCtx *ctx = (ExtractCtx *)pfdin->pv;
+
+        // Reject entry names that could escape destDir (Zip-Slip / CWE-22)
+        if (!pfdin->psz1[0] ||
+            strchr(pfdin->psz1, '\\') || strchr(pfdin->psz1, '/') ||
+            strchr(pfdin->psz1, ':')  || strstr(pfdin->psz1, "..")) {
+            Log(L"  REJECTED unsafe entry name: %hs", pfdin->psz1);
+            return -1;
+        }
+
         WCHAR wname[MAX_PATH];
         MultiByteToWideChar(CP_ACP, 0, pfdin->psz1, -1, wname, MAX_PATH);
         Log(L"  extract: %s", wname);
@@ -134,11 +267,18 @@ static FNFDINOTIFY(fdi_notify) {
         if (dlen && dest[dlen-1] != L'\\') StringCchCatW(dest, MAX_PATH, L"\\");
         StringCchCatW(dest, MAX_PATH, wname);
 
+        // CREATE_NEW: never follow or overwrite a pre-planted link (CWE-59).
+        // In a user-chosen /T: folder an old copy may legitimately exist;
+        // remove it (unlinks a symlink itself) so CREATE_NEW still succeeds.
+        if (ctx->userDest) DeleteFileW(dest);
         HANDLE h = CreateFileW(dest, GENERIC_WRITE, 0, NULL,
-                               CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-        if (h == INVALID_HANDLE_VALUE)
+                               CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h == INVALID_HANDLE_VALUE) {
             Log(L"  CreateFile FAILED for %s (err=%lu)", dest, GetLastError());
-        return (h == INVALID_HANDLE_VALUE) ? -1 : (INT_PTR)h;
+            return -1;
+        }
+        ctx_track(ctx, dest);
+        return (INT_PTR)h;
     }
     case fdintCLOSE_FILE_INFO:
         CloseHandle((HANDLE)pfdin->hf);
@@ -149,36 +289,17 @@ static FNFDINOTIFY(fdi_notify) {
 }
 
 // -----------------------------------------------------------------------
-// Recursive directory deletion
-// -----------------------------------------------------------------------
-static void DeleteDirRecursive(LPCWSTR dir) {
-    WCHAR pat[MAX_PATH];
-    StringCchCopyW(pat, MAX_PATH, dir);
-    StringCchCatW(pat, MAX_PATH, L"\\*");
-
-    WIN32_FIND_DATAW fd;
-    HANDLE hf = FindFirstFileW(pat, &fd);
-    if (hf != INVALID_HANDLE_VALUE) {
-        do {
-            if (!wcscmp(fd.cFileName, L".") || !wcscmp(fd.cFileName, L"..")) continue;
-            WCHAR child[MAX_PATH];
-            StringCchCopyW(child, MAX_PATH, dir);
-            StringCchCatW(child, MAX_PATH, L"\\");
-            StringCchCatW(child, MAX_PATH, fd.cFileName);
-            if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-                DeleteDirRecursive(child);
-            else
-                DeleteFileW(child);
-        } while (FindNextFileW(hf, &fd));
-        FindClose(hf);
-    }
-    RemoveDirectoryW(dir);
-}
-
-// -----------------------------------------------------------------------
 // WinMain
 // -----------------------------------------------------------------------
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+
+    // --- CWE-427: restrict DLL search to System32 before anything else ---
+    HardenDllSearchPath();
+
+    // --- 0. Parse command line ---
+    Options opt;
+    WCHAR badArg[64];
+    BOOL argsOk = ParseCommandLine(&opt, badArg, ARRAYSIZE(badArg));
 
     // --- 1. Open self ---
     WCHAR selfPath[MAX_PATH];
@@ -187,6 +308,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     OpenLog(selfPath);
     Log(L"nexpress stub start");
     Log(L"self: %s", selfPath);
+    Log(L"mode: extractOnly=%d targetDir=%s",
+        opt.extractOnly, opt.targetDir[0] ? opt.targetDir : L"(default)");
+
+    if (!argsOk) {
+        Log(L"FAILED: unknown option '%s'", badArg);
+        if (g_hLog != INVALID_HANDLE_VALUE) CloseHandle(g_hLog);
+        ShowUsage(badArg);
+        return 1;
+    }
+    if (opt.extractOnly && !opt.targetDir[0]) {
+        // IExpress-compatible: /C without /T: prompts for the destination folder
+        Log(L"/C without /T: prompting for folder");
+        if (!BrowseForExtractFolder(opt.targetDir, ARRAYSIZE(opt.targetDir))) {
+            Log(L"folder selection cancelled");
+            if (g_hLog != INVALID_HANDLE_VALUE) CloseHandle(g_hLog);
+            return 0;   // user cancelled: nothing to extract
+        }
+        Log(L"selected folder: %s", opt.targetDir);
+    }
 
     HANDLE hSelf = CreateFileW(selfPath, GENERIC_READ, FILE_SHARE_READ, NULL,
                                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -247,30 +387,67 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     Log(L"cabSize:   %I64u", trailer.cabSize);
     Log(L"launch:    %s", appW);
 
-    // --- 3. Build unique temp paths ---
-    WCHAR tempRoot[MAX_PATH];
-    GetTempPathW(MAX_PATH, tempRoot);
-    DWORD pid = GetCurrentProcessId();
+    // --- 3. Build work folders ---
+    // CWE-377/59: random name, freshly created by us, owner-only DACL.
+    WCHAR secureRoot[MAX_PATH];
+    if (!CreateSecureTempDir(secureRoot, ARRAYSIZE(secureRoot))) {
+        CloseHandle(hSelf);
+        Log(L"FAILED: cannot create secure temp dir (err=%lu)", GetLastError());
+        MessageBoxW(NULL, L"Cannot create temporary folder.", L"nexpress", MB_ICONERROR);
+        return 1;
+    }
 
     WCHAR tempCab[MAX_PATH];
-    StringCchPrintfW(tempCab, MAX_PATH, L"%snexpress_%08X.cab", tempRoot, pid);
+    StringCchPrintfW(tempCab, MAX_PATH, L"%s\\payload.cab", secureRoot);
 
-    WCHAR tempDir[MAX_PATH];
-    StringCchPrintfW(tempDir, MAX_PATH, L"%snexpress_%08X_out", tempRoot, pid);
-    CreateDirectoryW(tempDir, NULL);
+    WCHAR destDir[MAX_PATH];
+    BOOL destCreatedByUs = FALSE;
+    if (opt.targetDir[0]) {
+        // /T: user-chosen folder; existing folder is the user's decision
+        if (!GetFullPathNameW(opt.targetDir, MAX_PATH, destDir, NULL)) {
+            CloseHandle(hSelf);
+            SecureDeleteDirRecursive(secureRoot);
+            Log(L"FAILED: cannot resolve /T: path (err=%lu)", GetLastError());
+            MessageBoxW(NULL, L"Invalid /T: folder path.", L"nexpress", MB_ICONERROR);
+            return 1;
+        }
+        if (CreateDirectoryW(destDir, NULL)) {
+            destCreatedByUs = TRUE;
+        } else if (GetLastError() != ERROR_ALREADY_EXISTS) {
+            CloseHandle(hSelf);
+            SecureDeleteDirRecursive(secureRoot);
+            Log(L"FAILED: cannot create /T: folder (err=%lu)", GetLastError());
+            MessageBoxW(NULL, L"Cannot create /T: folder.", L"nexpress", MB_ICONERROR);
+            return 1;
+        }
+    } else {
+        // inherits the owner-only DACL from secureRoot (OICI ACEs)
+        StringCchPrintfW(destDir, MAX_PATH, L"%s\\out", secureRoot);
+        if (!CreateDirectoryW(destDir, NULL)) {
+            CloseHandle(hSelf);
+            SecureDeleteDirRecursive(secureRoot);
+            Log(L"FAILED: cannot create extract dir (err=%lu)", GetLastError());
+            MessageBoxW(NULL, L"Cannot create temporary folder.", L"nexpress", MB_ICONERROR);
+            return 1;
+        }
+    }
 
+    Log(L"secureRoot: %s", secureRoot);
     Log(L"tempCab: %s", tempCab);
-    Log(L"tempDir: %s", tempDir);
+    Log(L"destDir: %s", destDir);
 
     // --- 4. Copy CAB bytes from self to temp file ---
     LARGE_INTEGER cabPos;
     cabPos.QuadPart = (LONGLONG)trailer.cabOffset;
     SetFilePointerEx(hSelf, cabPos, NULL, FILE_BEGIN);
 
+    // CREATE_NEW inside our fresh secureRoot: existing file = planted link (CWE-59)
     HANDLE hCab = CreateFileW(tempCab, GENERIC_WRITE, 0, NULL,
-                              CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+                              CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hCab == INVALID_HANDLE_VALUE) {
         CloseHandle(hSelf);
+        SecureDeleteDirRecursive(secureRoot);
+        if (destCreatedByUs) RemoveDirectoryW(destDir);
         Log(L"FAILED: cannot create temp cab (err=%lu)", GetLastError());
         MessageBoxW(NULL, L"Cannot create temporary file.", L"nexpress", MB_ICONERROR);
         return 1;
@@ -293,6 +470,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     // --- 5. Extract CAB via FDI ---
     Log(L"FDI extract start");
+    ExtractCtx ctx;
+    ZeroMemory(&ctx, sizeof(ctx));
+    StringCchCopyW(ctx.destDir, MAX_PATH, destDir);
+    ctx.userDest = (opt.targetDir[0] != L'\0');
+
     ERF erf = {0};
     HFDI hfdi = FDICreate(fdi_alloc, fdi_free,
                           fdi_open, fdi_read, fdi_write, fdi_close, fdi_seek,
@@ -314,8 +496,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
         Log(L"FDICopy: dir=[%hs] name=[%hs]", cabDir, cabName);
 
-        ExtractCtx ctx;
-        StringCchCopyW(ctx.destDir, MAX_PATH, tempDir);
         fdiOk = FDICopy(hfdi, cabName, cabDir, 0, fdi_notify, NULL, &ctx);
         if (!fdiOk)
             Log(L"FDICopy FAILED: erfOper=%d erfType=%d", erf.erfOper, erf.erfType);
@@ -326,19 +506,37 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     DeleteFileW(tempCab);
 
     if (!fdiOk) {
-        DeleteDirRecursive(tempDir);
+        // /T: folder is user-owned: remove only what we extracted
+        ctx_cleanup(&ctx, ctx.userDest);
+        if (destCreatedByUs) RemoveDirectoryW(destDir);
+        SecureDeleteDirRecursive(secureRoot);
         if (g_hLog != INVALID_HANDLE_VALUE) CloseHandle(g_hLog);
         MessageBoxW(NULL, L"Failed to extract files from package.", L"nexpress", MB_ICONERROR);
         return 1;
     }
     Log(L"FDI extract done");
 
-    // --- 6. Run AppLaunched ---
+    // --- 6a. /C: extract-only mode ends here (keep destDir) ---
+    if (opt.extractOnly) {
+        Log(L"extract-only (/C): %d files extracted to %s", ctx.fileCount, destDir);
+        ctx_cleanup(&ctx, FALSE);
+        SecureDeleteDirRecursive(secureRoot);
+        if (g_hLog != INVALID_HANDLE_VALUE) CloseHandle(g_hLog);
+        return 0;
+    }
+
+    // --- 6b. Run AppLaunched ---
+    // CWE-428/427: pass the full exe path as lpApplicationName and quote
+    // argv[0], so a space in the work-folder path can never be misparsed
+    // into launching an unintended binary.
+    WCHAR appPath[MAX_PATH];
+    StringCchCopyW(appPath, ARRAYSIZE(appPath), destDir);
+    StringCchCatW(appPath, ARRAYSIZE(appPath), L"\\");
+    StringCchCatW(appPath, ARRAYSIZE(appPath), appW);
+
     WCHAR cmdLine[MAX_PATH * 2];
-    StringCchCopyW(cmdLine, ARRAYSIZE(cmdLine), tempDir);
-    StringCchCatW(cmdLine, ARRAYSIZE(cmdLine), L"\\");
-    StringCchCatW(cmdLine, ARRAYSIZE(cmdLine), appW);
-    Log(L"CreateProcess: %s", cmdLine);
+    StringCchPrintfW(cmdLine, ARRAYSIZE(cmdLine), L"\"%s\"", appPath);
+    Log(L"CreateProcess: app=%s cmd=%s", appPath, cmdLine);
 
     STARTUPINFOW si;
     ZeroMemory(&si, sizeof(si));
@@ -346,12 +544,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     PROCESS_INFORMATION pi;
     ZeroMemory(&pi, sizeof(pi));
 
-    if (!CreateProcessW(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, tempDir, &si, &pi)) {
+    if (!CreateProcessW(appPath, cmdLine, NULL, NULL, FALSE, 0, NULL, destDir, &si, &pi)) {
         DWORD err = GetLastError();
         Log(L"CreateProcess FAILED (err=%lu)", err);
         WCHAR msg[MAX_PATH + 64];
         StringCchPrintfW(msg, ARRAYSIZE(msg), L"Failed to launch %s (error %lu).", appW, err);
-        DeleteDirRecursive(tempDir);
+        ctx_cleanup(&ctx, ctx.userDest);
+        if (destCreatedByUs) RemoveDirectoryW(destDir);
+        SecureDeleteDirRecursive(secureRoot);
         if (g_hLog != INVALID_HANDLE_VALUE) CloseHandle(g_hLog);
         MessageBoxW(NULL, msg, L"nexpress", MB_ICONERROR);
         return 1;
@@ -368,8 +568,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
-    // --- 7. Cleanup temp dir ---
-    DeleteDirRecursive(tempDir);
+    // --- 7. Cleanup ---
+    if (ctx.userDest) {
+        // /T: folder is user-owned: delete only the files we extracted;
+        // remove the folder itself only if we created it (and it is empty)
+        ctx_cleanup(&ctx, TRUE);
+        if (destCreatedByUs) RemoveDirectoryW(destDir);
+    } else {
+        ctx_cleanup(&ctx, FALSE);   // destDir lives under secureRoot
+    }
+    SecureDeleteDirRecursive(secureRoot);
 
     return (int)exitCode;
 }
