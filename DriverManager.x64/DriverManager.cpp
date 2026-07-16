@@ -13,19 +13,23 @@
 #include <cstdio>  // For swscanf_s (DriverVer parsing)
 #include <cwchar>  // For swscanf_s (wide-char declaration)
 #include <shlwapi.h> // For registry functions
+#include <objbase.h> // For CLSIDFromString (class GUID parsing)
 
 #pragma comment(lib, "setupapi.lib")
 #pragma comment(lib, "newdev.lib")
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "ole32.lib")
 
 // Function prototypes
 // ドライバーをインストールする関数
 bool InstallDriver(const std::wstring& driverName, const std::wstring& classGuidString);
 // ドライバーをアンインストールする関数（optionalInfPath が空でない場合、そのパスを INF として使用）
 bool UninstallDriver(const std::wstring& driverName, const std::wstring& classGuidString, const std::wstring& optionalInfPath);
-// UpperFiltersを修正する関数
-bool ModifyUpperFilters(const std::wstring& classGuidString, const std::wstring& driverName, bool add);
+// UpperFiltersを修正する関数（insertBeforeClassDriver=true で class driver の前に挿入）
+bool ModifyUpperFilters(const std::wstring& classGuidString, const std::wstring& driverName, bool add, bool insertBeforeClassDriver = false);
+// 指定クラスの現在のデバイスを再起動して UpperFilters 変更を即時反映する関数
+bool RestartDevicesOfClass(const std::wstring& classGuidString);
 // 実行可能ファイルのパスを取得する関数
 std::wstring GetExecutablePath();
 // サービスを停止し、SERVICE_STOPPED になるまで待機する関数（install/uninstall共用）
@@ -72,6 +76,7 @@ void ShowUsage() {
     std::wcout << L"  keyboard" << std::endl;
     std::wcout << L"  mouse" << std::endl;
     std::wcout << L"  nodokad  - keyboard upper filter (requires nodokad.sys and nodokad.inf in exe_dir\\nodokad\\)" << std::endl;
+    std::wcout << L"  nodokad2 - keyboard filter v2 (requires nodokad2.sys and nodokad2.inf in exe_dir\\nodokad2\\)" << std::endl;
     std::wcout << L"Optional (uninstall only):" << std::endl;
     std::wcout << L"  [optional_inf_path] - Path to the INF file or folder containing the INF." << std::endl;
     std::wcout << L"                        Use this to uninstall an older driver (e.g. DirID 12) by specifying" << std::endl;
@@ -115,6 +120,9 @@ int wmain(int argc, wchar_t* argv[]) {
         classGuidString = L"{4D36E96F-E325-11CE-BFC1-08002BE10318}";
     } else if (driverType == L"nodokad") {
         driverName = L"nodokad";
+        classGuidString = L"{4D36E96B-E325-11CE-BFC1-08002BE10318}";  // Keyboard class
+    } else if (driverType == L"nodokad2") {
+        driverName = L"nodokad2";
         classGuidString = L"{4D36E96B-E325-11CE-BFC1-08002BE10318}";  // Keyboard class
     } else {
         ShowUsage();
@@ -388,6 +396,7 @@ void WarnIfOtherManagedDriversInconsistent(const std::wstring& excludeDriverName
     struct ManagedDriver { const wchar_t* name; const wchar_t* classGuid; };
     static const ManagedDriver kManagedDrivers[] = {
         {L"nodokad",  L"{4D36E96B-E325-11CE-BFC1-08002BE10318}"}, // keyboard class
+        {L"nodokad2", L"{4D36E96B-E325-11CE-BFC1-08002BE10318}"}, // keyboard class
         {L"kbdaddid", L"{4D36E96B-E325-11CE-BFC1-08002BE10318}"}, // keyboard class
         {L"mouaddid", L"{4D36E96F-E325-11CE-BFC1-08002BE10318}"}, // mouse class
     };
@@ -620,9 +629,14 @@ bool InstallDriver(const std::wstring& driverName, const std::wstring& classGuid
                        L"skipping old System32\\drivers cleanup." << std::endl;
     }
 
-    // 5. UpperFilters に追加する（kbdclass の直後に挿入）
-    std::wcout << L"Adding " << driverName << L" to UpperFilters..." << std::endl;
-    if (!ModifyUpperFilters(classGuidString, driverName, true)) {
+    // 5. UpperFilters に追加する。
+    //    CONNECT を横取りする kbfiltr/moufiltr 型 (nodokad2 / kbdaddid / mouaddid) は
+    //    class driver の前（下）に、READ 完了を横取りするレガシー nodokad は直後（上）に置く。
+    const bool insertBeforeClass =
+        (driverName == L"nodokad2" || driverName == L"kbdaddid" || driverName == L"mouaddid");
+    std::wcout << L"Adding " << driverName << L" to UpperFilters"
+               << (insertBeforeClass ? L" (before class driver)..." : L" (after class driver)...") << std::endl;
+    if (!ModifyUpperFilters(classGuidString, driverName, true, insertBeforeClass)) {
         std::wcerr << L"Failed to modify UpperFilters registry." << std::endl;
         if (!serviceExistedBefore) {
             // 新規インストールが最終段で失敗：サービス・新規パッケージとも今回作られた
@@ -670,6 +684,18 @@ bool InstallDriver(const std::wstring& driverName, const std::wstring& classGuid
     // 7. 検証: UpperFilters に対象ドライバ名がちょうど1個だけ存在することを確認する（W8対応）。
     if (!VerifyInstalled(classGuidString, driverName)) {
         return false;
+    }
+
+    // 8. デバイスを再起動して UpperFilters 変更を即時反映する（手動再起動を不要にする）。
+    //    kbfiltr 型 (nodokad2 等) はこれで IOCTL_INTERNAL_KEYBOARD_CONNECT が流れ直し、
+    //    ServiceCallback が新しいスタック順で差し替わる。boot キーボード等は再起動が必要な
+    //    場合があるため、失敗しても致命的とはせず案内のみ行う。
+    std::wcout << L"Restarting devices to apply filter changes..." << std::endl;
+    if (RestartDevicesOfClass(classGuidString)) {
+        std::wcout << L"Devices restarted. Filter changes are now active." << std::endl;
+    } else {
+        std::wcout << L"Some devices could not be restarted automatically; "
+                      L"a system reboot may be required for changes to take full effect." << std::endl;
     }
 
     return true;
@@ -761,61 +787,167 @@ bool UninstallDriver(const std::wstring& driverName, const std::wstring& classGu
     return true;
 }
 
-bool ModifyUpperFilters(const std::wstring& classGuidString, const std::wstring& driverName, bool add) {
-    std::wstring regPath = L"SYSTEM\\CurrentControlSet\\Control\\Class\\" + classGuidString;
-    HKEY hKey;
-
-    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, regPath.c_str(), 0, KEY_READ | KEY_WRITE, &hKey) != ERROR_SUCCESS) {
+// クラスキー配下の "0000"/"0001"… の形式のインスタンスサブキー名かどうか。
+static bool IsClassInstanceSubkeyName(const wchar_t* name, DWORD cchName) {
+    if (cchName != 4) {
         return false;
     }
+    for (DWORD i = 0; i < 4; ++i) {
+        const wchar_t ch = name[i];
+        if (ch < L'0' || ch > L'9') {
+            return false;
+        }
+    }
+    return name[4] == L'\0';
+}
 
+// 挿入位置がドライバの介入方式によって class driver (kbdclass/mouclass) の前後で異なる:
+//   - insertBeforeClassDriver=true : class driver の「前」= 下。
+//     IOCTL_INTERNAL_*_CONNECT を横取りする kbfiltr/moufiltr 型 (ServiceCallback フック)。
+//     class driver が下向きに送る CONNECT を受け取るには class driver より下にいる必要がある。
+//     該当: nodokad2 (kbfiltr 型), kbdaddid, mouaddid。
+//   - insertBeforeClassDriver=false: class driver の「直後」= 上。
+//     READ 完了 IRP を上向きに横取りするレガシー nodokad (IRP 上位フィルタ)。
+// UpperFilters (REG_MULTI_SZ) は先頭=スタック下、末尾=上。
+static bool ModifyUpperFiltersAtKey(HKEY key, const std::wstring& driverName, bool add, bool insertBeforeClassDriver = false) {
     std::vector<wchar_t> buffer(4096);
     DWORD bufferSize = static_cast<DWORD>(buffer.size() * sizeof(wchar_t));
-    DWORD type;
-
-    // 既存のUpperFilters値を取得
-    RegQueryValueExW(hKey, L"UpperFilters", 0, &type, (LPBYTE)buffer.data(), &bufferSize);
+    DWORD type = 0;
+    const LSTATUS queryResult = RegQueryValueExW(
+        key, L"UpperFilters", nullptr, &type,
+        reinterpret_cast<LPBYTE>(buffer.data()), &bufferSize);
 
     std::vector<std::wstring> filters;
-    if (bufferSize > 0) {
-        for (const wchar_t* p = buffer.data(); *p; p += wcslen(p) + 1) {
-            filters.push_back(p);
+    if (queryResult == ERROR_SUCCESS && type == REG_MULTI_SZ && bufferSize >= sizeof(wchar_t)) {
+        for (const wchar_t* cursor = buffer.data(); *cursor; cursor += wcslen(cursor) + 1) {
+            filters.emplace_back(cursor);
         }
     }
 
-    // ドライバ名の存在を確認
-    auto it = std::find(filters.begin(), filters.end(), driverName);
-
+    const auto existing = std::find(filters.begin(), filters.end(), driverName);
     if (add) {
-        // 既存エントリを一旦削除して正しい位置（kbdclass の直後）に再挿入
-        if (it != filters.end()) {
-            filters.erase(it);
+        if (existing != filters.end()) {
+            filters.erase(existing);
         }
-        auto kbdPos = std::find(filters.begin(), filters.end(), L"kbdclass");
-        if (kbdPos != filters.end()) {
-            filters.insert(kbdPos + 1, driverName);
-        } else {
-            filters.push_back(driverName);
+        static const wchar_t* const kClassDrivers[] = { L"kbdclass", L"mouclass" };
+        bool classDriverFound = false;
+        auto insertPos = filters.end();
+        for (const auto* classDriver : kClassDrivers) {
+            auto pos = std::find(filters.begin(), filters.end(), classDriver);
+            if (pos != filters.end()) {
+                insertPos = insertBeforeClassDriver ? pos : (pos + 1);
+                classDriverFound = true;
+                break;
+            }
         }
-    } else {
-        if (it != filters.end()) { // 存在する場合のみ削除
-            filters.erase(it);
+        // class driver の前に置きたいのに、このキーに class driver が無い場合はスキップ。
+        // インスタンスサブキー (0000, 0001, …) は通常 kbdclass を持たないため、
+        // クラスキー側に任せて重複登録を避ける。
+        if (insertBeforeClassDriver && !classDriverFound) {
+            return true;
         }
+        filters.insert(insertPos, driverName);
+    } else if (existing != filters.end()) {
+        filters.erase(existing);
     }
 
-    // 新しいREG_MULTI_SZデータを作成
+    if (!add && filters.empty()) {
+        const LSTATUS del = RegDeleteValueW(key, L"UpperFilters");
+        return del == ERROR_SUCCESS || del == ERROR_FILE_NOT_FOUND;
+    }
+
     std::vector<wchar_t> newBuffer;
     for (const auto& filter : filters) {
         newBuffer.insert(newBuffer.end(), filter.begin(), filter.end());
         newBuffer.push_back(L'\0');
     }
-    newBuffer.push_back(L'\0'); // 終端のNULL文字
+    newBuffer.push_back(L'\0');
 
-    // レジストリに書き込み
-    LSTATUS status = RegSetValueExW(hKey, L"UpperFilters", 0, REG_MULTI_SZ, (const BYTE*)newBuffer.data(), static_cast<DWORD>(newBuffer.size() * sizeof(wchar_t)));
+    const LSTATUS writeStatus = RegSetValueExW(
+        key, L"UpperFilters", 0, REG_MULTI_SZ,
+        reinterpret_cast<const BYTE*>(newBuffer.data()),
+        static_cast<DWORD>(newBuffer.size() * sizeof(wchar_t)));
+    return writeStatus == ERROR_SUCCESS;
+}
 
-    RegCloseKey(hKey);
-    return status == ERROR_SUCCESS;
+// クラスキー本体と各インスタンスサブキー (0000, 0001, …) の両方の UpperFilters を更新する。
+// インスタンスキーの UpperFilters はクラスキーを上書きするため両方を揃える必要がある。
+bool ModifyUpperFilters(const std::wstring& classGuidString, const std::wstring& driverName, bool add, bool insertBeforeClassDriver) {
+    const std::wstring regPath = L"SYSTEM\\CurrentControlSet\\Control\\Class\\" + classGuidString;
+    HKEY classKey = nullptr;
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, regPath.c_str(), 0,
+                      KEY_READ | KEY_WRITE | KEY_ENUMERATE_SUB_KEYS, &classKey) != ERROR_SUCCESS) {
+        return false;
+    }
+
+    bool anyInstanceSuccess = false;
+
+    for (DWORD index = 0;; ++index) {
+        wchar_t subName[256] = {};
+        DWORD cch = 255;
+        const LONG enumResult =
+            RegEnumKeyExW(classKey, index, subName, &cch, nullptr, nullptr, nullptr, nullptr);
+        if (enumResult == ERROR_NO_MORE_ITEMS) {
+            break;
+        }
+        if (enumResult != ERROR_SUCCESS || !IsClassInstanceSubkeyName(subName, cch)) {
+            continue;
+        }
+
+        HKEY instanceKey = nullptr;
+        if (RegOpenKeyExW(classKey, subName, 0, KEY_READ | KEY_WRITE, &instanceKey) != ERROR_SUCCESS) {
+            continue;
+        }
+        if (ModifyUpperFiltersAtKey(instanceKey, driverName, add, insertBeforeClassDriver)) {
+            anyInstanceSuccess = true;
+        }
+        RegCloseKey(instanceKey);
+    }
+
+    // クラスキー本体も必ず更新する（新規デバイスはこれを継承する）。
+    const bool parentSuccess = ModifyUpperFiltersAtKey(classKey, driverName, add, insertBeforeClassDriver);
+
+    RegCloseKey(classKey);
+    return anyInstanceSuccess || parentSuccess;
+}
+
+// 指定クラスの現在存在するデバイスを再起動して UpperFilters の変更を即時反映する。
+// kbfiltr 型 (nodokad2 等) は再起動で IOCTL_INTERNAL_KEYBOARD_CONNECT が流れ直し、
+// ServiceCallback が新しいスタック順で差し替わる。管理者権限が必要（本 exe は昇格実行）。
+// 戻り値: 1 台以上再起動できたら true。boot キーボード等で失敗した場合は要再起動。
+bool RestartDevicesOfClass(const std::wstring& classGuidString) {
+    GUID classGuid;
+    if (CLSIDFromString(classGuidString.c_str(), &classGuid) != NOERROR) {
+        return false;
+    }
+
+    HDEVINFO devInfo = SetupDiGetClassDevsW(&classGuid, nullptr, nullptr, DIGCF_PRESENT);
+    if (devInfo == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    bool anyRestarted = false;
+    SP_DEVINFO_DATA did = {};
+    did.cbSize = sizeof(did);
+    for (DWORD i = 0; SetupDiEnumDeviceInfo(devInfo, i, &did); ++i) {
+        SP_PROPCHANGE_PARAMS pcp = {};
+        pcp.ClassInstallHeader.cbSize = sizeof(SP_CLASSINSTALL_HEADER);
+        pcp.ClassInstallHeader.InstallFunction = DIF_PROPERTYCHANGE;
+        pcp.StateChange = DICS_PROPCHANGE; // stop + start = スタック再構築
+        pcp.Scope = DICS_FLAG_CONFIGSPECIFIC;
+        pcp.HwProfile = 0;
+
+        if (SetupDiSetClassInstallParamsW(devInfo, &did, &pcp.ClassInstallHeader, sizeof(pcp)) &&
+            SetupDiCallClassInstaller(DIF_PROPERTYCHANGE, devInfo, &did)) {
+            anyRestarted = true;
+        } else {
+            std::wcerr << L"RestartDevicesOfClass: restart failed for a device, Error: "
+                       << GetLastError() << std::endl;
+        }
+    }
+
+    SetupDiDestroyDeviceInfoList(devInfo);
+    return anyRestarted;
 }
 
 std::wstring GetExecutablePath() {

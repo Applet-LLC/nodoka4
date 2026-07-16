@@ -1,0 +1,15 @@
+# サブスク関連ソース (公開リポジトリ nodoka4 には含めない)
+# NODOKAD2_SUBSCRIPTION 定義時のみビルド対象。正本は私有リポジトリで管理。
+license/
+
+# ビルド生成物
+x64/
+*.obj
+*.pdb
+*.log
+*.tlog
+*.sys
+*.cat
+*.res
+*.recipe
+*.lastbuildstate

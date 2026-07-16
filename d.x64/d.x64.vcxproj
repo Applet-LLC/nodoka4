@@ -145,7 +145,7 @@
     </Link>
     <ClCompile>
       <AdditionalIncludeDirectories>K:\Program Files\Windows Kits\10\Include\10.0.26100.0\km;K:\Program Files\Windows Kits\10\Include\wdf\kmdf\1.35;K:\Program Files\Windows Kits\10\Include\10.0.26100.0\um;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_AMD64_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_AMD64_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;NODOKAD_LOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4845;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>false</TreatWarningAsError>

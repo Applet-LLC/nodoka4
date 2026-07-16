@@ -383,7 +383,7 @@ NTSTATUS NodokaSessionNotificationCallback(
 
 #define NODOKAD_MODE L""
 static UNICODE_STRING NodokaDriverVersion =
-UnicodeString(L"$Revision: 1.42 $" NODOKAD_MODE);
+UnicodeString(L"$Revision: 1.43 $" NODOKAD_MODE);
 
 
 
@@ -934,6 +934,11 @@ NTSTATUS filterRemoveCompletion(IN PDEVICE_OBJECT deviceObject, IN PIRP irp, IN 
 	driverObject = filterDevObj->DriverObject;
 
 	DEBUG_LOG(("nodokad: filterRemoveCompletion() status=%x", irp->IoStatus.Status));
+	// 0x18 diagnostic: this routine previously had no NODOKAD_TRACE output at
+	// all in a Release+NODOKAD_LOG build, leaving the removal-completion path
+	// invisible in PERF/self-cancel captures.
+	NODOKAD_TRACE("filterRemoveCompletion: entry status=0x%08X irpq=%p\n",
+		irp->IoStatus.Status, filterDevExt->irpq);
 
 	// If remove succeeded, clean up association in detour device
 	detourDevExt = (DetourDeviceExtension*)filterDevExt->detourDevObj->DeviceExtension;
@@ -1089,6 +1094,18 @@ NTSTATUS filterReadCompletion(IN PDEVICE_OBJECT deviceObject,
 		// from this point on.
 		KeSetEvent(&filterDevExt->irpqRetiredEvent, IO_NO_INCREMENT, FALSE);
 		return irp->IoStatus.Status;
+		}
+
+	// PERF/0x18 diagnostic: distinguish a genuine SUCCESS completion from a
+	// STATUS_CANCELLED that survived the guard above and is about to be
+	// rewritten to SUCCESS as a self-cancel rescue. The prior passthrough
+	// trace only fires when the guard rejects a rewrite; this is the other
+	// side -- if this ever fires with removePending=1, or with neither
+	// selfCancelled nor recentSelfCancel set on a CANCELLED status, that is
+	// a rewrite decision worth scrutinizing for the rimDereferenceDev 0x18.
+	if (irp->IoStatus.Status == STATUS_CANCELLED) {
+		NODOKAD_TRACE("filterReadCompletion: status=CANCELLED -> rewriting to SUCCESS (selfCancelled=%d recentSelfCancel=%d removePending=%d)\n",
+			selfCancelled, recentSelfCancel, removePending);
 		}
 
 	KeAcquireSpinLock(&detourDevExt->lock, &currentIrql);
@@ -1756,6 +1773,10 @@ NTSTATUS filterPnP(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 	ULONG minor = irpSp->MinorFunction;
 
 	DEBUG_LOG(("nodokad: filterPnP() minor=%d(%x)", minor, minor));
+	// 0x18 diagnostic: filterPnP previously had no NODOKAD_TRACE output at all
+	// in a Release+NODOKAD_LOG build, leaving the removal path invisible in
+	// PERF/self-cancel captures.
+	NODOKAD_TRACE("filterPnP: minor=0x%x\n", minor);
 
 	switch (minor) {
 	case IRP_MN_SURPRISE_REMOVAL:
@@ -1772,6 +1793,9 @@ NTSTATUS filterPnP(IN PDEVICE_OBJECT deviceObject, IN PIRP irp)
 		KeAcquireSpinLock(&filterDevExt->lock, &currentIrql);
 		filterDevExt->removePending = TRUE;
 		KeReleaseSpinLock(&filterDevExt->lock, currentIrql);
+		NODOKAD_TRACE("filterPnP: %s -> removePending=TRUE irpq=%p\n",
+			minor == IRP_MN_SURPRISE_REMOVAL ? "SURPRISE_REMOVAL" : "REMOVE_DEVICE",
+			filterDevExt->irpq);
 		}
 		IoCopyCurrentIrpStackLocationToNext(irp);
 		IoSetCompletionRoutine(irp, filterRemoveCompletion, deviceObject, TRUE, TRUE, TRUE);

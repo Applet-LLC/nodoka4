@@ -249,6 +249,17 @@ private:
 	OVERLAPPED m_ol;	  /** for async read from nodoka device */
 	OVERLAPPED m_writeOl; /** for async write to nodoka device (separate from m_ol to avoid IRP conflicts) */
 	HANDLE m_writeEvent;  /** event for m_writeOl */
+
+	/// ドライバプロトコルの選択と nodokad2 (inverted call) 用の状態。
+	/// m_driverV2 == false: レガシー nodokad (\\.\NodokaWalk1, ReadFile/WriteFile)。
+	/// m_driverV2 == true : nodokad2 (\\.\Nodoka2Ctl, IOCTL GET_EVENTS / INJECT)。
+	bool m_driverV2;	  /** true: nodokad2 (v2) と会話。既定 false (レガシー) */
+	ULONG m_v2Pos;		  /** m_v2Out.hdr.Events[] への排出カーソル */
+	union {
+		NODOKA2_EVENTS_OUTPUT hdr;
+		unsigned char raw[sizeof(NODOKA2_EVENTS_OUTPUT) +
+						  sizeof(NODOKA2_EVENT) * (NODOKA2_BATCH_MAX - 1)];
+	} m_v2Out;			  /** GET_EVENTS のバッチ受信バッファ */
 	HANDLE m_hookPipe;	/// named pipe for &SetImeString
 	HMODULE m_sts4nodoka; /// DLL module for ThumbSense
 	HMODULE m_cts4nodoka; /// DLL module for ThumbSense
@@ -520,6 +531,15 @@ private:
 
 	/// close nodoka device
 	void close();
+
+	/** 1 キーイベントをドライバから取得する (レガシー ReadFile / v2 GET_EVENTS を隠蔽)。
+		@return 1 = o_kid に同期取得, 0 = 非同期発行 (pending), -1 = 非 pending エラー */
+	int driverReadKey(KEYBOARD_INPUT_DATA *o_kid, DWORD *o_len);
+
+	/** WAIT_OBJECT_0 で GetOverlappedResult 成功後に呼ぶ。v2 はバッチを解析し
+		先頭イベントを o_kid へ取り出す。レガシーは o_kid が既に埋まっている。
+		@return true = o_kid に有効イベントあり, false = 空バッチ (再発行が必要) */
+	bool driverCompleteRead(DWORD i_len, KEYBOARD_INPUT_DATA *o_kid);
 
 	/// load/unload [sca]ts4nodoka.dll
 	void manageTs4nodoka(TCHAR *i_ts4nodokaDllName, TCHAR *i_dependDllName,

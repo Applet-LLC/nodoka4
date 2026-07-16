@@ -9,6 +9,12 @@ $TargetName   = shift @ARGV;
 $FriendlyName = shift @ARGV;
 $AppLaunched  = shift @ARGV;
 
+# If TargetName has no directory component, IExpress generates the RPT file
+# path incorrectly (leading "\" + "-" + name, resolving to C:\-name.RPT).
+# Prepend ".\" so IExpress has an explicit directory and computes the RPT
+# path correctly relative to the current directory.
+$TargetName = ".\\" . $TargetName unless $TargetName =~ m{[/\\]};
+
 $template = <<"__EOM__";
 [Version]
 Class=IEXPRESS
@@ -41,6 +47,11 @@ SourceFiles0=.\\
 __EOM__
 
 foreach $i ( sort @ARGV ) {
+  # NMAKE の行継続で行頭の「=」がマクロ値に入ると単独の「=」引数になり、
+  # IExpress の .sed に「==」のような無効行が出る。パス以外は無視する。
+  next if ( $i eq '' || $i eq '=' );
+  # このリポジトリの distrib は相対パスが ..\ で始まる
+  next unless ( $i =~ m{^\.\.[/\\]} );
   $template .= "$i=\n";
 }
 print $template;
