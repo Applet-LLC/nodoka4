@@ -174,7 +174,10 @@ DISTRIB_DRIVER	=								\
 		..\Win32\Release\d\nodokadx86.cat		\
 		..\x64\Release\d.x64\nodokad.sys		\
 		..\x64\Release\d.x64\nodokad.inf		\
-		..\x64\Release\d.x64\nodokad.cat
+		..\x64\Release\d.x64\nodokad.cat		\
+		..\x64\Release\d2.x64\nodokad2.sys		\
+		..\x64\Release\d2.x64\nodokad2.inf		\
+		..\x64\Release\d2.x64\nodokad2.cat
 
 DISTRIB_PDB		=								\
 		..\Win32\Release\nodoka.dll.pdb			\
@@ -182,8 +185,9 @@ DISTRIB_PDB		=								\
 		..\x64\Release\nodoka64.dll.pdb			\
 		..\x64\Release\nodoka64.exe.pdb			\
 		..\Win32\Release\nodoka_helper.exe.pdb	\
-		..\Win32\Release\nodokad.pdb			\
-		..\x64\Release\nodokad.pdb
+		..\Win32\Release\nodokadx86.pdb			\
+		..\x64\Release\nodokad.pdb				\
+		..\x64\Release\nodokad2.pdb
 
 DISTRIB		=									\
 		$(TARGET_x86)							\
@@ -247,6 +251,8 @@ SIGN_VERIFY	=											\
 		..\Win32\Release\d\nodokad.cat					\
 		..\x64\Release\d.x64\nodokad.sys				\
 		..\x64\Release\d.x64\nodokad.cat				\
+		..\x64\Release\d2.x64\nodokad2.sys				\
+		..\x64\Release\d2.x64\nodokad2.cat				\
 		..\Win32\Release\DriverManager.exe				\
 		..\x64\Release\DriverManager.exe
 
@@ -259,6 +265,7 @@ all:
 		-cp -f ..\Win32\Release\d\nodokad.sys ..\Win32\Release\d\nodokadx86.sys
 		-cp -f ..\Win32\Release\d\nodokad.inf ..\Win32\Release\d\nodokadx86.inf
 		-cp -f ..\Win32\Release\d\nodokad.cat ..\Win32\Release\d\nodokadx86.cat
+		-cp -f ..\Win32\Release\nodokad.pdb ..\Win32\Release\nodokadx86.pdb
 		-cp -f ..\x64\Release\DriverManager.exe ..\x64\Release\DriverManager64.exe
 		-rm -f nodoka-$(VERSION) 
 		-ln -s . nodoka-$(VERSION)

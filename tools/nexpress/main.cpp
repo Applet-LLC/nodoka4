@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 
 #include "resource.h"
+#include "secure_temp.h"
 
 #pragma comment(lib, "cabinet.lib")
 
@@ -48,6 +49,14 @@ static const UINT64 NEXPRESS_MAGIC =
     ((UINT64)'1' << 56);
 
 // -----------------------------------------------------------------------
+// Secure work folder (CWE-377/59): every temp file lives under this
+// random-named, owner-only-DACL directory.  Created at the top of wmain.
+// -----------------------------------------------------------------------
+static WCHAR g_secureDirW[MAX_PATH];
+static CHAR  g_secureDirA[MAX_PATH];
+static LONG  g_tempSeq;
+
+// -----------------------------------------------------------------------
 // FCI callbacks
 // -----------------------------------------------------------------------
 static FNFCIALLOC(fci_alloc) { return HeapAlloc(GetProcessHeap(), 0, cb); }
@@ -58,10 +67,11 @@ static FNFCIOPEN(fci_open) {
                  : (oflag & _O_WRONLY) ? GENERIC_WRITE
                  : (GENERIC_READ | GENERIC_WRITE);
     DWORD share  = (oflag & _O_RDONLY) ? FILE_SHARE_READ : 0;
-    // Use CREATE_ALWAYS for any O_CREAT: FCI passes O_CREAT|O_EXCL for temp files,
-    // but we already deleted the placeholder in fci_get_temp_file, so CREATE_ALWAYS
-    // is safe and avoids spurious ERROR_FILE_EXISTS failures.
-    DWORD disp   = (oflag & _O_CREAT) ? CREATE_ALWAYS : OPEN_EXISTING;
+    // Honor O_EXCL: temp names are unique inside g_secureDirA, so CREATE_NEW
+    // succeeding proves nobody planted a file or link there first (CWE-59).
+    DWORD disp   = (oflag & _O_CREAT)
+                 ? ((oflag & _O_EXCL) ? CREATE_NEW : CREATE_ALWAYS)
+                 : OPEN_EXISTING;
     HANDLE h = CreateFileA(pszFile, access, share, NULL, disp,
                            FILE_ATTRIBUTE_NORMAL, NULL);
     if (h == INVALID_HANDLE_VALUE) { if (err) *err = (int)GetLastError(); return -1; }
@@ -84,14 +94,11 @@ static FNFCIDELETE(fci_delete) { DeleteFileA(pszFile); return 0; }
 static FNFCIFILEPLACED(fci_file_placed) { return 0; }
 
 static FNFCIGETTEMPFILE(fci_get_temp_file) {
-    char tempDir[MAX_PATH];
-    GetTempPathA(MAX_PATH, tempDir);
-    if (!GetTempFileNameA(tempDir, "fci", 0, pszTempName))
-        return FALSE;
-    // GetTempFileNameA creates a placeholder; delete it so fci_open (CREATE_ALWAYS)
-    // can create it fresh without hitting a sharing or existence conflict.
-    DeleteFileA(pszTempName);
-    return TRUE;
+    // Unique name inside the secure work folder; fci_open creates it with
+    // CREATE_NEW, so no placeholder (and no delete/re-create race) is needed.
+    LONG n = InterlockedIncrement(&g_tempSeq);
+    return SUCCEEDED(StringCchPrintfA(pszTempName, cbTempName,
+                                      "%s\\fci%04ld.tmp", g_secureDirA, n));
 }
 
 static FNFCISTATUS(fci_status) { return 0; }
@@ -197,6 +204,7 @@ static void Die(LPCWSTR fmt, ...) {
     StringCchVPrintfW(msg, 512, fmt, ap);
     va_end(ap);
     fwprintf(stderr, L"nexpress: error: %s\n", msg);
+    if (g_secureDirW[0]) SecureDeleteDirRecursive(g_secureDirW);
     ExitProcess(1);
 }
 
@@ -204,6 +212,9 @@ static void Die(LPCWSTR fmt, ...) {
 // wmain
 // -----------------------------------------------------------------------
 int wmain(int argc, wchar_t **argv) {
+
+    // --- CWE-427: restrict DLL search to System32 before anything else ---
+    HardenDllSearchPath();
 
     // --- 1. Parse /N <sedfile> ---
     if (argc < 3) {
@@ -317,19 +328,29 @@ int wmain(int argc, wchar_t **argv) {
     }
     HeapFree(GetProcessHeap(), 0, secBuf);
 
+    // Reject duplicate destination (basename) collisions up front: the CAB
+    // namespace is flat, so two source files sharing a basename (e.g. an
+    // x86 and x64 build both named foo.pdb) would silently overwrite one
+    // another in the CAB, or -- with the stub's CWE-59 CREATE_NEW extraction --
+    // make extraction fail outright with a confusing ERROR_FILE_EXISTS.
+    // Catch it at packaging time instead, with the two source paths named.
+    for (int i = 0; i < fl.count; i++) {
+        for (int j = i + 1; j < fl.count; j++) {
+            if (!_stricmp(fl.destNames[i], fl.destNames[j]))
+                Die(L"duplicate destination name '%hs':\n  %hs\n  %hs",
+                    fl.destNames[i], fl.paths[i], fl.paths[j]);
+        }
+    }
+
     fwprintf(stdout, L"nexpress: %d files to package\n", fl.count);
 
-    // --- 4. Create CAB in a temp file ---
+    // --- 4. Create CAB inside a secure work folder (CWE-377/59) ---
+    if (!CreateSecureTempDir(g_secureDirW, ARRAYSIZE(g_secureDirW)))
+        Die(L"Cannot create secure temp dir (error=%d)", GetLastError());
+    W2A(g_secureDirW, g_secureDirA, MAX_PATH);
+
     CHAR tempCabA[MAX_PATH];
-    CHAR tempDirA[MAX_PATH];
-    {
-        WCHAR tempRootW[MAX_PATH];
-        GetTempPathW(MAX_PATH, tempRootW);
-        W2A(tempRootW, tempDirA, MAX_PATH);
-        GetTempFileNameA(tempDirA, "nxp", 0, tempCabA);
-        // GetTempFileName creates a placeholder; delete it so FCI creates the cabinet fresh.
-        DeleteFileA(tempCabA);
-    }
+    StringCchPrintfA(tempCabA, MAX_PATH, "%s\\payload.cab", g_secureDirA);
 
     // CCAB: cabinet configuration
     CCAB ccab;
@@ -444,8 +465,8 @@ int wmain(int argc, wchar_t **argv) {
     WriteFile(hOut, &trailer, sizeof(trailer), &written, NULL);
     CloseHandle(hOut);
 
-    // --- 8. Cleanup ---
-    DeleteFileW(tempCabW);
+    // --- 8. Cleanup (removes the CAB and all fci*.tmp with it) ---
+    SecureDeleteDirRecursive(g_secureDirW);
 
     fwprintf(stdout, L"nexpress: done -> %s\n", targetAbsW);
     return 0;
