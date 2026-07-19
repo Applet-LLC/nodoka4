@@ -60,6 +60,23 @@ Environment:
     CTL_CODE(FILE_DEVICE_KEYBOARD, 0x906, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 //
+// L3 (docs/driver-access-control-plan.md) 呼び出し元認証: challenge-response。
+// open 直後は未認証 (SET_MODE=INTERCEPT / GET_EVENTS / INJECT は
+// STATUS_ACCESS_DENIED)。AUTH_BEGIN で nonce を取得 -> アプリ埋め込みの
+// ECDSA P-256 秘密鍵で SHA-256(タグ||nonce) に署名 -> AUTH_RESPONSE で提出。
+// 検証成功でそのハンドルは認証済みになる。nonce は 1 回answeredで消費される
+// (使い回し不可、失敗時は AUTH_BEGIN からやり直す)。
+//
+#define IOCTL_NODOKA2_AUTH_BEGIN \
+    CTL_CODE(FILE_DEVICE_KEYBOARD, 0x907, METHOD_BUFFERED, FILE_READ_DATA)
+
+#define IOCTL_NODOKA2_AUTH_RESPONSE \
+    CTL_CODE(FILE_DEVICE_KEYBOARD, 0x908, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define NODOKA2_AUTH_NONCE_SIZE 32   // IOCTL_NODOKA2_AUTH_BEGIN 出力バッファサイズ
+#define NODOKA2_AUTH_SIG_SIZE   64   // IOCTL_NODOKA2_AUTH_RESPONSE 入力バッファサイズ (ECDSA raw r||s)
+
+//
 // SET_MODE の値
 //
 #define NODOKA2_MODE_PASSTHROUGH 0   // 素通し (既定)
