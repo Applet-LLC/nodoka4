@@ -88,7 +88,7 @@
       <AdditionalIncludeDirectories>..\..\boost\boost_1_85_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmtd.lib;libcpmtd.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Debug\nodoka.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmtd.lib;libcpmtd.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Debug\nodoka.lib;dwmapi.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>LinkVerbose</ShowProgress>
       <OutputFile>$(OutDir)nodoka_limit.exe</OutputFile>
       <AdditionalLibraryDirectories>$(IntDir);%(AdditionalLibraryDirectories);..\..\boost\boost_1_85_0\lib32-msvc-14.3</AdditionalLibraryDirectories>
@@ -115,7 +115,7 @@
       <AdditionalIncludeDirectories>..\..\boost\boost_1_85_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmt.lib;libcpmt.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Release\nodoka.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmt.lib;libcpmt.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Release\nodoka.lib;dwmapi.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>LinkVerboseLib</ShowProgress>
       <OutputFile>$(OutDir)nodoka_limit.exe</OutputFile>
       <AdditionalLibraryDirectories>$(IntDir);%(AdditionalLibraryDirectories);..\..\boost\boost_1_85_0\lib32-msvc-14.3</AdditionalLibraryDirectories>
@@ -151,7 +151,7 @@
       <AdditionalIncludeDirectories>..\..\boost\boost_1_85_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmt.lib;libcpmt.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Release\nodoka.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;wtsapi32.lib;psapi.lib;shlwapi.lib;libcmt.lib;libcpmt.lib;imm32.lib;winmm.lib;..\nodoka\Win32\Release\nodoka.lib;dwmapi.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>LinkVerboseLib</ShowProgress>
       <OutputFile>$(OutDir)nodoka_limit.exe</OutputFile>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories);..\..\boost\boost_1_85_0\lib32-msvc-14.3;..\..\boost\boost_1_85_0\lib32-msvc-14.3</AdditionalLibraryDirectories>
@@ -184,6 +184,7 @@
     <ClCompile Include="..\nodoka\dlglog.cpp" />
     <ClCompile Include="..\nodoka\dlgsetting.cpp" />
     <ClCompile Include="..\nodoka\dlgversion.cpp" />
+    <ClCompile Include="..\nodoka\authkey.cpp" />
     <ClCompile Include="..\nodoka\engine.cpp" />
     <ClCompile Include="..\nodoka\fixscancodemap.cpp" />
     <ClCompile Include="..\nodoka\focus.cpp" />
@@ -210,6 +211,7 @@
     <ClInclude Include="..\nodoka\dlglog.h" />
     <ClInclude Include="..\nodoka\dlgsetting.h" />
     <ClInclude Include="..\nodoka\dlgversion.h" />
+    <ClInclude Include="..\nodoka\authkey.h" />
     <ClInclude Include="..\nodoka\driver.h" />
     <ClInclude Include="..\nodoka\engine.h" />
     <ClInclude Include="..\nodoka\errormessage.h" />

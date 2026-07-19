@@ -26,6 +26,7 @@
 #include "hookdata.h"
 #include "rawinput.h"
 #include "sessiontrace.h"
+#include "authkey.h"
 
 #include <iomanip>
 #include <imm.h>
@@ -3999,9 +4000,19 @@ bool Engine::open()
 		if (m_device != INVALID_HANDLE_VALUE)
 		{
 			OutputDebugString(_T("nodoka Engine::open() success\n"));
-			// v2: 既定は素通し。明示的に intercept を有効化してから使い始める。
 			if (m_driverV2)
 			{
+				// L3 呼び出し元認証 (docs/driver-access-control-plan.md)。失敗すると
+				// ドライバ側で SET_MODE/GET_EVENTS/INJECT が拒否され続けるため、
+				// ここで open 全体を失敗として扱う。
+				if (!NodokaAuthenticateV2Device(m_device))
+				{
+					OutputDebugString(_T("nodoka Engine::open() L3 authentication failed\n"));
+					CloseHandle(m_device);
+					m_device = INVALID_HANDLE_VALUE;
+					return false;
+				}
+				// 既定は素通し。明示的に intercept を有効化してから使い始める。
 				ULONG mode = NODOKA2_MODE_INTERCEPT;
 				DWORD bytes = 0;
 				DeviceIoControl(m_device, IOCTL_NODOKA2_SET_MODE, &mode, sizeof(mode),

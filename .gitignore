@@ -62,3 +62,8 @@ distrib/__nodoka__.sed
 # Driver build outputs (except tracked sys in d.sign)
 error/
 old/
+
+# L3 challenge-response private key (docs/driver-access-control-plan.md).
+# Real key material must never be pushed. Only authkey_secret.example.h
+# (dummy key, compiles but won't authenticate) is tracked.
+nodoka/authkey_secret.h

@@ -74,7 +74,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <Link>
-      <AdditionalDependencies>WdfDriverEntry.lib;WdfLdr.lib;hidclass.lib;ntoskrnl.lib;wdm.lib;wdmsec.lib;ntstrsafe.lib;BufferOverflowFastFailK.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WdfDriverEntry.lib;WdfLdr.lib;hidclass.lib;ntoskrnl.lib;wdm.lib;wdmsec.lib;ntstrsafe.lib;ksecdd.lib;BufferOverflowFastFailK.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>K:\Program Files\Windows Kits\10\Lib\wdf\kmdf\x64\1.35\;K:\Program Files\Windows Kits\10\Lib\10.0.26100.0\km\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -94,7 +94,7 @@
       <FileDigestAlgorithm>sha256</FileDigestAlgorithm>
     </DriverSign>
     <Link>
-      <AdditionalDependencies>WdfDriverEntry.lib;WdfLdr.lib;hidclass.lib;ntoskrnl.lib;wdm.lib;wdmsec.lib;ntstrsafe.lib;BufferOverflowFastFailK.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WdfDriverEntry.lib;WdfLdr.lib;hidclass.lib;ntoskrnl.lib;wdm.lib;wdmsec.lib;ntstrsafe.lib;ksecdd.lib;BufferOverflowFastFailK.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>K:\Program Files\Windows Kits\10\Lib\wdf\kmdf\x64\1.35\;K:\Program Files\Windows Kits\10\Lib\10.0.26100.0\km\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -119,6 +119,8 @@
     <ClInclude Include="common\hash.h" />
     <ClInclude Include="common\hwidutil.h" />
     <ClInclude Include="common\regutil.h" />
+    <ClInclude Include="..\common\sigcheck.h" />
+    <ClInclude Include="..\common\authchallenge.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="nodokad2.c" />
@@ -130,6 +132,8 @@
     <ClCompile Include="common\hash.c" />
     <ClCompile Include="common\hwidutil.c" />
     <ClCompile Include="common\regutil.c" />
+    <ClCompile Include="..\common\sigcheck.c" />
+    <ClCompile Include="..\common\authchallenge.c" />
   </ItemGroup>
   <ItemGroup>
     <Inf Include="nodokad2.inf" />
