@@ -830,13 +830,27 @@ static bool ModifyUpperFiltersAtKey(HKEY key, const std::wstring& driverName, bo
             filters.erase(existing);
         }
         static const wchar_t* const kClassDrivers[] = { L"kbdclass", L"mouclass" };
+        // kbdclass/mouclass の手前 (= スタックの下側) に並ぶドライバ同士の固定順序。
+        // 各配列は kClassDrivers の対応するインデックスに紐づく。先頭ほど kbdclass から遠い。
+        // nodoka (nodokad2) と nodoka_subscribe (kbdaddid) のどちらを先にインストールしても
+        // 最終的にこの順序に揃うよう、挿入位置を kbdclass の直前ではなくこの順序表に従って決める。
+        static const std::wstring kKeyboardPreClassOrder[] = { L"kbdaddid", L"nodokad2" };
+        static const std::wstring kMousePreClassOrder[] = { L"mouaddid" };
+        struct PreClassOrder { const std::wstring* list; size_t count; };
+        static const PreClassOrder kPreClassOrders[] = {
+            { kKeyboardPreClassOrder, sizeof(kKeyboardPreClassOrder) / sizeof(kKeyboardPreClassOrder[0]) },
+            { kMousePreClassOrder, sizeof(kMousePreClassOrder) / sizeof(kMousePreClassOrder[0]) },
+        };
+
         bool classDriverFound = false;
         auto insertPos = filters.end();
-        for (const auto* classDriver : kClassDrivers) {
-            auto pos = std::find(filters.begin(), filters.end(), classDriver);
+        size_t busIndex = 0;
+        for (size_t i = 0; i < sizeof(kClassDrivers) / sizeof(kClassDrivers[0]); ++i) {
+            auto pos = std::find(filters.begin(), filters.end(), kClassDrivers[i]);
             if (pos != filters.end()) {
                 insertPos = insertBeforeClassDriver ? pos : (pos + 1);
                 classDriverFound = true;
+                busIndex = i;
                 break;
             }
         }
@@ -845,6 +859,21 @@ static bool ModifyUpperFiltersAtKey(HKEY key, const std::wstring& driverName, bo
         // クラスキー側に任せて重複登録を避ける。
         if (insertBeforeClassDriver && !classDriverFound) {
             return true;
+        }
+        if (insertBeforeClassDriver) {
+            // 自分より後ろに来るべきドライバが既に filters 内にあれば、その手前に挿入し直す。
+            // これにより「先に入っていた方の直前」ではなく常に kKeyboardPreClassOrder の並びになる。
+            const auto& order = kPreClassOrders[busIndex];
+            const std::wstring* selfIt = std::find(order.list, order.list + order.count, driverName);
+            if (selfIt != order.list + order.count) {
+                for (const std::wstring* peerIt = selfIt + 1; peerIt != order.list + order.count; ++peerIt) {
+                    auto peerPos = std::find(filters.begin(), insertPos, *peerIt);
+                    if (peerPos != insertPos) {
+                        insertPos = peerPos;
+                        break;
+                    }
+                }
+            }
         }
         filters.insert(insertPos, driverName);
     } else if (existing != filters.end()) {
