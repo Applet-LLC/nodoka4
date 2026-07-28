@@ -379,7 +379,7 @@ BOOL checkDriverEntry()
 	{
 		Filters::iterator next = i;
 		++next;
-		if ((*i != _T("kbdclass")) && (*i != _T("nodokad")))
+		if ((*i != _T("kbdclass")) && (*i != _T("nodokad")) && (*i != _T("nodokad2")))
 		{
 			// ex. AltIME:altime, Nekomaneki:nmkcore, VMware:vmkbd, PGPi:pgpsdk
 			bOK = FALSE;
@@ -387,7 +387,7 @@ BOOL checkDriverEntry()
 		}
 		i = next;
 	}
-	// kbdclass, nodokad 以外のフィルタドライバを見つけたのでダイアログを出す。
+	// kbdclass, nodokad, nodokad2 以外のフィルタドライバを見つけたのでダイアログを出す。
 	if (!bOK)
 	{
 		TCHAR buf[1024];
@@ -399,6 +399,14 @@ BOOL checkDriverEntry()
 			bOK = TRUE;
 	}
 	return bOK;
+}
+
+// which driver package is installed by default, depending on architecture.
+// nodokad2 (kbfiltr型 KMDF フィルタ) is x64-only; x86 keeps using the legacy
+// nodokad (IRP upper filter).
+const _TCHAR *primaryDriverName()
+{
+	return checkOs(SetupFile::AMD64) ? _T("nodokad2") : _T("nodokad");
 }
 
 void checkDriverEntry2()
@@ -414,9 +422,9 @@ void checkDriverEntry2()
 	{
 		Filters::iterator next = i;
 		++next;
-		if (*i == _T("nodokad"))
+		if (*i == _T("nodokad") || *i == _T("nodokad2"))
 		{
-			// nodokadがある場合、以前はデバイスドライバを使っていたと判断
+			// nodokad/nodokad2がある場合、以前はデバイスドライバを使っていたと判断
 			g_useDriver = true;
 		}
 		i = next;
@@ -537,7 +545,9 @@ private:
 		// サービス停止+待機は DriverManager.exe の stopAndWaitService に一本化したため
 		// （W5対応）、ここでの個別の停止呼び出しは行わない。実際の停止は
 		// createDriverService() (= DriverManager.exe install) の内部で行われる。
-		bool serviceExistedBeforeInstall = !m_doNotRegisterDriver && driverServiceExists(_T("nodokad"));
+		// インストールするドライバ (x64: nodokad2, x86: nodokad)。
+		const tstringi driverName = primaryDriverName();
+		bool serviceExistedBeforeInstall = !m_doNotRegisterDriver && driverServiceExists(driverName);
 
 		// ファイルコピー
 		if (!installFiles(g_setupFiles, NUMBER_OF(g_setupFiles), g_flags, srcDir, g_destDir, !m_doNotRegisterDriver, m_doNotReviseDotNodoka))
@@ -546,7 +556,7 @@ private:
 			// ただし、アップグレードで既存サービスが正常に動いていた場合は、
 			// この時点ではまだ何も新規登録していないため、既存の登録を壊さないよう呼ばない（W7対応）。
 			if (!serviceExistedBeforeInstall)
-				err = removeDriverService(_T("nodokad"));
+				err = removeDriverService(driverName);
 			bError = TRUE;
 		}
 
@@ -585,7 +595,7 @@ private:
 
 		if (!m_doNotRegisterDriver)
 		{
-			err = createDriverService(_T("nodokad"));
+			err = createDriverService(driverName);
 
 			if (err != ERROR_SUCCESS)
 			{
@@ -600,11 +610,11 @@ private:
 				if (!serviceExistedBeforeInstall)
 				{
 					// ドライバの登録を解除し、インストールしたファイルを削除する。
-					err = removeDriverService(_T("nodokad"));
+					err = removeDriverService(driverName);
 
 					// DriverManagerの戻り値に関わらず、UpperFiltersから確実に削除する
 					// 冗長な安全網（絶対要件1対応）。
-					forceRemoveUpperFiltersEntry(_T("nodokad"));
+					forceRemoveUpperFiltersEntry(driverName);
 
 					// インストールしたファイルを削除する（W6対応:
 					// 以前はコメントアウトされコピー済みファイルが残置されていた）。
@@ -628,19 +638,38 @@ private:
 			if (g_flags == Flag_Usb)
 				CHECK_TRUE(reg.write(_T("isUsbDriver"), DWORD(1)));
 
-			// Fix I: heartbeat/staleness 安全網を有効化する。
-			// nodokad.c の DriverEntry が
-			// HKLM\SYSTEM\CurrentControlSet\Services\nodokad の
-			// HeartbeatTimeout (REG_DWORD, 秒) を読み込む。3 = detourRead() が
-			// 3秒間呼ばれなければ強制パススルー (0=無効, 255=常時パススルー)。
-			// サービスキーは直前の createDriverService() で作成済み。
-			CHECK_TRUE(Registry::write(HKEY_LOCAL_MACHINE, NODOKAD_SERVICE_KEY,
-									   _T("HeartbeatTimeout"), DWORD(3)));
+			if (driverName == _T("nodokad"))
+			{
+				// Fix I: heartbeat/staleness 安全網を有効化する。
+				// nodokad.c の DriverEntry が
+				// HKLM\SYSTEM\CurrentControlSet\Services\nodokad の
+				// HeartbeatTimeout (REG_DWORD, 秒) を読み込む。3 = detourRead() が
+				// 3秒間呼ばれなければ強制パススルー (0=無効, 255=常時パススルー)。
+				// サービスキーは直前の createDriverService() で作成済み。
+				CHECK_TRUE(Registry::write(HKEY_LOCAL_MACHINE, NODOKAD_SERVICE_KEY,
+										   _T("HeartbeatTimeout"), DWORD(3)));
+			}
+			else
+			{
+				// nodokad2: engine.cpp の readUseDriverV2Flag() 既定値は false (レガシー)
+				// なので、v2ドライバを新規インストールしたら明示的に useDriverV2=1 を書き、
+				// nodoka.exe/nodoka64.exe が \\.\Nodoka2Ctl (IOCTL経路) を使うようにする。
+				CHECK_TRUE(reg.write(_T("useDriverV2"), DWORD(1)));
+
+				// 旧nodokad(レガシーIRP上位フィルタ)が残っていると、kbdclassの上下で
+				// 二重にフックされてしまうため、nodokad2に一本化するためアンインストールする。
+				// エラーになっても先に進める（インストールしていない可能性があるため）。
+				if (driverServiceExists(_T("nodokad")))
+				{
+					removeDriverService(_T("nodokad"));
+					forceRemoveUpperFiltersEntry(_T("nodokad"));
+				}
+			}
 		}
 		else
 		{
 			// device driverdevice driver不要なので、登録を削除
-			err = removeDriverService(_T("nodokad"));
+			err = removeDriverService(driverName);
 		}
 
 		// create shortcut
@@ -1239,6 +1268,12 @@ int uninstall()
 	// DriverManagerの戻り値に関わらず、UpperFiltersから確実に削除する冗長な安全網。
 	// kbdaddidの不完全なアンインストールでUpperFiltersに死んだ参照が残留した事故の再発防止。
 	forceRemoveUpperFiltersEntry(_T("nodokad"));
+
+	// x64ではnodokad2がインストールされている可能性があるため、そちらも解除する。
+	// x86ビルドではnodokad2パッケージ自体を同梱していないため、DriverManagerが
+	// 見つけられずエラーになるだけで無害（同様に先に進める）。
+	removeDriverService(_T("nodokad2"));
+	forceRemoveUpperFiltersEntry(_T("nodokad2"));
 #endif // _WINNT
 
 	PVOID oldValue;

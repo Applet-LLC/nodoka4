@@ -428,6 +428,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\boost\boost_1_85_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)setup64.exe</OutputFile>
@@ -440,7 +441,7 @@
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <Manifest>
-      <AdditionalManifestFiles>setup64.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>setup.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
       <Command>echo Signing skipped (use d.sign project).</Command>
@@ -493,6 +494,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\boost\boost_1_85_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <ResourceCompile>
       <ResourceOutputFileName>$(IntDir)setup.res</ResourceOutputFileName>
@@ -511,7 +513,7 @@
       <AllowIsolation>true</AllowIsolation>
     </Link>
     <Manifest>
-      <AdditionalManifestFiles>setup64.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <AdditionalManifestFiles>setup.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
     <PostBuildEvent>
       <Command>
