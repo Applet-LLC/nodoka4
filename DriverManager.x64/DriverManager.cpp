@@ -854,10 +854,12 @@ static bool ModifyUpperFiltersAtKey(HKEY key, const std::wstring& driverName, bo
                 break;
             }
         }
-        // class driver の前に置きたいのに、このキーに class driver が無い場合はスキップ。
-        // インスタンスサブキー (0000, 0001, …) は通常 kbdclass を持たないため、
-        // クラスキー側に任せて重複登録を避ける。
-        if (insertBeforeClassDriver && !classDriverFound) {
+        // このキーに class driver (kbdclass/mouclass) が無ければスキップ。
+        // インスタンスサブキー (0000, 0001, …) は通常 UpperFilters 自体を持たず
+        // （クラスキー側の既定値を継承するだけ）、ここで class driver 抜きの
+        // UpperFilters を新規に書き込んでしまうと、継承していたはずの kbdclass 等が
+        // そのデバイスだけ消えてしまう（挿入方向が前でも後でも同じ理由で該当）。
+        if (!classDriverFound) {
             return true;
         }
         if (insertBeforeClassDriver) {
