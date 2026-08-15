@@ -3914,7 +3914,7 @@ Engine::Engine(tomsgstream &i_log, int i_keyboard_hook, int i_mouse_hook, int i_
 								&ver, sizeof(ver), &length, NULL) && length == sizeof(ver))
 			{
 				TCHAR buf[64];
-				_stprintf_s(buf, _T("nodokad2 v%u.%u"), (ver >> 16) & 0xFFFF, ver & 0xFFFF);
+				_stprintf_s(buf, _T("nodokad2 v%u.%02u"), (ver >> 16) & 0xFFFF, ver & 0xFFFF);
 				m_nodokadVersion = tstring(buf);
 			}
 		}

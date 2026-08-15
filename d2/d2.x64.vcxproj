@@ -81,7 +81,7 @@
     </Link>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);K:\Program Files\Windows Kits\10\Include\10.0.26100.0\km;K:\Program Files\Windows Kits\10\Include\wdf\kmdf\1.35;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_AMD64_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_AMD64_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;NODOKAD2_TRACE;DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4845;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>false</TreatWarningAsError>
@@ -101,7 +101,7 @@
     </Link>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);K:\Program Files\Windows Kits\10\Include\10.0.26100.0\km;K:\Program Files\Windows Kits\10\Include\wdf\kmdf\1.35;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_AMD64_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;NODOKAD2_TRACE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_AMD64_;KMDF_VERSION_OVERRIDE=135;NTDDI_VERSION=0x0A00000C;WINVER=0x0A00;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4845;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <TreatWarningAsError>false</TreatWarningAsError>

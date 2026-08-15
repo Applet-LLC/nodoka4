@@ -36,7 +36,7 @@ Environment:
 // プロトコルバージョン (上位16bit=major, 下位16bit=minor)
 // アプリは IOCTL_NODOKA2_GET_VERSION で取得し feature flag 判定に使う。
 //
-#define NODOKA2_PROTOCOL_VERSION 0x00020000
+#define NODOKA2_PROTOCOL_VERSION 0x00020001
 
 //
 // IOCTL 群 (FILE_DEVICE_KEYBOARD, function 0x900 台で現行 0x800 台と非衝突)
