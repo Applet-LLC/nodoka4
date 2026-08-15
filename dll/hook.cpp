@@ -876,7 +876,12 @@ LRESULT CALLBACK getSyncProc(int i_nCode, WPARAM i_wParam, LPARAM i_lParam)
 
 	MSG &msg = (*(MSG *)i_lParam);
 
-	//if(i_nCode == HC_ACTION && i_wParam == PM_REMOVE)		// CbC to AbC and &Sync TIMEOUT.
+	// NOTE: 以前は `i_wParam == PM_REMOVE` の完全一致判定だったが、PM_NOYIELD等の
+	// 追加ビットが立った除去イベントを見逃して&Syncタイムアウトを起こすため、
+	// 判定自体をコメントアウトしていた。しかしそれだとPM_NOREMOVEの覗き見でも
+	// 毎回notifySync()が呼ばれ、syncNotify()のstaleログが連発する原因になっていた。
+	// getMessageProc()と同じビットマスク判定にすることで両方を解決する。
+	if ((i_nCode == HC_ACTION) && (i_wParam & PM_REMOVE))
 	{
 		if (msg.message == WM_KEYUP)
 		{

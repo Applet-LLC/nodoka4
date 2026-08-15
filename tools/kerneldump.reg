@@ -1,0 +1,19 @@
+Windows Registry Editor Version 5.00
+
+; kerneldump.reg
+; カーネルメモリダンプ + 専用ダンプファイル(DedicatedDumpFile)を設定。
+; ページファイル自体は変更しない。ダンプはユーザーモードのプロセスメモリを含まない。
+;
+; 適用手順:
+;   1. C:\CrashDumps フォルダを事前に作成しておく(自動作成されないため必須)
+;   2. 管理者権限で reg import kerneldump.reg を実行(またはダブルクリックしてUAC許可)
+;   3. 再起動して反映(専用ダンプ領域はブート時に予約される)
+;
+; DumpFileSize は 8192MB(8GB)。RAM 32246MB のカーネルダンプ実サイズはこれより
+; 小さく収まるのが通常だが、もし不足する場合は値を増やす。
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CrashControl]
+"CrashDumpEnabled"=dword:00000002
+"DedicatedDumpFile"="C:\\CrashDumps\\MEMORY.DMP"
+"DumpFileSize"=dword:00002000
+"Overwrite"=dword:00000001

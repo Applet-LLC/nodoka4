@@ -239,9 +239,11 @@ Nodoka2DoInject(
     PLIST_ENTRY  entry;
     ULONG        i;
     ULONG        count;
-    PKEYBOARD_INPUT_DATA kdata;
+    PKEYBOARD_INPUT_DATA kdata = NULL;
     ULONG        consumed = 0;
     ULONG        targetDeviceId = 0;  // 実際に注入した宛先の DeviceId (刻印・トレース用)
+    WDFDEVICE    targetDevice = NULL; // found 時のみ非NULL。呼び出し完了まで参照保持 (UAF対策)。
+    NTSTATUS     status = STATUS_SUCCESS;
 
     if (InLen < FIELD_OFFSET(NODOKA2_INJECT_INPUT, Events)) {
         return STATUS_BUFFER_TOO_SMALL;
@@ -262,7 +264,15 @@ Nodoka2DoInject(
     //   - TargetDeviceId == 0: 「打っているキーボード」= g_LastActiveDeviceId のインスタンスを
     //     優先。生存していなければ最初の生存インスタンスにフォールバック。
     //     これで RDP/マルチセッション環境でも出力が入力と同じセッションへ戻る。
-    // すべてロック下で g_InstanceList を走査して解決するため UAF は起きない。
+    //
+    // 併せて、見つけたインスタンスの WdfDevice に対しロック保持中に WdfObjectReference を
+    // 取得する。ロック解放後に target.ClassService (= 保存済み kbdclass コールバック) を
+    // 呼び出すまでの間に対象キーボードが PnP 除去され WDFDEVICE (ひいては
+    // target.ClassDeviceObject が指す WDM デバイスオブジェクト) が破棄されると、
+    // ClassDeviceObject がダングリングポインタになり得る (UAF)。ロック保持中 (=
+    // Nodoka2UnlinkInstance と排他) に参照を取得しておけば、その参照を解放するまで
+    // WDF はオブジェクトの実削除を遅延させるため、コールバック呼び出し完了までの
+    // 生存が保証される。参照は本関数末尾の Done で解放する。
     //
     {
         LONG lastActive = InterlockedCompareExchange(&g_LastActiveDeviceId, 0, 0);
@@ -279,6 +289,8 @@ Nodoka2DoInject(
                 if (c->Connected && c->DeviceId == wantId) {
                     target = c->UpperConnectData;
                     targetDeviceId = c->DeviceId;
+                    targetDevice = c->WdfDevice;
+                    WdfObjectReference(targetDevice);
                     found = TRUE;
                     break;
                 }
@@ -292,6 +304,8 @@ Nodoka2DoInject(
                 if (c->Connected) {
                     target = c->UpperConnectData;
                     targetDeviceId = c->DeviceId;
+                    targetDevice = c->WdfDevice;
+                    WdfObjectReference(targetDevice);
                     found = TRUE;
                     break;
                 }
@@ -303,10 +317,13 @@ Nodoka2DoInject(
 
     if (!found || target.ClassService == NULL) {
         N2_TRACE("INJECT: no target instance (TargetDeviceId=0x%08X)\n", In->TargetDeviceId);
-        return STATUS_DEVICE_NOT_CONNECTED;
+        status = STATUS_DEVICE_NOT_CONNECTED;
+        goto Done;
     }
-    N2_TRACE("INJECT: %lu key(s) -> DeviceId=0x%08X (requested 0x%08X)\n",
-             count, targetDeviceId, In->TargetDeviceId);
+    // 毎キー(押す/離す)ごとにIOCTL_NODOKA2_INJECTが呼ばれるホットパスのため、
+    // 常時トレースすると打鍵のたびにログが出てしまう。無効化しておく。
+    //N2_TRACE("INJECT: %lu key(s) -> DeviceId=0x%08X (requested 0x%08X)\n",
+    //         count, targetDeviceId, In->TargetDeviceId);
 
     //
     // NODOKA2_EVENT -> KEYBOARD_INPUT_DATA へ変換 (非ページプール)。
@@ -314,7 +331,8 @@ Nodoka2DoInject(
     kdata = (PKEYBOARD_INPUT_DATA)ExAllocatePool2(
         POOL_FLAG_NON_PAGED, (size_t)count * sizeof(KEYBOARD_INPUT_DATA), NODOKA2_POOL_TAG);
     if (kdata == NULL) {
-        return STATUS_INSUFFICIENT_RESOURCES;
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Done;
     }
 
     for (i = 0; i < count; i++) {
@@ -333,7 +351,8 @@ Nodoka2DoInject(
     }
 
     //
-    // 上位 (kbdclass) コールバックを DISPATCH_LEVEL で呼ぶ。
+    // 上位 (kbdclass) コールバックを DISPATCH_LEVEL で呼ぶ。targetDevice の参照を
+    // 保持したままなので、この呼び出し中に target.ClassDeviceObject が破棄されることはない。
     //
     {
         KIRQL old;
@@ -346,8 +365,14 @@ Nodoka2DoInject(
         KeLowerIrql(old);
     }
 
-    ExFreePoolWithTag(kdata, NODOKA2_POOL_TAG);
-    return STATUS_SUCCESS;
+Done:
+    if (kdata != NULL) {
+        ExFreePoolWithTag(kdata, NODOKA2_POOL_TAG);
+    }
+    if (targetDevice != NULL) {
+        WdfObjectDereference(targetDevice);
+    }
+    return status;
 }
 
 //

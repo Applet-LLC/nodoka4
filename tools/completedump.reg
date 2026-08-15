@@ -1,0 +1,20 @@
+Windows Registry Editor Version 5.00
+
+; completedump.reg
+; 完全(Complete)メモリダンプ + 専用ダンプファイル(DedicatedDumpFile)を設定。
+; ページファイル自体は変更しない。RAM全体(ユーザーモード含む)を書き出す。
+;
+; 適用手順:
+;   1. C:\CrashDumps フォルダを事前に作成しておく(自動作成されないため必須)
+;   2. 管理者権限で reg import completedump.reg を実行(またはダブルクリックしてUAC許可)
+;   3. 再起動して反映(専用ダンプ領域はブート時に予約される)
+;
+; 注意: RAM 32246MB に対し DumpFileSize は 33792MB(33GB)を確保する。
+; 現状のCドライブ空き容量は約41GBのため、適用後の空きは約8GBまで減る。
+; Windows Update等で空きが逼迫する場合は事前に空き容量を確保すること。
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CrashControl]
+"CrashDumpEnabled"=dword:00000001
+"DedicatedDumpFile"="C:\\CrashDumps\\MEMORY.DMP"
+"DumpFileSize"=dword:00008400
+"Overwrite"=dword:00000001
