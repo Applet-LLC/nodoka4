@@ -3856,6 +3856,8 @@ Engine::Engine(tomsgstream &i_log, int i_keyboard_hook, int i_mouse_hook, int i_
 	  m_pastQueue(NULL),
 	  m_log(i_log)
 {
+	m_kbdAddIdDeviceIdMode = -1;
+
 	// set LL hook mode
 	g_hookDataExe->m_keyboard_hook = m_keyboard_hook;
 	g_hookDataExe->m_mouse_hook = m_mouse_hook;
@@ -4119,7 +4121,12 @@ bool Engine::driverCompleteRead(DWORD i_len, KEYBOARD_INPUT_DATA *o_kid)
 	return true;
 }
 
-// detect kbdaddid and retrieve its version from registry Parameters\Version
+// detect kbdaddid and retrieve its version from registry Parameters\Version.
+// License の有無に関わらず、Version が取得できればそのまま表示する。
+// あわせて g_hookDataExe->m_UseKbdAddId も更新する — バナー表示は
+// SettingLoader::load() (設定ファイル読み込み) より前に走ることがあり、
+// その時点ではまだ load() 側の判定が反映されていないため、表示直前に
+// ここで独立して最新のライセンス状態を反映できるようにしている。
 void Engine::detectKbdAddId()
 {
 	HKEY hKey;
@@ -4128,21 +4135,24 @@ void Engine::detectKbdAddId()
 		0, KEY_READ, &hKey) != ERROR_SUCCESS)
 		return;
 
-	DWORD license = 0;
-	DWORD cbData = sizeof(DWORD);
-	RegQueryValueEx(hKey, _T("License"), NULL, NULL, (LPBYTE)&license, &cbData);
+	TCHAR version[64] = {};
+	DWORD cbData = sizeof(version);
+	DWORD regType = 0;
+	if (RegQueryValueEx(hKey, _T("Version"), NULL, &regType, (LPBYTE)version, &cbData) == ERROR_SUCCESS
+		&& regType == REG_SZ && version[0] != _T('\0'))
+		m_kbdAddIdVersion = version;
 
-	if (license == 1)
-	{
-		TCHAR version[64] = {};
-		cbData = sizeof(version);
-		DWORD regType = 0;
-		if (RegQueryValueEx(hKey, _T("Version"), NULL, &regType, (LPBYTE)version, &cbData) == ERROR_SUCCESS
-			&& regType == REG_SZ && version[0] != _T('\0'))
-			m_kbdAddIdVersion = version;
-		else
-			m_kbdAddIdVersion = _T("(unknown)");
-	}
+	DWORD license = 0;
+	cbData = sizeof(DWORD);
+	if (RegQueryValueEx(hKey, _T("License"), NULL, NULL, (LPBYTE)&license, &cbData) == ERROR_SUCCESS
+		&& license == 1 && g_hookDataExe != NULL)
+		g_hookDataExe->m_UseKbdAddId = 1;
+
+	DWORD deviceIdMode = 0;
+	cbData = sizeof(DWORD);
+	if (RegQueryValueEx(hKey, _T("DeviceIdMode"), NULL, NULL, (LPBYTE)&deviceIdMode, &cbData) == ERROR_SUCCESS)
+		m_kbdAddIdDeviceIdMode = (int)deviceIdMode;
+
 	RegCloseKey(hKey);
 }
 

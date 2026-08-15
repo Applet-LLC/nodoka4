@@ -823,6 +823,7 @@ private:
 					{
 						// Rebuild driver version string to reflect current kbdaddid
 						// license state, which may have changed since dialog was created.
+						This->m_engine.detectKbdAddId();
 						tstring driverVerStr = This->m_engine.getNodokadVersion();
 						const tstring &kbdAddIdVer = This->m_engine.getKbdAddIdVersion();
 						bool kbdAddIdActive = (g_hookDataExe != NULL && g_hookDataExe->m_UseKbdAddId == 1);
@@ -830,11 +831,7 @@ private:
 						{
 							driverVerStr += _T(" / kbdaddid");
 							if (!kbdAddIdVer.empty())
-								driverVerStr += _T(": ") + kbdAddIdVer;
-							if (kbdAddIdActive)
-								driverVerStr += _T(" (License Active)");
-							else
-								driverVerStr += _T(" (License Inactive)");
+								driverVerStr += _T(" v") + kbdAddIdVer;
 						}
 						refreshVersionDialog(This->m_hwndVersion, driverVerStr);
 						ShowWindow(This->m_hwndVersion, SW_SHOW);
@@ -1267,6 +1264,10 @@ private:
 #endif
 	void showBanner(bool i_isCleared)
 	{
+		// バナーは load() (設定読み込み) より前に表示されることがあるため、
+		// kbdaddid のバージョン/ライセンス状態をここで改めて取得しておく。
+		m_engine.detectKbdAddId();
+
 		time_t now;
 		time(&now);
 
@@ -1334,7 +1335,16 @@ private:
 				if (kbdAddIdInstalled)
 					m_log << _T(": ") << m_engine.getKbdAddIdVersion();
 				if (kbdAddIdActive)
-					m_log << _T(" (License Active)");
+				{
+					m_log << _T(" (License Active");
+					switch (m_engine.getKbdAddIdDeviceIdMode())
+					{
+					case 0: m_log << _T(", DeviceInstanceId mode"); break;
+					case 1: m_log << _T(", HardwareId mode"); break;
+					default: break; // unknown/not read
+					}
+					m_log << _T(")");
+				}
 				else
 					m_log << _T(" (License Inactive)");
 				m_log << std::endl;
@@ -1507,7 +1517,7 @@ public:
 		// (WM_INITDIALOG が CreateDialogParam 内で同期処理されるため、ローカル変数の寿命で安全)
 		tstring m_driverVersionStr = m_engine.getNodokadVersion();
 		if (!m_engine.getKbdAddIdVersion().empty())
-			m_driverVersionStr += _T(" / kbdaddid: ") + m_engine.getKbdAddIdVersion();
+			m_driverVersionStr += _T(" / kbdaddid v") + m_engine.getKbdAddIdVersion();
 		m_hwndVersion =
 			CreateDialogParam(g_hInst, MAKEINTRESOURCE(IDD_DIALOG_version),
 							  NULL, dlgVersion_dlgProc,

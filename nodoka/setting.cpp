@@ -893,27 +893,21 @@ void SettingLoader::load_DEFINE_OPTION()
 				k++;
 			}
 
-			// kbdaddid.sys の有効確認 (License == 1 のみ有効)
+			// kbdaddid.sys の DeviceIdMode を取得 (ExtraInfo ログ表示用)。
+			// ライセンス判定 (m_UseKbdAddId) は def option UnitID の有無に関わらず
+			// load() 冒頭で既に行っている。
 			DWORD kbdAddIdDeviceIdMode = 0; // 0=DeviceInstanceId (default), 1=HardwareId
+			if (m_setting->m_UseKbdAddId == 1)
 			{
 				HKEY hKey;
-				DWORD kbdAddIdLicense = 0;
 				if (RegOpenKeyEx(HKEY_LOCAL_MACHINE,
 					_T("SYSTEM\\CurrentControlSet\\Services\\kbdaddid\\Parameters"),
 					0, KEY_READ, &hKey) == ERROR_SUCCESS)
 				{
 					DWORD cbData = sizeof(DWORD);
-					RegQueryValueEx(hKey, _T("License"), NULL, NULL,
-						(LPBYTE)&kbdAddIdLicense, &cbData);
-					cbData = sizeof(DWORD);
 					RegQueryValueEx(hKey, _T("DeviceIdMode"), NULL, NULL,
 						(LPBYTE)&kbdAddIdDeviceIdMode, &cbData);
 					RegCloseKey(hKey);
-				}
-				if (kbdAddIdLicense == 1)
-				{
-					m_setting->m_UseKbdAddId = 1;
-					*m_log << _T("kbdaddid: active (License=1), ExtraInfo mode enabled.") << std::endl;
 				}
 			}
 
@@ -3215,6 +3209,29 @@ bool SettingLoader::load(Setting *i_setting, const tstringi &i_filename)
 {
 	m_setting = i_setting;
     m_isThereAnyError = false;
+
+	// kbdaddid.sys の有効確認 (License == 1 のみ有効)。
+	// def option UnitID の設定有無に関わらず、実際のライセンス状態と一致させる。
+	// load_INCLUDE() も同じ load() を再帰呼び出しするため、include ファイル毎に
+	// 繰り返し判定しないよう、トップレベル呼び出し (i_filename が空) のときだけ
+	// 実行する。結果はバナー ("use kbdaddid: ... (License Active)") 側でのみ
+	// 表示するので、ここではログ出力しない。
+	if (i_filename.empty())
+	{
+		HKEY hKey;
+		DWORD kbdAddIdLicense = 0;
+		if (RegOpenKeyEx(HKEY_LOCAL_MACHINE,
+			_T("SYSTEM\\CurrentControlSet\\Services\\kbdaddid\\Parameters"),
+			0, KEY_READ, &hKey) == ERROR_SUCCESS)
+		{
+			DWORD cbData = sizeof(DWORD);
+			RegQueryValueEx(hKey, _T("License"), NULL, NULL,
+				(LPBYTE)&kbdAddIdLicense, &cbData);
+			RegCloseKey(hKey);
+		}
+		if (kbdAddIdLicense == 1)
+			m_setting->m_UseKbdAddId = 1;
+	}
 
 	tstringi path;
 	if (!getFilename(i_filename, &path))

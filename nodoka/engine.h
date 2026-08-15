@@ -234,6 +234,7 @@ private:
 
 	tstring m_nodokadVersion;					/// version of nodokad.sys
 	tstring m_kbdAddIdVersion;					/// version of kbdaddid.sys (empty if not installed/active)
+	int m_kbdAddIdDeviceIdMode;				/// kbdaddid DeviceIdMode (0=DeviceInstanceId, 1=HardwareId, -1=unknown)
 	HANDLE m_readEvent;							/** reading from nodoka device has been completed */
 	HANDLE m_reInjectEvent;						/** re-injected keys are waiting in m_inputQueue */
 	HANDLE m_interruptThreadEvent;				/// interrupt thread event
@@ -861,6 +862,9 @@ public:
 
 	/// get kbdaddid version (empty if not installed/active)
 	const tstring &getKbdAddIdVersion() const { return m_kbdAddIdVersion; }
+
+	/// get kbdaddid DeviceIdMode (0=DeviceInstanceId, 1=HardwareId, -1=unknown)
+	int getKbdAddIdDeviceIdMode() const { return m_kbdAddIdDeviceIdMode; }
 
 	/// get current keymap
 	const void get_keymaps();
