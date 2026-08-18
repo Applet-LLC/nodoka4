@@ -1452,7 +1452,8 @@ unsigned int Engine::keyboardDetour(KBDLLHOOKSTRUCT *i_kid)
 		kid.Reserved = 0;
 		kid.ExtraInformation = 0;
 
-		NODOKA_TRACE(_T("keyboardDetour: sc=0x%x flags=0x%x, queueing\n"), kid.MakeCode, kid.Flags);
+		NODOKA_TRACE(_T("keyboardDetour: sc=0x%x flags=0x%x dwExtraInfo=0x%p, queueing\n"),
+			kid.MakeCode, kid.Flags, (void *)i_kid->dwExtraInfo);
 
 		// kbdaddid の ExtraInfo を keyboardHandler まで引き渡す
 		SendtoKeyboardHandler(1, kid.Flags, kid.MakeCode, i_kid->dwExtraInfo);
@@ -2169,11 +2170,8 @@ void Engine::keyboardHandler()
 		if (m_setting && g_hookDataExe && g_hookDataExe->m_UseKbdAddId == 1)
 		{
 			ULONG kbdId = kid.ExtraInformation >> 16;
-#ifdef DEBUG
-			m_log << _T("quit_loop:  ExtraInfo 0x") << std::hex << kid.ExtraInformation
-			      << _T(" Reserved=") << kid.Reserved
-			      << _T(" Flags=0x") << kid.Flags << std::dec << std::endl;
-#endif
+			NODOKA_TRACE(_T("quit_loop kbdaddid: hook=%d UseKbdAddId=%d ExtraInfo=0x%x Reserved=%d Flags=0x%x kbdId=0x%x\n"),
+				m_keyboard_hook, g_hookDataExe->m_UseKbdAddId, kid.ExtraInformation, kid.Reserved, kid.Flags, kbdId);
 			if (kbdId != 0)
 			{
 				// External keyboard: kbdaddid set ExtraInfo to the DeviceId.
@@ -2199,6 +2197,7 @@ void Engine::keyboardHandler()
 						<< std::hex << std::uppercase << (kbdId << 16) << std::dec
 						<< std::endl;
 				}
+				NODOKA_TRACE(_T("quit_loop kbdaddid: setLockState3(UnitID=%u) found=%d\n"), UnitID, (int)found);
 				setLockState3(UnitID);
 			}
 			else if (!isSmReinjected
@@ -2209,6 +2208,7 @@ void Engine::keyboardHandler()
 				// ・kid.Reserved==1: nodoka内部リピート処理 → K状態を変えない
 				// ・kid.Flags & E1: ゲームパッド/マウスキー/フォーカス変更等の合成イベント → K状態を変えない
 				// ・isSmReinjected: SM再注入イベント → UnitIDを変えない (K1–K7が K0 になるバグ防止)
+				NODOKA_TRACE(_T("quit_loop kbdaddid: setLockState3(0) [ExtraInfo==0 -> K0]\n"));
 				setLockState3(0);
 			}
 		}

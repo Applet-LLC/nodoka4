@@ -487,6 +487,7 @@ private:
 				return FALSE;
 			}
 			case WM_QUERYENDSESSION:
+				NODOKA_TRACE(_T("WM_QUERYENDSESSION received, lParam=0x%p, closing\n"), (void *)(ULONG_PTR)i_lParam);
 				if (!This->m_sessionState)
 				{
 					if (This->m_escapeNlsKeys && This->m_engine.getIsEnabled())
@@ -874,6 +875,7 @@ private:
 						}
 						break;
 					case ID_MENUITEM_quit:
+						NODOKA_TRACE(_T("ID_MENUITEM_quit selected, closing\n"));
 						This->m_engine.prepairQuit();
 						PostMessage(i_hwnd, WM_CLOSE, 0, 0);
 						break;

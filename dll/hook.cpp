@@ -942,7 +942,7 @@ LRESULT CALLBACK getRawInput(int i_nCode, WPARAM i_wParam, LPARAM i_lParam)
 					Kbll.scanCode = raw->data.keyboard.MakeCode;
 					Kbll.flags = raw->data.keyboard.Flags;
 					Kbll.time = 0;
-					Kbll.dwExtraInfo = NULL;
+					Kbll.dwExtraInfo = (ULONG_PTR)raw->data.keyboard.ExtraInformation;
 
 					// engineにデータを渡す
 					if (g.m_keyboardDetour && g.m_engine && g.hookDataDll->m_keyboard_hook == 2)
@@ -1251,11 +1251,22 @@ DllExport int installKeyboardHook(INPUT_DETOUR i_keyboardDetour, Engine *i_engin
 	if (!g.m_isMaped)
 		mapHookData();
 
+	DBG_PRINT(_T("installKeyboardHook: install=%d keyboard_hook=%d device=%d hInstDLL=%p\n"),
+		(int)i_install, g.hookDataDll ? g.hookDataDll->m_keyboard_hook : -1,
+		g.hookDataDll ? (int)g.hookDataDll->m_device : -1, g.m_hInstDLL);
+
 	if (g.hookDataDll->m_keyboard_hook == 0)
+	{
+		DBG_PRINT(_T("installKeyboardHook: keyboard_hook==0 (device mode), skipping\n"));
 		return 0;
+	}
 
 	if (g.hookDataDll->m_device == true)
+	{
+		DBG_PRINT(_T("installKeyboardHook: hookDataDll->m_device==true, skipping "
+			"(another nodoka instance in device-driver mode sharing this HOOK_DATA_NAME?)\n"));
 		return 0;
+	}
 
 	int m_mode = 0;
 	if (i_install == true)
@@ -1272,18 +1283,21 @@ DllExport int installKeyboardHook(INPUT_DETOUR i_keyboardDetour, Engine *i_engin
 		g.m_keyboardDetour = i_keyboardDetour;
 		g.m_engine = i_engine;
 		m_hHookKeyboardProc = SetWindowsHookEx(WH_GETMESSAGE, (HOOKPROC)getRawInput, g.m_hInstDLL, 0);
-		//DBG_PRINT(_T("install rawinput hook. %d"), m_hHookKeyboardProc);
+		DBG_PRINT(_T("installKeyboardHook: SetWindowsHookEx(WH_GETMESSAGE/rawinput) handle=%p err=%lu\n"),
+			m_hHookKeyboardProc, m_hHookKeyboardProc ? 0 : GetLastError());
 		break;
 	case 1: // install LL Hook
 		g.m_keyboardDetour = i_keyboardDetour;
 		g.m_engine = i_engine;
 		m_hHookKeyboardProc = SetWindowsHookEx(WH_KEYBOARD_LL, (HOOKPROC)lowLevelKeyboardProc, g.m_hInstDLL, 0);
-		//DBG_PRINT(_T("install LL hook. %d"), m_hHookKeyboardProc);
+		DBG_PRINT(_T("installKeyboardHook: SetWindowsHookEx(WH_KEYBOARD_LL) handle=%p err=%lu\n"),
+			m_hHookKeyboardProc, m_hHookKeyboardProc ? 0 : GetLastError());
 		break;
 	case 0: // uninstall LL Hook
 		if (m_hHookKeyboardProc)
 			UnhookWindowsHookEx(m_hHookKeyboardProc);
 		m_hHookKeyboardProc = NULL;
+		DBG_PRINT(_T("installKeyboardHook: uninstalled\n"));
 		break;
 	default:
 		break;
@@ -1345,10 +1359,12 @@ static LRESULT CALLBACK keyboardLocalProc(int nCode, WPARAM wParam, LPARAM lPara
 	if (msg->message == WM_KEYUP || msg->message == WM_SYSKEYUP)
 		kbdll.flags |= LLKHF_UP;
 	kbdll.time        = msg->time;
-	kbdll.dwExtraInfo = 0;
+	// WH_GETMESSAGE はメッセージ取得直後に同期的に呼ばれるため、GetMessageExtraInfo() は
+	// このメッセージ自身の ExtraInfo (kbdaddid が刻印した DeviceId 等) を返す。
+	kbdll.dwExtraInfo = GetMessageExtraInfo();
 
-	DBG_PRINT(_T("keyboardLocalProc: vk=0x%x sc=0x%x flags=0x%x\n"),
-	          kbdll.vkCode, kbdll.scanCode, kbdll.flags);
+	DBG_PRINT(_T("keyboardLocalProc: vk=0x%x sc=0x%x flags=0x%x dwExtraInfo=0x%p\n"),
+	          kbdll.vkCode, kbdll.scanCode, kbdll.flags, (void *)kbdll.dwExtraInfo);
 
 	g.m_keyboardDetour(g.m_engine, (WPARAM)msg->wParam, (LPARAM)&kbdll);
 
