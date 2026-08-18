@@ -65,6 +65,9 @@ tools/iexpress.exe
 tools/makecab.exe
 tools/wextract.exe
 
+# Legacy SVN-era leftover folder (still contains its own .svn/)
+d.rescue/
+
 # Driver build outputs (except tracked sys in d.sign)
 error/
 old/
