@@ -49,9 +49,9 @@ RCa*
 
 # Installer outputs (build artifacts in distrib)
 distrib/*.exe
-distrib/files/*.exe
 distrib/*.log
 distrib/*.DDF
+distrib/files/
 distrib/temp/
 distrib/opened/
 distrib/Sample/
