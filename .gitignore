@@ -48,9 +48,8 @@ RCa*
 .specstory/
 
 # Installer outputs (build artifacts in distrib)
-distrib/files/nodoka-*.exe
-distrib/files/nodoka-*_setup.exe
-distrib/files/nodoka-*_sample_setup.exe
+distrib/*.exe
+distrib/files/*.exe
 distrib/*.log
 distrib/*.DDF
 distrib/temp/
