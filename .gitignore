@@ -76,3 +76,8 @@ Sample/
 # Real key material must never be pushed. Only authkey_secret.example.h
 # (dummy key, compiles but won't authenticate) is tracked.
 nodoka/authkey_secret.h
+
+# Internal planning/investigation notes. Kept locally, intentionally not
+# published (removed from git history 2026-08-18).
+/docs/
+/検討や調査内容/
