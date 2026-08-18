@@ -1,6 +1,6 @@
 # About Nodoka, a General-Purpose Keybinding Remapping Software
 
-https://appletllc.com/  applet@bp.iij4u.or.jp 2026-06-27
+https://appletllc.com/  appletllc@gmail.com 2026-08-18
 
 ## 1. Overview
 
@@ -18,7 +18,7 @@ The trial version terminates automatically 30 minutes after startup.
 
 This is shareware.
 
-The source code is published under the EPL 2.0 (Eclipse Public License 2.0) at https://gitlab.com/appletllc/nodoka4.
+The source code is published under the EPL 2.0 (Eclipse Public License 2.0) at https://github.com/Applet-LLC/nodoka4.
 
 The full version, priced at USD 11 including tax, can be purchased from https://appletllc.com/%e3%82%bd%e3%83%95%e3%83%88%e3%82%a6%e3%82%a7%e3%82%a2/.
 
@@ -47,7 +47,7 @@ From the page below, download and install the x64 or x86 file according to your 
 
 Then restart Windows. Running the setup while Nodoka is not running helps prevent installation failure.
 
-Run either `nodoka-4.31_sample_setup.exe` (trial version) or `nodoka-4.31_setup.exe` (full version) with administrator privileges.
+Run either `nodoka-4.32_sample_setup.exe` (trial version) or `nodoka-4.32_setup.exe` (full version) with administrator privileges.
 
 The device driver is installed during setup. A confirmation dialog may appear if necessary.
 
@@ -85,9 +85,11 @@ Please refer to the help file mentioned in section 2.
 
 We make efforts to ensure stable operation, but if a malfunction occurs, whether in the trial version or the full version, the responsibility lies with the user. Thank you for your understanding.
 
-The user support bulletin board is here: https://jbbs.shitaraba.net/computer/41517/.
+The user support bulletin board (anonymous posting allowed) is here: https://jbbs.shitaraba.net/computer/41517/.
 
-You can use it to report bugs, request investigations, and exchange information with other users.
+You can also get support there, but if you want to report a bug directly, please use the following instead. This is faster for confirming and reporting issues right after a release.
+
+https://github.com/Applet-LLC/nodoka4/issues
 
 ## 4. Copyright Notice
 
@@ -129,11 +131,16 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE AUTHOR “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Boost.Regex  
+Boost.Regex
 Copyright (c) 1998–2007 John Maddock
 
-Boost.Program_options  
+Boost.Program_options
 Copyright (c) 2002–2004 Vladimir Prus
+
+Boost C++ Libraries 1.85.0
+
+This product includes software from the Boost C++ Libraries, distributed under the Boost Software License, Version 1.0.
+https://www.boost.org/
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -164,6 +171,75 @@ Also, to the anonymous person who created the 3.30.1 source for Vista and made i
 Also, to KOBAYASHI Yoshiaki, who developed YAMY, my sincere thanks.
 
 ## 6. Release Notes
+
+### 2026-08-18 4.32
+
+**Summary**
+
+Adopted a new device driver, `nodokad2.sys` (Ver.2.01), as the default driver for the x64 edition. Also strengthened cooperation with the multi-keyboard driver `kbdaddid.sys`, fixed an unresponsiveness issue when using Windows Apps (a remote-access client distinct from the traditional Remote Desktop), and promoted Combo / TapDance / TapHold to a fully supported feature.
+
+We had originally planned 4.32 as a major version upgrade, but since it ended up containing only bug fixes, this is an ordinary bug-fix release.
+
+Many mail domains now treat our update announcements as spam, so we have given up on emailing update notices out. If you own 4.29, 4.30, or 4.31 and would like the update, please go through checkout for $0 (=¥0) on the Gumroad sales page.
+
+Going forward, we are also moving sales management to Gumroad. Existing owners can get 4.32 there for $0 (=¥0); owners of 4.28 or earlier can get it for $6 (=¥1,000); new purchasers pay $11 (=¥1,800). Once you register there, you can download it from that page at any time. Currently, Gumroad is the only sales channel we offer. If you purchase by mistake, Gumroad can process a refund within 30 days.
+
+https://gumroad.com/l/Zbge
+
+#### (1) Adoption of the new device driver `nodokad2.sys` (Ver.2.01)
+
+The previous device driver, `nodokad.sys`, was WDM-based and worked by intercepting IRPs (I/O Request Packets) — a "detour" approach. Even after 4.31 we continued fixing BSODs (a use-after-free fix in the completion path, mitigations for `REFERENCE_BY_POINTER` (0x18) on Bluetooth keyboard sleep/wake and device removal, etc.), which reduced how often they occurred, but conflicts inherent to the approach itself remained and could not be eliminated entirely.
+
+To address this limitation, we built `nodokad2.sys` from scratch as a standard keyboard-class filter driver (kbfiltr type) on KMDF (Kernel-Mode Driver Framework). By dropping the IRP-intercepting approach, the class of conflicts that plagued `nodokad.sys` can no longer occur structurally. It has passed HLK testing and obtained WHQL signing.
+
+`nodokad2.sys` is x64-only (the x86 edition continues to use `nodokad.sys`). The x64 setup installs `nodokad2.sys`. If you install the x64 edition of 4.32 on a system that already has the old `nodokad.sys`, it is automatically switched over to `nodokad2.sys` and the old driver is uninstalled (there is no risk of double-hooking).
+
+Note that the version of the legacy device driver `nodokad.sys` is Ver.1.43 for the x64 edition and Ver.1.41 for the x86 edition (it is not installed on x64, but a full copy is still placed in the `nodoka\nodokad` folder under the install directory in case you need to manually revert to it). Device driver versions 1.39, 1.40, 1.42, and 2.00 were skipped; we used those version numbers for debugging purposes.
+
+We also added a mechanism to `nodokad2.sys` that authenticates the caller (verifying the executable's signature, plus a challenge-response scheme), addressing the vulnerability where a process other than Nodoka itself could read keystrokes from, or inject keystrokes into, the driver.
+
+We also introduced a safety net via the registry value `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nodokad\HeartbeatTimeout` (REG_DWORD, seconds, default 3). If the driver detects that the app has not responded within the specified time, it automatically switches to passing all key input straight through, preventing keyboard lockup. Note that this safety net is a mitigation on the `nodokad.sys` (legacy driver) side only; `nodokad2.sys`, with its different architecture, has no equivalent mechanism, since the same kind of stall cannot occur there structurally.
+
+To be candid, aside from the Windows Update issue that could break key input, Nodoka 4.30 (with nodokad 1.31) was, we think, more stable in terms of not hitting BSODs. However, that 1.31 approach accessed the kbdclass driver directly, in a way that cannot obtain WHQL signing, so going back to that old approach is not an option for us.
+
+#### (2) Fixed an unresponsiveness issue when using Windows Apps
+
+Connecting via Windows Apps, or repeatedly disconnecting/reconnecting a remote session or switching users, could leave the remote Nodoka instance unresponsive, or leave the keyboard stuck and unrecoverable. This has been fixed.
+
+The cause was a combination of three bugs:
+
+- The `WTS_REMOTE_CONNECT` event ignored the screen-locked state (`SESSION_LOCKED`) and reconnected immediately, so when the lock was later released, reconnection ran a second time, producing two consecutive `resume()` calls with no `pause()` in between.
+- The `CheckModifier` / `KeyboardPast` threads had no handling for receiving an unpaired Resume, so the wait loop on the UI thread could spin forever.
+- `Engine::stop()` was called twice when the application exited, touching handles that had already been released.
+
+All three issues have been fixed, and repeated disconnect/reconnect cycles and user switching under Windows Apps no longer cause unresponsiveness or keyboard lockup.
+
+#### (3) Strengthened cooperation with the multi-keyboard driver `kbdaddid.sys`
+
+We strengthened cooperation with the separately sold device driver `kbdaddid.sys`, which lets you distinguish individual keyboards from one another. This corresponds to the "full multi-keyboard support" we previewed as of 4.31. "Full" here means resolving the recognition delay — it does not mean every keyboard out there can now be distinguished.
+
+The existing `def option UnitID` mechanism identifies keyboards using WM_INPUT (raw input) at the application level, which in principle can only determine the source keyboard once a key is released (Up). Once `kbdaddid.sys` is installed, a device-identifying value is stamped into the kernel-level `ExtraInformation` of each key event, so multiple keyboards can be distinguished from the very moment a key goes down.
+
+On the Nodoka side, detection of `kbdaddid.sys`'s license state and version no longer depends on whether `def option UnitID` is present — it is now always checked. The kbdaddid usage status, DeviceIdMode, and version are now shown in both the startup log banner and the version dialog. We also added support for a new configuration syntax, `def option UnitID = Kx ExtraInfo 0x....`. See the customization help for details.
+
+`kbdaddid.sys` (and the mouse equivalent, `mouaddid.sys`) is not bundled with Nodoka itself; it is planned to become available separately (as both a one-time-purchase and a subscription edition) starting 2026-08-18. See below for how to obtain it:
+
+- One-time purchase: https://applet.gumroad.com/l/tnwvkd
+- Subscription: https://applet.gumroad.com/l/hnbxr
+
+For installation instructions and specifications of `kbdaddid.sys` itself, please refer to kbdaddid's own documentation. This Readme and the help file only describe how to use it from the Nodoka side.
+
+Note that Nodoka does not yet support `mouaddid.sys`.
+
+#### (4) Combo / TapDance / TapHold promoted to a fully supported feature
+
+Combo / TapDance / TapHold, which were offered as an experimental implementation in 4.31, are now a fully supported feature, and their documentation has moved from the Readme's release notes into the main body of the customization help. TapHold now offers three extension options: Permissive Hold (confirm Hold only after the other key's press-and-release completes), Hold on Other Key Press (confirm Hold the instant another key goes down), and Quick Tap Term (fire a tap immediately, without waiting, if the same key is pressed again shortly after the previous tap). See the customization help for details.
+
+#### (5) Other fixes
+
+1. Added logic during setup to write the `HeartbeatTimeout` registry value described above to `nodokad.sys`'s service key (this applies to the x86 edition, and to the x64 edition only if it has been manually reverted to `nodokad.sys`).
+2. Fixed DriverManager's handling of the UpperFilters registration order (position relative to the keyboard class driver) so it stays correct in environments where multiple filter drivers (`nodokad2` / `kbdaddid`, etc.) coexist.
+3. Since 4.31, building the self-extracting setup files (e.g. `nodoka-4.32_setup.exe`) has used our own in-house tool, `nexpress` (this was omitted from the 4.31 Readme, so it is noted here for completeness). It was developed to replace the standard Windows `iexpress.exe`, which we ran into failures with when building archives. `nexpress` keeps compatibility with iexpress while also addressing vulnerabilities that iexpress left unaddressed (CWE-427: DLL/executable search-path hijacking, CWE-377: predictable temporary files, CWE-59: symlink following). In 4.32, it gained support for the `/C` option (extract only, without launching setup.exe). We also fixed an archive-extraction failure caused by a filename collision (the x86 and x64 `nodokad.pdb`).
 
 ### 2026-06-27 4.31
 

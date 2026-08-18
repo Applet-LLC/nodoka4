@@ -44,7 +44,7 @@
 </div>
 <div class="copyright">
   	<font face="ＭＳ Ｐゴシック">Copyright &copy; 2008-2026
-	<a target="_blank" href="https://appletllc.com/">Applet LLC</a> &lt;<a href="mailto:applet@bp.iij4u.or.jp">applet@bp.iij4u.or.jp</a>&gt;
+	<a target="_blank" href="https://appletllc.com/">Applet LLC</a> &lt;<a href="mailto:appletllc@gmail.com">appletllc@gmail.com</a>&gt;
 	</font>
 </div>
 <div class="main">
@@ -62,13 +62,13 @@
 			<li><font face="ＭＳ Ｐゴシック">Windows 10 22H2 以降向けの汎用キーバインディング変更ソフトです。</font></li>
 			<li><font face="ＭＳ Ｐゴシック">実行ファイルには、EV署名を、またデバイスドライバにはWHQL署名を付与し、管理者権限へのアプリへの操作および、x64環境では、x86, 
 			x64両方のアプリへの操作が可能です。</font></li>
-			<li><font face="ＭＳ Ｐゴシック">「窓使いの憂鬱」Version 3.30から「のどか」Version 4.31 
+			<li><font face="ＭＳ Ｐゴシック">「窓使いの憂鬱」Version 3.30から「のどか」Version 4.32
 			までの変更/修正点については、<b><a href="#HISTORY">改版履歴</a></b>を ご覧ください。</font></li>
 			<li>
 			<font face="ＭＳ Ｐゴシック"><a href="#FAQ">FAQ</a>や<a href="#BUGS">バグ</a>に出ていない情報の掲載箇所については、別途準備中です。</font></ul>
 			<li><font face="ＭＳ Ｐゴシック">キー入れ替えとウィンドウ操作に関する機能</font><ul>
-			<li><font face="ＭＳ Ｐゴシック"><a href="#key">特定のキーを入れ替え</a>たり、<a href="CUSTOMIZE-ja.html#function_Prefix">2 
-			ストロークキー</a>を設定できます。 
+			<li><font face="ＭＳ Ｐゴシック"><a href="#key">特定のキーを入れ替え</a>たり、<a href="CUSTOMIZE-ja.html#function_Prefix">2
+			ストロークキー</a>を設定できます。また、<a href="CUSTOMIZE-ja.html#ComboTapDanceTapHold">Combo/TapDance/TapHold機能</a>を実装しました。
 			</font></li>
 			<li><font face="ＭＳ Ｐゴシック"><a href="#window">個々のウィンドウに別々のキーバインディングを割り当てることができます。
 	 
@@ -97,9 +97,9 @@
 				<li><font face="ＭＳ Ｐゴシック">管理者権限が必要となりますが、<font color="#FF0000"><a target="_self" href="CUSTOMIZE-ja.html#-n">ScancodeMapの変更機能</a></font>も追加しました。<a target="_self" href="CUSTOMIZE-ja.html#option_keyboardLLhook">キーボードLLフック</a>機能利用時に、キーアップが送られないキー置換機能となります。4.24からの機能であり、<a target="_self" href="CUSTOMIZE-ja.html#-n">-n引数</a>が必要となります。</font></li>
 				<li><font face="ＭＳ Ｐゴシック">4.22から、従来実現できなかった同じキーの2度押し検出ができるようになりました。(</font><font face="ＭＳ Ｐゴシック" color="#FF0000"><a href="CUSTOMIZE-ja.html#def_option_UseDoublePress">def 
 			option UseDoublePress</a>)</font></li>
-				<li><font face="ＭＳ Ｐゴシック">複数キーボード対応</font><font face="ＭＳ Ｐゴシック" color="#FF0000">　</font><font face="ＭＳ Ｐゴシック"><a href="CUSTOMIZE-ja.html#K0toK7Modifier">モディファイヤー 
-			K0-からK7-</a>を用いて、最大8個のキーボードからのキー入力を認識し、個別にキー入れ替え可能です。なお4.22にて検出タイミングをDownからUpに改善させました。(<font color="#FF0000"><a href="CUSTOMIZE-ja.html#def_option_FakeUp">def 
-			option FakeUp</a>)</font></font></li>
+				<li><font face="ＭＳ Ｐゴシック">複数キーボード対応</font><font face="ＭＳ Ｐゴシック" color="#FF0000">　</font><font face="ＭＳ Ｐゴシック"><a href="CUSTOMIZE-ja.html#K0toK7Modifier">モディファイヤー
+			K0-からK7-</a>を用いて、最大8個のキーボードからのキー入力を認識し、個別にキー入れ替え可能です。なお4.22にて検出タイミングをDownからUpに改善させました。(<font color="#FF0000"><a href="CUSTOMIZE-ja.html#def_option_FakeUp">def
+			option FakeUp</a>)</font>4.32から別売りの<a href="CUSTOMIZE-ja.html#def_option_UnitID_kbdaddid">kbdaddid.sysを用いて、複数キーボードに関して完全対応</a>しました。</font></li>
 				<li><font face="ＭＳ Ｐゴシック" color="#FF0000">
 				<a href="CUSTOMIZE-ja.html#BadUSB">BadUSBによる悪意を持つUSBキーボードデバイスからのキー入力抑止
 				を実現する設定ファイルを追加しました。複数キーボード対応機能の応用です。</a></font></li>
@@ -129,11 +129,11 @@
 			</ul></li>
 			<li><font face="ＭＳ Ｐゴシック">シェアウェアやユーザーサポートについて</font><ul>
 				<li><font face="ＭＳ Ｐゴシック">試用版は、正式版からの制限として、起動後30分で動作停止します。正式版（税込み 
-			$11）は、</font><a target="_blank" href="https://appletllc.com/ソフトウェア/">https://appletllc.com/ソフトウェア/</a>
+			$11(=1800円)）は、</font><a target="_blank" href="https://appletllc.com/ソフトウェア/">https://appletllc.com/ソフトウェア/</a>
 				<font face="ＭＳ Ｐゴシック">にて販売しています。<br>
 				Gumroadを使ったクレジットカードでのお支払いとなります。なお将来にわたって、無償バージョンアップを保証するものでは
-				ありません。次版4.32は有償バージョンアップを計画中です。<br>ソースコードは、<a target="_blank" href="../LICENSE.txt">EPL 2.0
-			(Eclipse Public License 2.0)</a> で <a target="_blank" href="https://gitlab.com/appletllc/nodoka4">https://gitlab.com/appletllc/nodoka4</a>
+				ありません(4.32はメジャーバージョンアップを予定していましたが、バグ対応のみだったため無償です。販売管理もGumroadへ移行しました。詳しくは<a href="#SUPPORT">サポートの項</a>をご覧ください)。<br>ソースコードは、<a target="_blank" href="../LICENSE.txt">EPL 2.0
+			(Eclipse Public License 2.0)</a> で <a target="_blank" href="https://github.com/Applet-LLC/nodoka4">https://github.com/Applet-LLC/nodoka4</a>
 			にて公開しています。</font></li>
 				<li><font face="ＭＳ Ｐゴシック">ユーザサポートについては、<a href="#SUPPORT">サポートの項</a>をご覧ください。<br>　</font></li>
 			</ul></li>
@@ -182,8 +182,8 @@
 
 			<p></p><p></p>
 		<li><b><font face="ＭＳ Ｐゴシック">アプリのインストール</font></b></font><p><font face="ＭＳ Ｐゴシック">入手された実行ファイル  
-		<span class="auto-style6">nodoka-4.31_sample_setup.exe</span> 
-		(試用版), <span class="auto-style6">nodoka-4.31_setup.exe</span> (正式版)を  
+		<span class="auto-style6">nodoka-4.32_sample_setup.exe</span>
+		(試用版), <span class="auto-style6">nodoka-4.32_setup.exe</span> (正式版)を
 		<strong>Administrator（管理者）</strong>権限で実行してください。しばらくすると「のどか」のインストール作業が開始され
 		、下記に示すダイアログが表示されます。(ドメインに参加している場合には、ローカルPCの管理者権限での実行が必要です。)<br>もし、「のどか」実行中の場合では、先に、「のどか」を終了させるかどうか、ダイアログによる問い合わせがあるので、OKで進めてください。&nbsp;</font></p>
 		<p><img border="0" src="setup1.jpg" width="524" height="392"></p>
@@ -195,6 +195,7 @@
 		<p><img border="0" src="setup0.jpg" width="326" height="180"></p>
 		<p><font face="ＭＳ Ｐゴシック">その場合には、<a href="#FAQ3">FAQ</a>を、ご覧いただき、そのドライバを使用するソフトウェアのアンインストールをご検討
 		ください。キーボードLLフック機能をご利用になり、デバイスドライバをインストールされない場合には無視して頂いてかまいません。</font></p>
+		<p><font face="ＭＳ Ｐゴシック">なお、複数キーボード対応ドライバ <code>kbdaddid</code> が検出された場合は、このダイアログが表示されても<b>アンインストールする必要はありません</b>。kbdaddid.sys は nodokad2.sys(および nodokad.sys)と共存できるよう作られており、インストーラーが使用しているDriverManagerが両者のUpperFilters登録順序を自動的に調整します。そのままインストールを続行してください。</font></p>
 		<p><font face="ＭＳ Ｐゴシック">また、以前からお使いで、インストールしたままとして、アンインストールしてPCを再起動していなかった場合にも、その旨を示すダイアログが表示されるので、PCを再起動してから、インストール作業を行ってください。<br>
 		<br>なお、オプションについては、以下のとおりです。</font><ul class="decimal">
 			<li><font face="ＭＳ Ｐゴシック">インストール先<br>実行ファイルなどがインストールされるフォルダです。デフォルトのままでよいでしょう。必要ならば参照ボタンを押して、変更可能です。<br>アンインストールせずに、上書きインストールされる場合、以前のインストール先が表示されます。x64環境で、4.09以前のバージョンを使用していた場合、 
@@ -342,7 +343,7 @@
 				<br>
 				<img border="0" src="regedit.png" width="1020" height="320"><br>
 　</font></li>
-				<li>ここに nodokad あるいは mayud の記述がある場合には、これを削除してください。なお kbdclass 
+				<li>ここに nodokad、nodokad2 あるいは mayud の記述がある場合には、これを削除してください。なお kbdclass
 				の記述を削除しないよう、ご注意ください。<br>
 				<br>
 				次回PC起動したときに、ここの記述にあるフィルタドライバを読み込もうとします。しかしながら、どれかのデバイスドライバの不具合がある場合や、デバイスドライバのファイル自身が、先のアンインストール作業で削除されてい 
@@ -555,7 +556,7 @@
 				<div>
 					<p><font face="ＭＳ Ｐゴシック">ログウィンドウを表示します。</font></p>
 					<p><font face="ＭＳ Ｐゴシック">
-					<img src="log-ja.jpg"></font></p>
+					<img border="0" src="log-ja.jpg" width="748" height="400"></font></p>
 					<p><font face="ＭＳ Ｐゴシック">・</font><a href="#menu-i" class="menu-item"><font face="ＭＳ Ｐゴシック">調査(<u>I</u>)...</font></a><font face="ＭＳ Ｐゴシック">の結果やエラーなどがここに表示されます。<br></font></p>
 					<p><font face="ＭＳ Ｐゴシック">・「ログのクリア(L)」ボタンを押すと、現在表示されているログを消去します。</font></p>
 					<p><font face="ＭＳ Ｐゴシック">・「フォントの変更(F)」ボタンを押すと、ログ表示に用いるフォントを変更し、再描画します。</font></p>
@@ -592,7 +593,7 @@
 				(nodokad: Keyboard LL Hook Mode)　が表示されます。</font></p>
 					<p><font face="ＭＳ Ｐゴシック">マウスフック機能が動作中かどうかは、このバージョンダイアログでは表示しませんので、ログウィンドウを御覧下さい。</font></p>
 					<p><font face="ＭＳ Ｐゴシック">
-					<img src="version86.jpg"><img border="0" src="version.jpg"></font></p>
+					<img border="0" src="version86.jpg" width="451" height="325"><img border="0" src="version.jpg" width="451" height="325"></font></p>
 					<p><font face="ＭＳ Ｐゴシック">・「最新バージョンのダウンロード(D)」ボタンを押すと、規定のブラウザで、</font><a target="_blank" href="https://appletllc.com/">https://appletllc.com/</a><font face="ＭＳ Ｐゴシック"> 
 				を開きます。</font></p>
 					<p><font face="ＭＳ Ｐゴシック">・「閉じる(C)」ボタンを押すと、バージョン情報ウィンドウを閉じます。<br>
@@ -1083,7 +1084,8 @@
 				
 				<br>
 				　ユーザー様ご報告では、下記のフィルタドライバも存在するようです。いずれも同時動作はユーザー様責任となります。</font></p>
-				<p class="noindent"><font face="ＭＳ Ｐゴシック">SynTP (パナソニック Let's 
+				<p class="noindent"><font face="ＭＳ Ｐゴシック"><b>例外として、複数キーボード対応ドライバ <code>kbdaddid</code> は、kbdaddid.sys が nodokad2.sys(および nodokad.sys)と共存できるよう作られており、上記の「ユーザー様責任」の対象外です。</b>アンインストールする必要はありません。詳しくは<a href="CUSTOMIZE-ja.html#def_option_UnitID_kbdaddid">複数キーボード対応(kbdaddid.sys編)</a>をご覧ください。</font></p>
+				<p class="noindent"><font face="ＭＳ Ｐゴシック">SynTP (パナソニック Let's
 				Note CF-AX2 タブレット/通常モード切替)</font></p>
 				<p class="noindent"><font face="ＭＳ Ｐゴシック">ikbevent (Smart 
 				Connect software Intel Keyboard Class Upper Filter Driver)</font></p>
@@ -1429,8 +1431,8 @@
 		<dd class="d1">
 		<p class="bug"><font face="ＭＳ Ｐゴシック">他人が使用する可能性のある PC へ「のどか」をインストールしては 
 		いけません。</font></p>
-		<p><font face="ＭＳ Ｐゴシック">「のどか」はデバイスドライバを使用してキーボードに入力されたキーを認識しますが、そのデバイスドライバは全てのユーザー 
-		プログラムからアクセス可能なため、キー入力内容を取得するプログラムを作ることが可能です。<br>　従って、ご自身の責任のもとで使用されるPC以外では、セキュリティの低下につながるため、インストールしないでください。</font></p>
+		<p><font face="ＭＳ Ｐゴシック">「のどか」はデバイスドライバを使用してキーボードに入力されたキーを認識します。旧デバイスドライバ nodokad.sys(x86版、および手動で切り戻したx64版が対象)を使用した場合、そのデバイスドライバは全てのユーザー
+		プログラムからアクセス可能なため、キー入力内容を取得するプログラムを作ることが可能です。<br>　一方、x64版の既定ドライバである nodokad2.sys では、ドライバの呼び出し元を認証する機能を実装しており、署名済みの nodoka64.exe 以外のプロセスからはアクセスできません。あわせて、nodoka64.exe が読み込むDLLにもデジタル署名を必須とするDLLインジェクション防止機構を実装しており、脆弱性の撲滅に努めています。<br>　しかしながら、ご自身の責任のもとで使用されるPC以外では、セキュリティの低下につながるため、インストールしないでください。</font></p>
 		</dd>
 		<dt class="h1"><font face="ＭＳ Ｐゴシック"><a name="BUGS">１０. バグ　bugs</a>
 		</font>
@@ -1714,7 +1716,12 @@
 				<p class="noindent"><font face="ＭＳ Ｐゴシック">Boost.Regex<br>&nbsp;&nbsp; Copyright (c) 1998-2007 John Maddock</font></p>
 				<p class="noindent"><font face="ＭＳ Ｐゴシック">Boost.Program_options<br>&nbsp;&nbsp; Copyright (c) 2002-2004 Vladimir Prus<br>
 				<br>　</font></p>
-				<p class="noindent"><font face="ＭＳ Ｐゴシック">Boost Software License - 
+				<p class="noindent"><font face="ＭＳ Ｐゴシック">Boost C++ Libraries 1.85.0<br>
+				<br>
+				This product includes software from the Boost C++ Libraries, distributed under the Boost Software License, Version 1.0.<br>
+				<a target="_blank" href="https://www.boost.org/">https://www.boost.org/</a><br>
+				<br>　</font></p>
+				<p class="noindent"><font face="ＭＳ Ｐゴシック">Boost Software License -
 			Version 1.0 - August 17th, 2003</font></p>
 				<dl>
 					<dd>
@@ -1809,20 +1816,24 @@
 			とは異なります。決してオリジナルの方に、お問い合わせすることが無いよう よろしくお願いいたします。</span></font></p>
 				<dd class="d2">
 				<p><font face="ＭＳ Ｐゴシック"><span style="font-weight: 400">
-				<a href="https://jbbs.shitaraba.net/computer/41517/" target="_blank">掲示板にて、ユーザサポートを実施しています</a><a href="https://appletllc.com/bbs/">。</a> </font><br>
+				<a href="https://jbbs.shitaraba.net/computer/41517/" target="_blank">掲示板(匿名投稿可)にて、ユーザサポートを実施しています</a><a href="https://appletllc.com/bbs/">。</a> </font><br>
 				　掲示板では、ご質問に対するサポートや、リリース案内、ネットから見つけてきた設定ファイル集へのリンク紹介などを実施しております。</p>
 				<dd class="d2">
+				<p><font face="ＭＳ Ｐゴシック">直接、不具合報告されたい場合には、以下のGitHub issuesもご利用ください。リリース直後の不具合確認や報告は、こちらの方が早いです。</font><br>
+				<a target="_blank" href="https://github.com/Applet-LLC/nodoka4/issues">https://github.com/Applet-LLC/nodoka4/issues</a></p>
+				<dd class="d2">
 				<p><font face="ＭＳ Ｐゴシック"><span style="font-weight: 400">
-			正式版購入者には、最新版のリリースなどの御案内を メールで 差し上げています。なお、Vector 
-			のシェアレジでご購入された場合、最新版リリースの連絡先が不明なので、<a target="_blank" href="http://my.formman.com/form/pc/d7nco3JgUgnkYjA3/">メールアドレスを御連絡ください。</a></span></font></p>
+			メールではスパム扱いとなるドメインも多く、最新版のリリース案内をメールで一斉に差し上げることは断念しております。4.29, 4.30, 4.31オーナーの方々で、アップデートを入手されたい場合には、<a target="_blank" href="https://gumroad.com/l/Zbge">Gumroadの販売ページ</a>で、0円で購入処理してください。</span></font></p>
+				<p><font face="ＭＳ Ｐゴシック"><span style="font-weight: 400">
+			また、販売管理は<a target="_blank" href="https://gumroad.com/l/Zbge">Gumroad</a>に移行しています。オーナーの方は $0(=0円)、4.28以前のオーナーの方々は $6(=1000円)、新規の場合には $11(=1800円) でご購入いただけます。登録後は、そのページからいつでもダウンロード可能です。現在は Gumroad以外の販売方法は用意していません。誤って購入された場合には、30日以内であればGumroad側にて返金処理が可能です。</span></font></p>
 				<dd class="d2">
-				<p>掲示板以外にも、<a href="mailto:applet@bp.iij4u.or.jp">applet@bp.iij4u.or.jp</a> 
-			に直接メールをお出しいただいても構いません。なおGmailなどでは迷惑メールとなる場合がありますのでご注意ください。</p>
+				<p>掲示板以外にも、<a href="mailto:appletllc@gmail.com">appletllc@gmail.com</a>
+			に直接メールをお出しいただいても構いません。</p>
 				<dd class="d2">
-				<p><font face="ＭＳ Ｐゴシック">ソースコードは、Common 
-			Public License で 
-			 
-				<a target="_blank" href="https://gitlab.com/appletllc/nodoka4">https://gitlab.com/appletllc/nodoka4</a> 
+				<p><font face="ＭＳ Ｐゴシック">ソースコードは、EPL 2.0
+			(Eclipse Public License 2.0) で
+
+				<a target="_blank" href="https://github.com/Applet-LLC/nodoka4">https://github.com/Applet-LLC/nodoka4</a>
 			にて公開しています。</font></p>
 			</dl>
 		<dt>
@@ -1841,7 +1852,7 @@
 		予定では概要にも書いたように、2009/9頃を想定しています。 
 		（本件は、2009/10に、署名有り版として4.10をリリースし、対応致しました。)<br>　・ソースコードは、Common Public License で 
 		 
-			<a target="_blank" href="https://gitlab.com/appletllc/nodoka4">https://gitlab.com/appletllc/nodoka4</a>
+			<a target="_blank" href="https://github.com/Applet-LLC/nodoka4">https://github.com/Applet-LLC/nodoka4</a>
 		にて公開しています。</font></p>
 			<p><font face="ＭＳ Ｐゴシック"><br>　・Vista向けの 3.30.1ソースを作成され、2chでのスレッドで公開してくださった無名の方、大変ありがとうございます。<br>　・YAMYのKOBAYASHI Yoshiaki さん。&amp;CancelPrefix 
 		を、実装させて頂きました。下記にもあるように、もともとドライバの開発をされていたとのことなので、そちらの方も、大変ありがとうございます。<br>　・「のどか」をダウンロードして、動かしてみた方々、大変ありがとうございます。また、シェアウェアに御賛同頂き、正式版を御購入いただいた方々、大変どうもありがとうございます。<br>　</font></p>
@@ -1859,6 +1870,60 @@
 		
 		<dt class="h1"><font face="ＭＳ Ｐゴシック"><a name="HISTORY">１６. 改版履歴　history</a></font>
 <dd class="d1">
+	<div>
+		<p>2026/08/18 4.32 </p>
+		<p><b>概要</b><br>新デバイスドライバ nodokad2.sys (Ver.2.01) を採用し、x64版の既定ドライバとしました。あわせて、複数キーボード対応ドライバ kbdaddid.sys との連携強化、Windows Apps(新しいリモートデスクトップクライアント)利用時の応答なし不具合の修正、Combo / TapDance / TapHold機能の正式化などを行いました。</p>
+
+    <p>4.32ではメジャーバージョンアップを予定していましたが、バグ対応しかないので、通常のバグフィックスリリースです。</p>
+    <p>メールではスパム扱いとなるドメインも多く、アップデートのご案内を送ることを断念しております。4.29, 4.30, 4.31オーナーの方々で、アップデートを入手されたい場合には、<a target="_blank" href="https://gumroad.com/l/Zbge">Gumroadの販売ページ</a>で、0円で購入処理してください。</p>
+    <p>また、今後Gumroadでの販売管理に移行します。以下のページから、オーナーの方は $0(=0円)でご購入ください。4.28以前のオーナーの方々は、$6(=1000円)で御購入ください。新規の場合には$11(=1800円)で御購入頂けます。<br>
+    登録できると、このページからいつでもダウンロードできるようになります。現在は Gumroad以外での販売方法は用意していません。<br>
+    誤って購入された場合には、30日以内ならGumroad側にて、御返金処理できます。</p>
+    <p><a href="https://gumroad.com/l/Zbge" target="_blank">https://gumroad.com/l/Zbge</a></p>
+
+    <h4>(1) 新デバイスドライバ nodokad2.sys (Ver.2.01) の採用について</h4>
+    <p>従来のデバイスドライバ nodokad.sys は、WDMベースでIRP(I/O要求パケット)を横取りする方式(detour方式)を採用していました。4.31以降もBSOD(ブルースクリーン)の修正を重ね(パース完了処理でのUAF修正、Bluetoothキーボードのスリープ復帰時やデバイス取り外し時のREFERENCE_BY_POINTER (0x18) 対策など)、発生頻度は下げましたが、方式そのものに起因する競合が残り、未発生とすることが出来ませんでした。</p>
+    <p>この限界に対応するため、標準的なキーボードクラスフィルタドライバ(kbfiltr型)としてKMDF (Kernel-Mode Driver Framework) で新たに実装し直した nodokad2.sys を用意しました。IRPを横取りする方式を廃止したことで、従来の nodokad.sys が抱えていた種類の競合が構造的に発生しなくなります。HLKテストならびにWHQL署名を取得済みです。</p>
+    <p>nodokad2.sys は x64版のみの対応です(x86版は引き続き nodokad.sys を使用します)。x64版の setup では、nodokad2.sys がインストールされます。旧 nodokad.sys が導入済みの環境に x64版4.32 をインストールした場合は、自動的に nodokad2.sys へ切り替わり、旧ドライバはアンインストールされます(二重にフックされることはありません)。</p>
+    <p>なお、旧デバイスドライバ nodokad.sys のバージョンは、x64版が <b>Ver.1.43</b>、x86版が <b>Ver.1.41</b> です(x64版はインストールされませんが、手動での切り戻しに備えて、setup実行時にインストール先の <code>nodoka\nodokad</code> フォルダへコピーされます)。なおデバイスドライバのバージョン 1.39, 1.40, 1.42, 2.00は欠番です。デバッグ用途にバージョン番号を使いました。</p>
+    <p>あわせて、ドライバの呼び出し元を認証する機能(実行ファイルの署名確認、およびチャレンジレスポンス方式による認証)を nodokad2.sys に追加しました。これにより「のどか」本体以外のプロセスからキー入力を読み取ったり、キー入力を注入したりという脆弱性に対処しました。</p>
+    <p>また、レジストリ <code>HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nodokad\HeartbeatTimeout</code> (REG_DWORD、秒、既定値3) によるセーフティネットを導入しました。アプリ側からの応答が既定の時間なくなったことをドライバが検知すると、自動的にキー入力をそのまま素通しする状態に切り替わり、キー入力不能になることを防ぎます。<font color="#FF0000">このセーフティネットは nodokad.sys(旧ドライバ)側の対策であり、アーキテクチャが異なる nodokad2.sys には同じ機構はありません</font>(同種の滞留が構造的に起こらないため)。</p>
+    <p>のどか4.30(nodokadは1.31)の方が、Windows Updateでキー入力できなくなる問題を除けば、BSOD(ブルースクリーン)発生せず安定していたとは思います。しかしながら、1.31の方式は、kbdclassドライバを直接アクセスしており、WHQL署名が取れない方式であるため、過去方式に戻れないです。</p>
+
+    <h4>(2) Windows Apps(新しいリモートデスクトップクライアント)利用時の応答なし不具合の修正</h4>
+    <p>Windows Apps(いわゆるリモートデスクトップとは異なる別のクライアント)経由でリモート接続した際、あるいはリモートセッションの切断・再接続やユーザー切り替えを繰り返した際に、接続先の「のどか」が応答なしになったり、キー入力が固まって戻らなくなったりする不具合を修正しました。</p>
+    <p>原因は次の3つが複合したものでした。</p>
+    <ul>
+        <li>WTS_REMOTE_CONNECTイベントが、画面ロック中 (SESSION_LOCKED) であることを無視して即座に再接続処理を行っていたため、ロック解除時にもう一度再接続処理が走り、pause()を挟まない連続した resume() が発生していた。</li>
+        <li>CheckModifier / KeyboardPastスレッドが、対になっていないResumeを受け取った場合の処理を持っておらず、UIスレッド側の待機ループが永久に終了しなくなっていた。</li>
+        <li>アプリケーション終了時、Engine::stop() が二重に呼ばれ、すでに解放済みのハンドルを扱おうとしていた。</li>
+    </ul>
+    <p>これら3点をすべて修正し、Windows Apps環境での接続断・再接続やユーザー切り替えを繰り返しても、応答なしやキー入力の固着が発生しないことを確認しています。</p>
+
+    <h4>(3) 複数キーボード対応ドライバ kbdaddid.sys との連携強化</h4>
+    <p>複数のキーボードを個別に区別して扱うための別売のデバイスドライバ kbdaddid.sys との連携を強化しました。4.31時点で「複数キーボード対応の完全版」として予告していた部分に相当します。完全版とは、認識の遅延解消を意味していて、すべてのキーボードが区別できるわけではありません。</p>
+    <p>従来の <code>def option UnitID</code> による複数キーボード判別は、WM_INPUT (raw input) を用いてアプリケーション側でキーボードを区別する方式のため、原理上、キーを離した(Up)タイミングでないと発行元キーボードが確定できないという制限がありました。kbdaddid.sys を導入すると、カーネル内でキー入力の ExtraInformation にデバイスを識別する値を刻印するため、キーを押した(Down)最初の時点から複数キーボードを判別できるようになります。</p>
+    <p>「のどか」側では、kbdaddid.sys のライセンス状態とバージョンを、<code>def option UnitID</code> の記述有無に関わらず常時検出するように変更し、起動時のログバナーとバージョンダイアログに、kbdaddid使用状況・DeviceIdMode・バージョンを表示するようにしました。また、設定ファイルの記述として <code>def option UnitID = Kx ExtraInfo 0x....</code> という新しい書式に対応しました。詳しい設定方法は、<a href="CUSTOMIZE-ja.html#def_option_UnitID_kbdaddid">カスタマイズ方法の複数キーボード対応(kbdaddid.sys編)</a>をご覧ください。</p>
+    <p>kbdaddid.sys(および、マウス用の mouaddid.sys)は「のどか」本体には同梱されず、2026-08-18より別売(買い切り版・サブスクリプション版)として提供開始予定です。</p>
+    <ul>
+        <li>買い切り版: <a href="https://applet.gumroad.com/l/tnwvkd" target="_blank">https://applet.gumroad.com/l/tnwvkd</a></li>
+        <li>サブスクリプション版: <a href="https://applet.gumroad.com/l/hnbxr" target="_blank">https://applet.gumroad.com/l/hnbxr</a></li>
+    </ul>
+    <p>kbdaddid.sys自体のインストール方法や仕様については、kbdaddid側のドキュメントをご覧ください。本ヘルプでは、「のどか」側からの利用方法のみを説明しています。</p>
+    <p>なお、mouaddid.sysには、「のどか」ではまだ対応していません。</p>
+
+    <h4>(4) Combo / TapDance / TapHold機能の正式版化</h4>
+    <p>4.31で実験実装として提供していた Combo / TapDance / TapHold 機能を正式な機能とし、記載場所も本改版履歴から、<a href="CUSTOMIZE-ja.html#Combo">カスタマイズ方法のヘルプ本文</a>へ移しました。TapHold には、Permissive Hold(他キーの操作完了を待ってHold確定)・Hold on Other Key Press(他キーのDownで即Hold確定)・Quick Tap Term(直前のタップから短時間内の再タップは待たずに即発火)という3つの拡張オプションが利用できます。詳細は<a href="CUSTOMIZE-ja.html#TapHold">カスタマイズ方法のヘルプ</a>をご覧ください。</p>
+
+    <h4>(5) その他の修正</h4>
+    <ol>
+        <li>setupインストール時、上記の <code>HeartbeatTimeout</code> レジストリを nodokad.sys のサービスキーへ書き込む処理を追加しました(x86版、および手動で nodokad.sys へ切り戻した x64版が対象です)。</li>
+        <li>複数のフィルタドライバ(nodokad2 / kbdaddid など)が共存する環境で、UpperFilters の登録順序(キーボードクラスドライバとの前後関係)が壊れないよう、DriverManagerの処理を修正しました。</li>
+        <li>setupファイル(<code>nodoka-4.32_setup.exe</code>など)の自己解凍アーカイブ作成には、4.31より、独自開発した <code>nexpress</code> を採用しています(4.31時点の改版履歴への記載が漏れていたため、ここで補足します)。従来使用していたWindows標準の <code>iexpress.exe</code> で、アーカイブが作成できない不具合に遭遇したため、iexpress互換を保ちつつ、iexpressでは未対応だった脆弱性(CWE-427: DLL/実行ファイル探索パスハイジャック、CWE-377: 予測可能な一時ファイル、CWE-59: シンボリックリンク追従)に対応した自作ツールとして新規開発したものです。4.32では、<code>/C</code> オプション(展開のみを行い、setup.exeを起動しない)に対応しました。あわせて、同名ファイル(nodokad.pdbのx86/x64衝突)によるアーカイブ展開失敗の修正も行いました。</li>
+    </ol>
+	</div>
+
+	<br><br>
 	<div>
 		<p>2026/06/27 4.31 </p>
 		<p>ライセンスをCPL(Common Public License)から、EPL 2.0(Eclipse Public License 2.0)に変更しました。</p>
@@ -3355,8 +3420,8 @@ taphold F = tap=F  hold=C-                       # F: 短押し&rarr;f / 長押�
 				でのサポートではありませんので、決して、そちらに お問い合わせすることが無いよう よろしくお願いいたします。　<li>
 				また、4.00.0では、ソースコード非公開をうたっていましたが、4.01以降、ソースコードは、Common Public 
 				License で 
-				<a href="https://gitlab.com/appletllc/nodoka4" target="_blank">
-				https://gitlab.com/appletllc/nodoka4</a>
+				<a href="https://github.com/Applet-LLC/nodoka4" target="_blank">
+				https://github.com/Applet-LLC/nodoka4</a>
 				にて公開予定です。バックドアが無いことを早く御確認されたい場合には、ご連絡ください。別途対応させて頂きます。</ul>
 			</dd>
 		</dl>

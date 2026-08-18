@@ -922,6 +922,15 @@
 			    <li><code><font face="ＭＳ Ｐゴシック">mod ...</font></code><font face="ＭＳ Ｐゴシック"> <a href="#mod">
 				モディファイヤキー割り当ての変更</a>
 			  	</font>
+			    <li><code><font face="ＭＳ Ｐゴシック">combo ...</font></code><font face="ＭＳ Ｐゴシック"> <a href="#Combo">
+				Combo</a>
+			    </font>
+			    <li><code><font face="ＭＳ Ｐゴシック">tapdance ...</font></code><font face="ＭＳ Ｐゴシック"> <a href="#TapDance">
+				TapDance</a>
+			    </font>
+			    <li><code><font face="ＭＳ Ｐゴシック">taphold ...</font></code><font face="ＭＳ Ｐゴシック"> <a href="#TapHold">
+				TapHold</a>
+			    </font>
 			  </ul>
 			  <font face="ＭＳ Ｐゴシック">以下の単語で始まる定義は、キーマップ毎に定義することはできません。
 			  </font>
@@ -936,8 +945,179 @@
 			</div>
 		  </dl>
 		</div>
-		
-	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="mod">iii. モディファイヤキー割り当ての変更</a>
+
+	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="ComboTapDanceTapHold">iii. Combo / TapDance / TapHold</a>
+	    </font>
+
+	    <dd class="d2">
+		<div>
+		  <p><font face="ＭＳ Ｐゴシック">
+			<code>key</code> による単純な1キー→1アクションの割り当てに加えて、複数キーの同時押しや、タップ回数、押下時間の長短によって異なる動作をさせるための3つのキーマップルール、<code>combo</code>・<code>tapdance</code>・<code>taphold</code> が利用できます。いずれも<a href="#keymap">キーマップ</a>内に記述します。</font></p>
+
+		  <dl>
+		    <dt class="h3"><font face="ＭＳ Ｐゴシック"><a name="Combo">Combo</a>
+		    </font>
+		    <dd class="d3">
+		    <div>
+		      <p><font face="ＭＳ Ｐゴシック">2個から6個までのキーの同時押しによるキーリマップを実現します。</font></p>
+<pre><code>combo [修飾子-] KEY1 KEY2 [KEY3 … KEY6] [window=&lt;ms&gt;] = ACTION</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック">Comboの最高キー数を6個としたのは、点字の六点入力を意識しました。なおComboで多くのキーの同時入力を使うには、Nキーロールオーバーのキーボードを必要とする場合があるので、設定どおりに動くとは限りません。</font></p>
+
+		      <p><strong>Combo用のdef option</strong></p>
+<pre><code>def option ComboWindow           = &lt;ms&gt;                          # デフォルト 50
+# タイムアウト方式での時間幅の設定
+
+def option ComboDetector         = timeout | immediate | rollover | strict-order | zero-latency
+# 同時押し検出方法の指定
+
+def option ComboIdleThreshold    = &lt;ms&gt;                          # デフォルト 0（無効）
+# 同時押し検出猶予時間
+
+def option ComboOverlapRatio     = &lt;0–100&gt;                       # デフォルト 0（無効）
+# 同時押し判断に、重なり割合も付加し精度を向上させます
+
+def option ComboNestedAlwaysMatch = on | off                     # デフォルト off
+# Combo第1キーが押下中にタイムアウトした場合、Combo検出モードを継続
+# このオプションが効くモードは、タイマーがあるtimeout, strict-order, zero-latencyのみ</code></pre>
+
+		      <p><strong>ComboDetector引数の意味</strong><br><font face="ＭＳ Ｐゴシック">同時押し検出方法をモード名で指定します。</font></p>
+		      <table>
+		        <thead>
+		            <tr>
+		                <th>モード</th>
+		                <th>動作</th>
+		            </tr>
+		        </thead>
+		        <tbody>
+		            <tr>
+		                <td><strong>timeout</strong></td>
+		                <td>タイムアウト方式（デフォルト）。ComboWindow 内に全キーが揃えば発火</td>
+		            </tr>
+		            <tr>
+		                <td><strong>immediate</strong></td>
+		                <td>タイマーなし。全キーが揃った瞬間に即発火</td>
+		            </tr>
+		            <tr>
+		                <td><strong>rollover</strong></td>
+		                <td>タイマーなし。コンボ外キーの割り込みを許容</td>
+		            </tr>
+		            <tr>
+		                <td><strong>strict-order</strong></td>
+		                <td>定義順通りの押下順序を要求</td>
+		            </tr>
+		            <tr>
+		                <td><strong>zero-latency</strong></td>
+		                <td>key1 を即時出力し、コンボ成立時は IME バックスペース補正で取り消し。IME On時に機能し、IME Off時には、immediateで動く</td>
+		            </tr>
+		        </tbody>
+		      </table>
+
+		      <p><strong>&amp;SetComboDetector 関数</strong><br><font face="ＭＳ Ｐゴシック">Comboに関するパラメーターを本関数実行以後で変更します。</font></p>
+<pre><code>&amp;SetComboDetector(mode, window, overlap, nested, idle)</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック">引数の指定は、<code>mode</code>のみ文字列で、残りは数値のみ記述できます。</font></p>
+<pre><code>&amp;SetComboDetector(immediate, -1, -1, -1, -1)
+&amp;SetComboDetector(rollover,  80, -1, -1, -1)</code></pre>
+
+		      <table>
+		        <thead>
+		            <tr>
+		                <th>引数</th>
+		                <th>型</th>
+		                <th>意味</th>
+		            </tr>
+		        </thead>
+		        <tbody>
+		            <tr>
+		                <td><strong>mode</strong></td>
+		                <td>モード名</td>
+		                <td>timeout / immediate / rollover / strict-order / zero-latency</td>
+		            </tr>
+		            <tr>
+		                <td><strong>window</strong></td>
+		                <td>ms / -1</td>
+		                <td>コンボウィンドウ</td>
+		            </tr>
+		            <tr>
+		                <td><strong>overlap</strong></td>
+		                <td>0–100 / -1</td>
+		                <td>オーバーラップ率閾値</td>
+		            </tr>
+		            <tr>
+		                <td><strong>nested</strong></td>
+		                <td>0 or 1 / -1</td>
+		                <td>ComboNestedAlwaysMatch</td>
+		            </tr>
+		            <tr>
+		                <td><strong>idle</strong></td>
+		                <td>ms / -1</td>
+		                <td>ComboIdleThreshold</td>
+		            </tr>
+		        </tbody>
+		      </table>
+		    </div>
+
+		    <dt class="h3"><font face="ＭＳ Ｐゴシック"><a name="TapDance">TapDance</a>
+		    </font>
+		    <dd class="d3">
+		    <div>
+		      <p><font face="ＭＳ Ｐゴシック">単位時間内での、シングル/ダブル/トリプルでのそれぞれ異なるアクションを実施します。</font></p>
+
+		      <p><strong>グローバルオプション（キーマップ外）</strong></p>
+<pre><code>def option TapDanceTimeout = &lt;ms&gt;    # デフォルト 300</code></pre>
+
+		      <p><strong>ルール定義（keymap 内）</strong></p>
+<pre><code>tapdance [修飾子-] KEY [=]
+    tap1=ACTION                      # 1回タップ（必須）
+    [tap2=ACTION]                    # 2回タップ（省略可）
+    [tap3=ACTION]                    # 3回タップ（省略可）
+    [timeout=&lt;ms&gt;]                   # このルール専用のタイムアウト（省略でグローバル値）
+
+# 例：
+tapdance Escape = tap1=Escape  tap2=C-OpenBracket  timeout=200</code></pre>
+		    </div>
+
+		    <dt class="h3"><font face="ＭＳ Ｐゴシック"><a name="TapHold">TapHold</a>
+		    </font>
+		    <dd class="d3">
+		    <div>
+		      <p><font face="ＭＳ Ｐゴシック">キーの押下時間で「短押し（タップ）」と「長押し（ホールド）」を判定し、異なるアクションを実行します。</font></p>
+
+		      <p><strong>グローバルオプション（キーマップ外）</strong></p>
+<pre><code>def option TapHoldThreshold = &lt;ms&gt;          # デフォルト 200
+# Tap/Hold判定閾値
+
+def option TapHoldInterrupt = tap | hold    # デフォルト tap
+# TapHold判定中に他のキーが押された場合、指定されたtapあるいはholdと判断します。
+
+def option TapHoldPermissiveHold = on|off      # デフォルト off
+# 他キーの「DOWN&rarr;UP」が完了してから HOLD 確定
+
+def option TapHoldOnOtherKeyPress = on|off     # デフォルト off
+# 他キーが DOWN した瞬間に HOLD 確定
+
+def option TapHoldQuickTapTerm = 120           # 0=無効、デフォルト 0
+# 直前タップから 指定時間内に同じキーを押したら保留とせず、タップ動作とする</code></pre>
+
+		      <p><font face="ＭＳ Ｐゴシック">Permissive Hold・Hold on Other Key Press・Quick Tap Termは、いずれもデフォルト無効で、同時に有効にした場合はPermissive Hold &gt; Hold on Other Key Press &gt; 既存のinterrupt=tap/holdの順で優先されます。</font></p>
+
+		      <p><strong>ルール定義（keymap 内）</strong></p>
+<pre><code>taphold [修飾子-] KEY [=]
+    tap=ACTION
+    hold=ACTION
+    [threshold=&lt;ms&gt;]          # このルール専用の閾値（省略でグローバル値）
+    [interrupt=tap|hold]      # このルール専用の割り込み動作（省略でグローバル値）
+
+# ルールごとに def optionの定義を上書きできます。
+taphold A = tap=a     hold=Shift_L               permissive_hold=on
+taphold T = tap=t     hold=&amp;Layer(layer_edit)   hold_on_other_key=on
+taphold SP = tap=Space hold=&amp;Layer(num)          quick_tap_term=120
+
+taphold F = tap=F  hold=C-                       # F: 短押し&rarr;f / 長押し&rarr;Ctrl</code></pre>
+		    </div>
+		  </dl>
+		</div>
+
+	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="mod">iv. モディファイヤキー割り当ての変更</a>
 		
 	    </font>
 		
@@ -1179,7 +1359,7 @@
 		  </dl>
 		</div>
 		
-	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="keyseq" class="a2">iv. 
+	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="keyseq" class="a2">v.
 		キーシーケンス定義</a>
 		
 	    </font>
@@ -1219,7 +1399,7 @@
 			などで定義されているので、include している設定ファイルの中で、ユニークな使われていないキーシーケンス名を用いる必要があります。</font></p>
 		</div>
 		
-	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="event" class="a2">v. 
+	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="event" class="a2">vi.
 		イベント定義</a>
 		
 	    </font>
@@ -1257,7 +1437,7 @@
 		  </ul>
 		</div>
 		
-	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="keyboard">vi. キーボード定義</a>
+	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="keyboard">vii. キーボード定義</a>
 		
 	    </font>
 		
@@ -1453,7 +1633,13 @@
 				になります。</font></p>
 			</div>
 
-		    <dt class="h3"><a name="def_option_KL"><font face="ＭＳ Ｐゴシック">オプション 
+		    <dt class="h3"><font face="ＭＳ Ｐゴシック">オプション　Combo / TapDance / TapHold</font>
+		    <dd class="d3">
+			<div>
+			  <p><font face="ＭＳ Ｐゴシック">Comboの <code>def option ComboWindow</code>・<code>ComboDetector</code>・<code>ComboIdleThreshold</code>・<code>ComboOverlapRatio</code>・<code>ComboNestedAlwaysMatch</code>、TapDanceの <code>def option TapDanceTimeout</code>、TapHoldの <code>def option TapHoldThreshold</code>・<code>TapHoldInterrupt</code>・<code>TapHoldPermissiveHold</code>・<code>TapHoldOnOtherKeyPress</code>・<code>TapHoldQuickTapTerm</code> は、<a href="#ComboTapDanceTapHold">iii. Combo / TapDance / TapHold</a>の項をご覧ください。</font></p>
+			</div>
+
+		    <dt class="h3"><a name="def_option_KL"><font face="ＭＳ Ｐゴシック">オプション
 			カナロック(</font><code><font face="ＭＳ Ｐゴシック">KL-</font></code><font face="ＭＳ Ｐゴシック">)</font></a><font face="ＭＳ Ｐゴシック">
 			</font>
 			
@@ -2256,7 +2442,7 @@
 		    </dd>
 
 			<dt class="h3"><font face="ＭＳ Ｐゴシック">
-			<a name="def_option_UnitID">オプション　複数キーボード対応</a></font><dd class="d3">
+			<a name="def_option_UnitID">オプション　複数キーボード対応(従来版)</a></font><dd class="d3">
 			<div>
 			  <font face="ＭＳ Ｐゴシック">def option UnitIDを使用すると複数キーボードに対応し、モディファイヤーK0-からK7-が使用可能となります。</font><p>
 				<font face="ＭＳ Ｐゴシック">使用する場合、設定ファイル上で、まず最初は、</font></p>
@@ -2390,7 +2576,7 @@
 		    </dd>
 
 			<dt class="h3"><font face="ＭＳ Ｐゴシック">
-			<a name="def_option_FakeUp">オプション　複数キーボード認識タイミングの変更</a></font><dd class="d3">
+			<a name="def_option_FakeUp">オプション　複数キーボード認識タイミングの変更(従来版用)</a></font><dd class="d3">
 			<div>
 			  <font face="ＭＳ Ｐゴシック">def option UnitIDによる複数キーボード認識のタイミングを変更できるようダミーのキー出力を行います。</font><p class="sample">
 			  <font face="ＭＳ ゴシック">def option FakeUp = enable 20 00</font></p>
@@ -2425,6 +2611,43 @@
 				　　<a target="MANUAL" href="CUSTOMIZE-ja.html#def_option_FocusChange">ウィンドウのフォーカス変更検出 
 					( def option FocusChange )</a>や<a href="CUSTOMIZE-ja.html#option_checkmodifier" target="MANUAL">モディファイヤーキー押しっ放し検出、解除機能 ( def option CheckModifier )</a>でも、拡張キーE1付きのキーコードを送っていますが、同様な制限事項とならないのは、def 
 				option FakeUpとは異なり、キーのアップだけを送っているためとなります。</font></p>
+			</div>
+		    </dd>
+
+			<dt class="h3"><font face="ＭＳ Ｐゴシック">
+			<a name="def_option_UnitID_kbdaddid">オプション　複数キーボード対応(kbdaddid.sys編)</a></font><dd class="d3">
+			<div>
+			  <p><font face="ＭＳ Ｐゴシック">上記の <code>def option UnitID</code> は、WM_INPUT (raw input) 経由でアプリケーション側がキーボードを識別する仕組みのため、原理上、キーを離した(Up)タイミングにならないと発行元キーボードが確定できないという制限があります。別売のデバイスドライバ <code>kbdaddid.sys</code> を導入すると、カーネル内のキーボードクラスフィルタの段階でキー入力にデバイス識別子が刻印されるため、キーを押した(Down)最初の時点から複数キーボードを判別できるようになり、この制限が無くなります。</font></p>
+
+			  <p><font face="ＭＳ Ｐゴシック">kbdaddid.sys(および、マウス用の <code>mouaddid.sys</code>)は、「のどか」本体には同梱されていません。別売の製品として、買い切り版とサブスクリプション版が用意されています。</font></p>
+			  <ul>
+			    <li>買い切り版　<a target="_blank" href="https://applet.gumroad.com/l/tnwvkd">https://applet.gumroad.com/l/tnwvkd</a></li>
+			    <li>サブスクリプション版　<a target="_blank" href="https://applet.gumroad.com/l/hnbxr">https://applet.gumroad.com/l/hnbxr</a></li>
+			  </ul>
+			  <p><font face="ＭＳ Ｐゴシック">kbdaddid.sys自体のインストール方法やDeviceIdMode(識別方式)の切り替えについては、kbdaddid側のインストーラーおよびドキュメントに従ってください。以下では、「のどか」からkbdaddid.sysをどのように利用するかのみを説明します。</font></p>
+
+			  <p><b>注意事項</b></p>
+			  <p>・<font color="#FF0000">kbdaddid.sys は Windows 11 のみの対応です。</font>Windows 10 環境では利用できません。</p>
+			  <p>・デバイスドライバ使用モード(nodokad.sys / nodokad2.sys)に加えて、LLフックモードでも利用できます。「のどか」内部ではLLフックモードのKBDLLHOOKSTRUCT.dwExtraInfoからkbdaddidのExtraInformationを引き継ぐ実装になっており、実機確認の結果、通常のウィンドウにフォーカスがある状態であれば、ハードウェア起因のキーイベントでもこの値が正しく伝わり、K1-からK7-のモディファイヤーとしてキーボードごとに区別できることを確認しています。</p>
+			  <p>・<font color="#FF0000">マウス用の mouaddid.sys には、「のどか」はまだ対応していません。</font>キーボード用の kbdaddid.sys のみが対象です。</p>
+
+			  <p><font face="ＭＳ Ｐゴシック">kbdaddid.sysが有効(ライセンス認証済み)な状態で「のどか」を起動すると、<code>def option UnitID</code> の記述有無に関わらず自動検出され、ログウィンドウの起動バナーに次のように表示されます。</font></p>
+<p class="sample">use kbdaddid: v1.xx (License Active, DeviceInstanceId mode)</p>
+			  <p><font face="ＭＳ Ｐゴシック">タスクトレイメニューの「バージョン(V)...」でも、nodokad2に続けて <code>kbdaddid vX.XX</code> の書式でバージョンが表示されます。</font></p>
+
+			  <p><font face="ＭＳ Ｐゴシック">kbdaddid.sys有効時に設定ファイルを再読み込みすると、接続されているキーボードごとに、次のようにExtraInfo値がログウィンドウへ表示されます。</font></p>
+<p class="sample">current device name:\\?\HID#VID_0709&amp;PID_9137&amp;MI_00#7&amp;2373d6f3&amp;0&amp;0000#{884b96c3-56ef-11d1-bc8c-00a0c91405dd}<br>
+  kbdaddid ExtraInfo 0x12340000 (DeviceInstanceId mode)<br>
+current device name:\\?\HID#VID_05A4&amp;PID_1700&amp;MI_00#7&amp;1cec52f0&amp;0&amp;0000#{884b96c3-56ef-11d1-bc8c-00a0c91405dd}<br>
+  kbdaddid ExtraInfo 0x56780000 (DeviceInstanceId mode)</p>
+
+			  <p><font face="ＭＳ Ｐゴシック">この <code>kbdaddid ExtraInfo 0x....</code> の値を使って、<code>def option UnitID</code> に次の書式でキーボードを割り当てます(VID/PID/RevisionIDを指定する従来の書式に代わる、kbdaddid専用の書式です)。</font></p>
+<p class="sample">def option UnitID = K1 ExtraInfo 0x12340000<br>
+def option UnitID = K2 ExtraInfo 0x56780000</p>
+			  <p><font face="ＭＳ Ｐゴシック">保存して再読み込みすると、該当するキーボードにK1-, K2-などのモディファイヤーが付与されたことをログウィンドウで確認できます。以降の使い方(K1-からK7-をkeyやmodのルールで参照する方法など)は、上記<a href="#def_option_UnitID">オプション 複数キーボード対応(従来版)</a>の説明と同じです。</font></p>
+
+			  <p><font face="ＭＳ Ｐゴシック">・DeviceIdModeには、USBポートが異なると別の値になる <code>DeviceInstanceId mode</code>(既定)と、同一製品ならUSBポートによらず同じ値になる <code>HardwareId mode</code> の2種類があり、kbdaddid.sys側の設定で切り替えます。切り替えた場合は、ExtraInfo値が変わるため、上記の手順でキーボードを検出し直し、<code>def option UnitID</code> の記述を更新してください。</font></p>
+			  <p><font face="ＭＳ Ｐゴシック">・未定義のはずなのにExtraInfoの表示が無い場合は、kbdaddid側のフォールバック処理が働いている可能性があります。その場合は、kbdaddid付属の検証ツール(DriverTestApp.exe)で実際のExtraInfo値をご確認ください。</font></p>
 			</div>
 		    </dd>
 
@@ -2513,7 +2736,7 @@
 				(nodokad: Keyboard LL Hook Mode)　が右上に表示されます。</font></p>
 				<p><font face="ＭＳ Ｐゴシック">
 				キーボードLLフックで動作させると、デバイスドライバがインストールされていない環境でも実行可能です。
-				セットアップでは、<a target="_self" href="MANUAL-ja.html#デバイスドライバをインストールしない">デバイスドライバを使わない</a>を選択した場合、キーボードLLフックを選択することになります。もし、のどかをインストールせずに、バイナリだけをセットアップから、取り出す場合には、</font><font SIZE="2">nodoka-4.31_setup.exe 
+				セットアップでは、<a target="_self" href="MANUAL-ja.html#デバイスドライバをインストールしない">デバイスドライバを使わない</a>を選択した場合、キーボードLLフックを選択することになります。もし、のどかをインストールせずに、バイナリだけをセットアップから、取り出す場合には、</font><font SIZE="2">nodoka-4.32_setup.exe
 				/C をコマンドプロンプトから実行してください(この時の場合でも管理者権限が必要となります)。</font></p>
 				<p><font size="2">最小限必要なファイルは、x86環境では nodoka.exe, nodoka.dllと、109.nodokaなどの設定ファイルです。またx64環境では、nodoka64.exe, nodoka64.dll, 
 				nodoka_helper.exe が必要となります。</font></p>
@@ -2788,7 +3011,7 @@
 	</dt>
 </dl></dl>
 	<dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="include">
-		vii. ファイル読み込み</a>
+		viii. ファイル読み込み</a>
 	    </font>
 	    <dd class="d2">
 		<div>
@@ -2837,7 +3060,7 @@
 		  </dl>
 		</div>
 		
-	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="cond">viii. 条件分岐</a>
+	    <dt class="h2"><font face="ＭＳ Ｐゴシック"><a name="cond">ix. 条件分岐</a>
 		
 	    </font>
 		
@@ -2880,7 +3103,7 @@
 			を書くことでシンボルを定義することができます。</font></p>
 		</div>
 		
-	    <dt class="h2"><a name="function"><font face="ＭＳ Ｐゴシック">ix. </font> <code><em>
+	    <dt class="h2"><a name="function"><font face="ＭＳ Ｐゴシック">x. </font> <code><em>
 		<font face="ＭＳ Ｐゴシック">FUNCTION</font></em></code><font face="ＭＳ Ｐゴシック"> 
 		リファレンス</font></a><font face="ＭＳ Ｐゴシック">
 		</font>
@@ -3956,6 +4179,15 @@
 			</div>
 			
 		    <dt class="h3"><code>
+			<font face="ＭＳ Ｐゴシック"><a name="function_SetComboDetector">&amp;SetComboDetector(<em>mode, window, overlap, nested, idle</em>)</a></font></code><font face="ＭＳ Ｐゴシック">
+			</font>
+
+		    <dd class="d3">
+			<div>
+			  <p><font face="ＭＳ Ｐゴシック">Comboの検出方法などのパラメーターを変更します。詳細は<a href="#Combo">iii. Combo / TapDance / TapHold の Combo の項</a>をご覧ください。</font></p>
+			</div>
+
+		    <dt class="h3"><code>
 			<font face="ＭＳ Ｐゴシック"><a name="function_SetForegroundWindow">
 			&amp;SetForegroundWindow(<em>Window Class [&amp;&amp; or || Window Title]</em>)</a></font></code><font face="ＭＳ Ｐゴシック">
 			</font>
@@ -4906,4 +5138,4 @@
 </div>
 
 </body>
-</html>
+</html>
