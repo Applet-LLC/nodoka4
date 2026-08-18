@@ -59,6 +59,12 @@ distrib/Sample/
 # Specific temp/intermediate files in distrib
 distrib/__nodoka__.sed
 
+# Vendored build-tool binaries (local build dependency, not source)
+tools/SigRemover.exe
+tools/iexpress.exe
+tools/makecab.exe
+tools/wextract.exe
+
 # Driver build outputs (except tracked sys in d.sign)
 error/
 old/
