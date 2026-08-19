@@ -960,8 +960,13 @@
 		    <dd class="d3">
 		    <div>
 		      <p><font face="ＭＳ Ｐゴシック">2個から6個までのキーの同時押しによるキーリマップを実現します。</font></p>
-<pre><code>combo [修飾子-] KEY1 KEY2 [KEY3 … KEY6] [window=&lt;ms&gt;] = ACTION</code></pre>
-		      <p><font face="ＭＳ Ｐゴシック">Comboの最高キー数を6個としたのは、点字の六点入力を意識しました。なおComboで多くのキーの同時入力を使うには、Nキーロールオーバーのキーボードを必要とする場合があるので、設定どおりに動くとは限りません。</font></p>
+<pre><code>combo [モディファイヤ-] KEY1 KEY2 [KEY3 … KEY6] [window=&lt;ms&gt;] = KEY や FUNCTION</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック"><code>window=&lt;ms&gt;</code> は、このルール専用の同時押し判定時間幅です。省略した場合は、後述するグローバルの <code>def option ComboWindow</code> の値が使われます。</font></p>
+		      <p><font face="ＭＳ Ｐゴシック">Comboの最大キー数を6個としたのは、点字の六点入力を意識しました。なおComboで多くのキーの同時入力を使うには、Nキーロールオーバーのキーボードを必要とする場合があるので、設定どおりに動くとは限りません。</font></p>
+
+		      <p><strong>例</strong></p>
+<pre><code>combo _8 _9 = S-_8 S-_9 LEFT</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック">「8」と「9」キーを同時押しすると、Shift付きで「(」「)」を入力し、続けてLEFTキーでカーソルを1つ左へ動かして、かっこの中にカーソルを移動します。</font></p>
 
 		      <p><strong>Combo用のdef option</strong></p>
 <pre><code>def option ComboWindow           = &lt;ms&gt;                          # デフォルト 50
@@ -1062,18 +1067,23 @@ def option ComboNestedAlwaysMatch = on | off                     # デフォル�
 		    <div>
 		      <p><font face="ＭＳ Ｐゴシック">単位時間内での、シングル/ダブル/トリプルでのそれぞれ異なるアクションを実施します。</font></p>
 
+<pre><code>tapdance [モディファイヤ-] KEY [=]
+    tap1=KEY や FUNCTION             # 1回タップ（必須）
+    [tap2=KEY や FUNCTION]           # 2回タップ（省略可）
+    [tap3=KEY や FUNCTION]           # 3回タップ（省略可）
+    [timeout=&lt;ms&gt;]                   # このルール専用のタイムアウト（省略でグローバル値）</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック">上記は説明の都合上、改行して記載していますが、実際の設定ファイルでは<b>1行で記述する</b>必要があります。</font></p>
+		      <p><font face="ＭＳ Ｐゴシック">KEYには、<code>S-</code>などモディファイヤを付けられます。なお、<a href="#Combo">Combo</a>とは異なり、複数のKEYを列挙して指定することはできません。</font></p>
+
+		      <p><strong>例</strong></p>
+<pre><code>tapdance A = tap1=A tap2=S-A</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック">Aキーをシングルタップすると a、ダブルタップすると Shift付きの A が入力されます。</font></p>
+
+<pre><code>tapdance Esc = tap1=Esc  tap2=C-OpenBracket  timeout=200</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック">シングルタップでは Esc キーですが、ダブルタップでは Ctrl-[ を送ります。</font></p>
+
 		      <p><strong>グローバルオプション（キーマップ外）</strong></p>
 <pre><code>def option TapDanceTimeout = &lt;ms&gt;    # デフォルト 300</code></pre>
-
-		      <p><strong>ルール定義（keymap 内）</strong></p>
-<pre><code>tapdance [修飾子-] KEY [=]
-    tap1=ACTION                      # 1回タップ（必須）
-    [tap2=ACTION]                    # 2回タップ（省略可）
-    [tap3=ACTION]                    # 3回タップ（省略可）
-    [timeout=&lt;ms&gt;]                   # このルール専用のタイムアウト（省略でグローバル値）
-
-# 例：
-tapdance Escape = tap1=Escape  tap2=C-OpenBracket  timeout=200</code></pre>
 		    </div>
 
 		    <dt class="h3"><font face="ＭＳ Ｐゴシック"><a name="TapHold">TapHold</a>
@@ -1081,6 +1091,25 @@ tapdance Escape = tap1=Escape  tap2=C-OpenBracket  timeout=200</code></pre>
 		    <dd class="d3">
 		    <div>
 		      <p><font face="ＭＳ Ｐゴシック">キーの押下時間で「短押し（タップ）」と「長押し（ホールド）」を判定し、異なるアクションを実行します。</font></p>
+
+<pre><code>taphold [モディファイヤ-] KEY [=]
+    tap=KEY や FUNCTION
+    hold=KEY や FUNCTION
+    [threshold=&lt;ms&gt;]              # このルール専用の閾値（省略でグローバル値）
+    [interrupt=tap|hold]          # このルール専用の割り込み動作（省略でグローバル値）
+    [permissive_hold=on|off]      # このルール専用の Permissive Hold（省略でグローバル値）
+    [hold_on_other_key=on|off]    # このルール専用の Hold on Other Key Press（省略でグローバル値）
+    [quick_tap_term=&lt;ms&gt;]         # このルール専用の Quick Tap Term（省略でグローバル値）</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック">上記は説明の都合上、改行して記載していますが、実際の設定ファイルでは<b>1行で記述する</b>必要があります。</font></p>
+
+		      <p><strong>例</strong></p>
+<pre><code># ルールごとに def optionの定義を上書きできます。
+taphold A = tap=A  hold=S-L               permissive_hold=on
+taphold S = tap=S  hold=C-L               hold_on_other_key=on
+taphold D = tap=D  hold=&amp;WindowMinimize   quick_tap_term=120
+
+taphold F = tap=F  hold=C-                       # F: 短押し&rarr;f / 長押し&rarr;Ctrl</code></pre>
+		      <p><font face="ＭＳ Ｐゴシック">上記のうち、<code>&amp;WindowMinimize</code> のように、<code>hold=</code> にはKEYだけでなくFUNCTIONも指定できます。</font></p>
 
 		      <p><strong>グローバルオプション（キーマップ外）</strong></p>
 <pre><code>def option TapHoldThreshold = &lt;ms&gt;          # デフォルト 200
@@ -1099,20 +1128,6 @@ def option TapHoldQuickTapTerm = 120           # 0=無効、デフォルト 0
 # 直前タップから 指定時間内に同じキーを押したら保留とせず、タップ動作とする</code></pre>
 
 		      <p><font face="ＭＳ Ｐゴシック">Permissive Hold・Hold on Other Key Press・Quick Tap Termは、いずれもデフォルト無効で、同時に有効にした場合はPermissive Hold &gt; Hold on Other Key Press &gt; 既存のinterrupt=tap/holdの順で優先されます。</font></p>
-
-		      <p><strong>ルール定義（keymap 内）</strong></p>
-<pre><code>taphold [修飾子-] KEY [=]
-    tap=ACTION
-    hold=ACTION
-    [threshold=&lt;ms&gt;]          # このルール専用の閾値（省略でグローバル値）
-    [interrupt=tap|hold]      # このルール専用の割り込み動作（省略でグローバル値）
-
-# ルールごとに def optionの定義を上書きできます。
-taphold A = tap=a     hold=Shift_L               permissive_hold=on
-taphold T = tap=t     hold=&amp;Layer(layer_edit)   hold_on_other_key=on
-taphold SP = tap=Space hold=&amp;Layer(num)          quick_tap_term=120
-
-taphold F = tap=F  hold=C-                       # F: 短押し&rarr;f / 長押し&rarr;Ctrl</code></pre>
 		    </div>
 		  </dl>
 		</div>
@@ -3449,8 +3464,11 @@ def option UnitID = K2 ExtraInfo 0x56780000</p>
 		    <dd class="d3">
 			<div>
 			  <p>&amp;Keymap</p>
-			  <p><font face="ＭＳ Ｐゴシック">別のキーマップのキーを指定します。例えば、</font></p>
-			  
+			  <p><font face="ＭＳ Ｐゴシック">別のキーマップのキーを指定します。</font></p>
+			  <p><font face="ＭＳ Ｐゴシック"><code>&amp;Keymap(name)</code> は、現在のキーマップを <code>name</code> に切り替える命令ではなく、指定されたキーマップを現在のキー処理の右辺で呼び出し、そのキーマップに従ってキー定義を解決する関数です。</font></p>
+			  <p><font face="ＭＳ Ｐゴシック">いわゆるLayerの概念を具体化するには、<a href="#lock">ロックキー(L0～LF)</a>、あるいは<a href="#mod0～mod9(M0～M9)">mod0～9(M0～M9)</a>を使って、<code>Ln-</code>あるいは<code>Mn-</code>のモディファイヤを使ったkey定義を記述してください。</font></p>
+			  <p><font face="ＭＳ Ｐゴシック">例えば、</font></p>
+
 			  <p class="sample">
 			  <font face="ＭＳ ゴシック">keymap sub : Global<br>
 			  &nbsp;key C-A = &amp;WindowMinimize<br>
