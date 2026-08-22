@@ -41,6 +41,8 @@
 #include <time.h>
 #include <commctrl.h>
 #include <wtsapi32.h>
+#include <share.h>
+#include <vector>
 #include <Msctf.h>
 #include "..\sirius_sdk\commonValues.h"
 
@@ -103,6 +105,7 @@ class Nodoka
 	bool m_canUseTasktrayBaloon; ///
 
 	tomsgstream m_log; /** log stream (output to log dialog's edit) */
+	FILE *m_logFile;   /** optional file sink for m_log, set via -d (テスト自動化向け) */
 
 	HMENU m_hMenuTaskTray; /// tasktray menu
 
@@ -655,6 +658,19 @@ private:
 				const tstring &str = log->acquireString();
 				editInsertTextAtLast(GetDlgItem(This->m_hwndLog, IDC_EDIT_log),
 									 str, 65000);
+				if (This->m_logFile != NULL && !str.empty())
+				{
+					int narrowLen = WideCharToMultiByte(CP_UTF8, 0, str.data(), (int)str.size(),
+														 NULL, 0, NULL, NULL);
+					if (narrowLen > 0)
+					{
+						std::vector<char> utf8(narrowLen);
+						WideCharToMultiByte(CP_UTF8, 0, str.data(), (int)str.size(),
+											utf8.data(), narrowLen, NULL, NULL);
+						fwrite(utf8.data(), 1, utf8.size(), This->m_logFile);
+						fflush(This->m_logFile);
+					}
+				}
 				log->releaseString();
 				return 0;
 			}
@@ -1386,7 +1402,7 @@ private:
 
 public:
 	///
-	Nodoka(int icon_color, int keyboard_hook, int mouse_hook, int iPause, int iLog, int iDLog, int i_escapeNlsKeys, int win8wa)
+	Nodoka(int icon_color, int keyboard_hook, int mouse_hook, int iPause, int iLog, int iDLog, int i_escapeNlsKeys, int win8wa, const tstring &i_logFilePath)
 		: m_hwndTaskTray(NULL),
 		  m_hwndLog(NULL),
 		  m_WM_TaskbarRestart(RegisterWindowMessage(_T("TaskbarCreated"))),
@@ -1395,6 +1411,7 @@ public:
 #endif
 		  m_canUseTasktrayBaloon(PACKVERSION(5, 0) <= getDllVersion(_T("shlwapi.dll"))),
 		  m_log(WM_APP_msgStreamNotify),
+		  m_logFile(NULL),
 		  m_setting(NULL),
 		  m_escapeNlsKeys(i_escapeNlsKeys),
 		  m_isSettingDialogOpened(false),
@@ -1537,6 +1554,28 @@ public:
 		SendMessage(GetDlgItem(m_hwndLog, IDC_EDIT_log), EM_SETLIMITTEXT, 0, 0);
 		m_log.attach(m_hwndTaskTray);
 
+		// -d: also write every log line to a file (UTF-8, no BOM - each
+		// wide m_log line is converted via WideCharToMultiByte(CP_UTF8) at
+		// the write site below, since _TCHAR is wide here and a narrow
+		// conversion using the process locale/codepage would risk mojibake
+		// for non-ASCII paths/text). Opened before the first load() (called
+		// from messageLoop() right after this constructor returns) so
+		// "loading: ..."/parse errors are captured from the very start.
+		// (テスト自動化向け)
+		if (!i_logFilePath.empty())
+		{
+			// _SH_DENYWR (not the default deny-all) so an external test
+			// harness can tail/read the file while nodoka64 still has it
+			// open for writing.
+			m_logFile = _wfsopen(i_logFilePath.c_str(), L"wb", _SH_DENYWR);
+			if (m_logFile != NULL)
+			{
+				// -d 指定時は詳細ログも常に有効化する(テスト用途では常に欲しいため)
+				SendMessage(GetDlgItem(m_hwndLog, IDC_CHECK_detail), BM_SETCHECK, BST_CHECKED, 0);
+				m_log.setDebugLevel(1);
+			}
+		}
+
 		//internal error: m_currentKeymap == NULL's workaround
 		HWND hwndFore = GetDesktopWindow();
 		SetForegroundWindow(hwndFore);
@@ -1612,6 +1651,12 @@ public:
 	{
 		// first, detach log from edit control to avoid deadlock
 		m_log.detach();
+
+		if (m_logFile != NULL)
+		{
+			fclose(m_logFile);
+			m_logFile = NULL;
+		}
 
 #ifdef _WIN64
 		// unload x86 heler&dll, uninstallHoooks()
@@ -2000,6 +2045,34 @@ void unmapHookData()
 	m_hHookDataExe = NULL;
 }
 
+/// -t 用: HKCU\Software\appletkan\nodoka の .nodoka<N> エントリ
+/// ("name;path;options"、tasktray の「reload」サブメニュー生成 (上記
+/// WM_APP_taskTrayNotify ハンドラ) や Engine::funcLoadSetting()
+/// (function.cpp) と同じ書式/走査)を name で検索し、一致したインデックスを
+/// .nodokaIndex に書き込む。Engine/Nodoka オブジェクトが存在する前
+/// (コールド起動時)・存在しない別プロセスから(多重起動転送時)のどちらでも
+/// 呼べるよう、_tWinMain 側のフリー関数として用意する。
+static bool resolveAndSetNodokaIndexByName(const tstring &i_name)
+{
+	Registry reg(NODOKA_REGISTRY_ROOT);
+	tregex getName(_T("^([^;]*);"));
+	for (int index = 0;; index++)
+	{
+		_TCHAR buf[100];
+		_sntprintf_s(buf, NUMBER_OF(buf), _TRUNCATE, _T(".nodoka%d"), index);
+		tstringi dot_nodoka;
+		if (!reg.read(buf, &dot_nodoka))
+			break;
+		tsmatch what;
+		if (boost::regex_search(dot_nodoka, what, getName) && what.str(1) == i_name)
+		{
+			reg.write(_T(".nodokaIndex"), (DWORD)index);
+			return true;
+		}
+	}
+	return false;
+}
+
 /// main
 int WINAPI _tWinMain(HINSTANCE i_hInstance,
 					 HINSTANCE i_hPrevInstance,
@@ -2026,6 +2099,11 @@ int WINAPI _tWinMain(HINSTANCE i_hInstance,
 	// 引数処理
 	int argc = 0;
 	LPWSTR *argv;
+	// -t/-d の値は、boost::program_options 経由の narrow std::string 変換
+	// (ロケール依存)を避け、-D と同じ流儀で生の wide argv から直接取り出す
+	// (パス/タイトルに非ASCII文字が含まれても文字化けしないようにするため)。
+	tstring strLoadTitle;
+	tstring strLogFilePath;
 
 	int icon_color = 0;
 	int keyboard_hook = 0;
@@ -2048,6 +2126,15 @@ int WINAPI _tWinMain(HINSTANCE i_hInstance,
 	std::string strKey;
 
 	argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+	for (int i = 1; i < argc; ++i)
+	{
+		if ((wcscmp(argv[i], L"-t") == 0 || wcscmp(argv[i], L"--title") == 0) && i + 1 < argc)
+			strLoadTitle = argv[++i];
+		else if ((wcscmp(argv[i], L"-d") == 0 || wcscmp(argv[i], L"--dlog") == 0) && i + 1 < argc)
+			strLogFilePath = argv[++i];
+	}
+
 	po::options_description desc("option");
 
 	//TCHAR szErr[1000];
@@ -2070,6 +2157,8 @@ int WINAPI _tWinMain(HINSTANCE i_hInstance,
 		("nls,n", "nls")										   // -n escape NLS keys実行
 		("win8wa,w", "win8wa")									   // -w Windows 8にて-k使用時にWin-X, Alt-Tabをスルーさせる。
 		("scancodemap,s", po::value<std::string>(), "scancodemap") // -s 任意のscancodemap regファイルで設定
+		("title,t", po::value<std::string>(), "load setting by title")   // -t 名前指定で設定ファイルをロード(テスト自動化向け)
+		("dlog,d", po::value<std::string>(), "write log to file")		   // -d ログをファイルにも出力する(テスト自動化向け)
 		("quit,q", "quit")										   // -q 引数の処理をしたあと終了する
 		("intGritylevel,g", po::value<int>(), "IntegrityLevel")	// -g 0,1,2 as low, midium, high
 		("forceDriver,f", "forceDriver")						   // -f RDPだと自動的に-kにしているのを止める
@@ -2250,6 +2339,16 @@ int WINAPI _tWinMain(HINSTANCE i_hInstance,
 				PostMessage(tmp_hWnd, WM_APP + 101 /*WM_APP_taskTrayNotify*/, MAKELONG(1 /*ID_TaskTrayIcon*/, 0), MAKELONG(WM_LBUTTONDOWN, 0));
 			}
 
+			// 引数 -t が指定されたら、名前が一致する設定に切り替えて
+			// 再ロードさせる(テスト自動化向け)。名前が見つからなければ何もしない。
+			if (!strLoadTitle.empty())
+			{
+				if (resolveAndSetNodokaIndexByName(strLoadTitle))
+					PostMessage(tmp_hWnd, WM_APP + 110 /*WM_APP_engineNotify*/, EngineNotify_loadSetting, 0);
+				else
+					std::wcerr << L"nodoka64: unknown setting title: " << strLoadTitle << std::endl;
+			}
+
 			// 設定メニューを出す。ID_MENUITEM_setting
 			if (iYield == 0)
 			{
@@ -2304,9 +2403,17 @@ int WINAPI _tWinMain(HINSTANCE i_hInstance,
 	// the request automatically.
 	timeBeginPeriod(1);
 
+	// 引数 -t が指定されたら、最初の load() より前に対象の設定を選択しておく
+	// (テスト自動化向け)。名前が見つからなければ標準の探索順に任せる。
+	if (!strLoadTitle.empty())
+	{
+		if (!resolveAndSetNodokaIndexByName(strLoadTitle))
+			std::wcerr << L"nodoka64: unknown setting title: " << strLoadTitle << std::endl;
+	}
+
 	try
 	{
-		Nodoka(icon_color, keyboard_hook, mouse_hook, iPause, iLog, iDLog, i_escapeNlsKeys, i_win8wa).messageLoop();
+		Nodoka(icon_color, keyboard_hook, mouse_hook, iPause, iLog, iDLog, i_escapeNlsKeys, i_win8wa, strLogFilePath).messageLoop();
 	}
 	catch (ErrorMessage &i_e)
 	{

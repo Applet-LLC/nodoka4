@@ -2612,6 +2612,13 @@ void Engine::keyboardHandler()
 			bool isKeyDown   = !(kid.Flags & KEYBOARD_INPUT_DATA::BREAK);
 			Key *pressedKey  = c.m_mkey.m_key;
 
+			// Trace the incoming key once here, before TapHold/TapDance/Combo
+			// evaluation - previously only the "normal key processing"
+			// fallback below (and one narrow Combo zero-latency sub-case)
+			// called outputToLog(), so a key consumed by any of the three
+			// state machines was silently missing from the -L/詳細 log.
+			outputToLog(&key, c.m_mkey, 1);
+
 			// ---- TapHold state machine ----
 			{
 				// Build current modifier state for rule matching
@@ -3120,7 +3127,7 @@ void Engine::keyboardHandler()
 					    && m_currentLock.isOn(Modifier::Type_ImeLock))
 					{
 						// Output key1 now so the user sees zero latency
-						outputToLog(&key, c.m_mkey, 1);
+						// (already traced by the top-of-block outputToLog() call above)
 						beginGeneratingKeyboardEvents(c, isModifier, false);
 						m_comboZeroLatencyActive = true;
 						// Fall through: timer will be started below (ComboWindow)
@@ -3152,9 +3159,9 @@ void Engine::keyboardHandler()
 			}
 
 			// ---- Normal key processing (if not consumed by a state machine) ----
+			// (already traced by the top-of-block outputToLog() call above)
 			if (!handledBySM)
 			{
-			outputToLog(&key, c.m_mkey, 1);
 			if (isPhysicallyPressed) // もし他のキーが押されたなら oneShotは無効にする。
 			{
 				m_oneShotKey.m_key = NULL;
