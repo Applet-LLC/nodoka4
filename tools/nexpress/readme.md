@@ -159,6 +159,30 @@ struct SFXTrailer {
 `stub.exe` は `requireAdministrator` で常に昇格実行されるため、これらの穴は
 「単なるバグ」ではなく **ローカル権限昇格(EoP)に直結する**、という位置づけで作り込まれている。
 
+### CWE-427 対策の検証結果(2026-08-17)
+
+[Triaging a DLL planting vulnerability](https://www.microsoft.com/en-us/msrc/blog/2018/04/triaging-a-dll-planting-vulnerability)
+(旧 `iexpress.exe`/`wextract.exe` が Downloads フォルダ等に置かれた際、
+細工した `cabinet.dll` 等を実行ファイルと同じフォルダから先に読み込んでしまう問題)
+を受けて、`stub.exe` 側の対策状況を確認した。二重対策とも実装・有効化されている:
+
+- **リンカ側**(`stub.vcxproj`/`nexpress.vcxproj` の `AdditionalOptions`):
+  `/DEPENDENTLOADFLAG:0x800` により、暗黙リンクDLL(`cabinet.dll`・`shell32.dll`・
+  `ole32.dll` ―― いずれも KnownDLLs ではない)をOSローダー自身がSystem32限定で
+  解決する。プロセス起動時、`WinMain` が動く前に読み込まれるインポートDLLは
+  実行時コードでは保護できないため、この対策はロードコンフィグ経由でしか実現できない。
+- **実行時側**: `HardenDllSearchPath()` が `WinMain` の最初の1行目([stub.cpp:296-297](stub/stub.cpp#L296-L297))
+  で呼ばれており、`CommandLineToArgvW`(shell32)や `/C` オプション時の
+  `CoInitializeEx`/`SHBrowseForFolderW`(ole32/shell32)より前に実行される。
+  これにより実行時に追加ロードされる依存DLLも保護対象になる。
+
+**既知の限界**: `/DEPENDENTLOADFLAG:0x800` はOSローダー側の対応(Windows 10
+1709/RS3 以降)が前提。それより古いOSでは暗黙リンクDLLへの保護が効かない
+(`HardenDllSearchPath()` 側の `SetDefaultDllDirectories` はWindows 8以降で
+利用可能だが、これは実行時LoadLibraryのみ保護し、インポートテーブル経由の
+暗黙リンクDLLは保護しない)。nodoka の対象OSが Windows 10 1709 以降であれば
+実害はない。
+
 ---
 
 ## 既知の落とし穴
