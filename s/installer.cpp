@@ -140,16 +140,28 @@ void createFileExtension(const tstringi &i_ext, const tstring &i_contentType,
 	if (!regFileTypeComand.read(_T(""), &dummy))
 		CHECK_TRUE(regFileTypeComand.write(_T(""), i_command));
 
+	// register to explorer's "New" menu (right click -> New -> ...)
+	// so users can create a new .nodoka file without renaming a .txt file.
+	Registry regShellNew(HKEY_CLASSES_ROOT, i_ext + _T("\\ShellNew"));
+	if (!regShellNew.read(_T("NullFile"), &dummy))
+		CHECK_TRUE(regShellNew.write(_T("NullFile"), _T("")));
+
 	// Workaround remove old registry. because nodoka file is not use by ftype command.
 	Registry::remove(HKEY_CLASSES_ROOT, _T("mayu file\\DefaultIcon"));
 	Registry::remove(HKEY_CLASSES_ROOT, _T("mayu file"));
 	Registry::remove(HKEY_CLASSES_ROOT, _T("nodoka file\\DefaultIcon"));
 	Registry::remove(HKEY_CLASSES_ROOT, _T("nodoka file"));
+
+	// notify the shell so the "New" menu reflects the change immediately.
+	SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
 }
 
 // remove file extension information
 void removeFileExtension(const tstringi &i_ext, const tstringi &i_fileType)
 {
+	// RegDeleteKey() fails on a key that still has subkeys, so remove
+	// the "ShellNew" subkey before removing i_ext itself.
+	Registry::remove(HKEY_CLASSES_ROOT, i_ext + _T("\\ShellNew"));
 	Registry::remove(HKEY_CLASSES_ROOT, i_ext);
 	Registry::remove(HKEY_CLASSES_ROOT,
 					 i_fileType + _T("\\shell\\open\\command"));
@@ -157,6 +169,8 @@ void removeFileExtension(const tstringi &i_ext, const tstringi &i_fileType)
 	Registry::remove(HKEY_CLASSES_ROOT, i_fileType + _T("\\shell"));
 	Registry::remove(HKEY_CLASSES_ROOT, i_fileType + _T("\\DefaultIcon"));
 	Registry::remove(HKEY_CLASSES_ROOT, i_fileType);
+
+	SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
 }
 
 // create uninstallation information
