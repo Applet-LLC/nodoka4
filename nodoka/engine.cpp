@@ -522,7 +522,7 @@ void Engine::generateKeyEvent(Key *i_key, bool i_doPress, bool i_isByAssign)
 		Acquire a(&m_log, 1);
 		m_log << _T("\t\t    =>\t");
 		if (isAlreadyReleased)
-			m_log << _T("(already released) ");
+			m_log << _T("(already released, name=") << i_key->getName() << _T(") ");
 	}
 
 	ModifiedKey mkey(i_key);
@@ -720,6 +720,44 @@ void Engine::generateActionEvents(const Current &i_c, const Action *i_a,
 		break;
 	}
 	}
+}
+
+// which BASIC modifiers (Shift/Ctrl/Alt/Win) i_keySeq's actions press (i.e.
+// Action::Type_key actions whose ModifiedKey requests that modifier on, not
+// dontcare). Scans every action, not just the last, since Part_all presses
+// and releases every action except the last within the same call using the
+// same asymmetric press/release logic in generateActionEvents(), so a
+// non-final action pressing a modifier is just as capable of leaking it.
+// Used to scope an immediate, targeted release right after firing i_keySeq
+// via Part_all, without touching any BASIC modifier i_keySeq didn't itself
+// request (so a modifier the user is separately, physically holding down
+// for some other reason is left alone).
+Modifier Engine::getBasicModifiersPressedByKeySeq(const KeySeq *i_keySeq) const
+{
+	Modifier pressed;
+	pressed.dontcare(); // start with "care about nothing" -- scoped release only
+
+	if (!i_keySeq)
+		return pressed;
+
+	const KeySeq::Actions &actions = i_keySeq->getActions();
+	for (size_t i = 0; i < actions.size(); ++i)
+	{
+		const Action *a = actions[i];
+		if (a->getType() != Action::Type_key)
+			continue;
+
+		const ModifiedKey &mkey =
+			reinterpret_cast<const ActionKey *>(a)->m_modifiedKey;
+
+		for (int t = Modifier::Type_begin; t < Modifier::Type_BASIC; ++t)
+		{
+			Modifier::Type type = static_cast<Modifier::Type>(t);
+			if (mkey.m_modifier.isPressed(type) && !mkey.m_modifier.isDontcare(type))
+				pressed.release(type); // care()+off() -> "must release" branch in generateModifierEvents
+		}
+	}
+	return pressed;
 }
 
 // generate keyboard events for keySeq
@@ -1682,6 +1720,91 @@ bool Engine::isComboCandidate(const Key *i_key)
 	return false;
 }
 
+// If no key is currently physically pressed, release all still-held
+// synthesized BASIC modifiers (Shift/Ctrl/Alt/Win) and reset per-cycle
+// state. This is the cleanup previously inlined at the bottom of the main
+// keyboardHandler() loop; it must also run immediately after any
+// timer-driven TapHold/TapDance/Combo confirmation branch that fires a
+// KeySeq via Part_all and then `continue`s, since `continue` skips the
+// loop's normal fall-through to this cleanup.
+void Engine::flushPendingModifiersIfIdle()
+{
+	if (m_currentKeyPressCount <= 0)
+	{
+		{
+			Acquire a(&m_log, 1);
+			m_log << _T("* No key is pressed") << std::endl;
+		}
+		generateModifierEvents(Modifier());
+		if (0 < m_currentKeyPressCountOnWin32)
+			keyboardResetOnWin32();
+		m_currentKeyPressCount = 0;
+		m_currentKeyPressCountOnWin32 = 0;
+		m_oneShotKey.m_key = NULL;
+
+		for (int i = Modifier::Type_TouchpadSticky; i <= Modifier::Type_TouchpadRSticky; ++i)
+			m_currentLock.release(static_cast<Modifier::Type>(i));
+
+		for (int i = Modifier::Type_Keyboard0; i <= Modifier::Type_Keyboard7; ++i)
+			m_currentLock.release(static_cast<Modifier::Type>(i));
+
+		m_currentLock.release(Modifier::Type_DP);
+	}
+}
+
+// Confirm (or replay) the currently-COUNTING tap-dance sequence and release
+// any modifiers it fired. Called both when m_tapDanceExpiredEvent is
+// dispatched normally via MsgWaitForMultipleObjects (case WAIT_OBJECT_0+3),
+// and via drainExpiredTapDanceIfPending() when the event was found already
+// signaled ahead of a newly-arrived key event -- see that function's comment
+// for why the race exists.
+void Engine::confirmTapDance()
+{
+	if (m_tapDanceState == TD_COUNTING && m_tapDanceCurrentRule)
+	{
+		m_tapDanceState = TD_IDLE;
+		int tapIdx = m_tapDanceCount - 1; // 0=tap1, 1=tap2, 2=tap3
+		if (tapIdx >= 0 && tapIdx < 3 && m_tapDanceCurrentRule->m_tap[tapIdx])
+		{
+			generateKeySeqEvents(m_tapDanceContext, m_tapDanceCurrentRule->m_tap[tapIdx], Part_all);
+		}
+		else
+		{
+			// No action for this tap count — replay original events
+			reInjectKeys(m_tapDanceBuffered);
+		}
+		m_tapDanceCurrentRule = NULL;
+		m_tapDanceBuffered.clear();
+	}
+	flushPendingModifiersIfIdle();
+}
+
+// keyboardHandler()'s wait array (handles[], see near its MsgWaitForMultipleObjects
+// call) lists m_readEvent ahead of m_tapDanceExpiredEvent. MsgWaitForMultipleObjects
+// returns the lowest-index signaled handle when several become ready at once, so if a
+// new physical key event and the tap-dance timeout become ready in the same wait call,
+// the key event wins and gets processed while m_tapDanceState is still the stale
+// TD_COUNTING (not yet reset by the -- already signaled but not yet dispatched --
+// expiry). That lets the new key be folded into the old sequence as if it were a
+// same-key continuation, corrupting the tap count for whenever the expiry is finally
+// dispatched on a later iteration. Peeking (non-blocking) for a pending expiry and
+// confirming it first, right before the TapDance state machine looks at m_tapDanceState,
+// closes that window without reordering the wait array (which case WAIT_OBJECT_0+N in
+// the dispatch switch depends on positionally, and which several past FUS/RDP-related
+// fixes have hardened carefully).
+void Engine::drainExpiredTapDanceIfPending()
+{
+	if (m_tapDanceState != TD_COUNTING)
+		return;
+	if (WaitForSingleObject(m_tapDanceExpiredEvent, 0) != WAIT_OBJECT_0)
+		return;
+	{
+		Acquire a(&m_log, 1);
+		m_log << _T("* TapDance: drained pending timeout before processing new key event (race guard)") << std::endl;
+	}
+	confirmTapDance();
+}
+
 // keyboard handler thread
 unsigned int WINAPI Engine::keyboardHandler(void *i_this)
 {
@@ -2042,33 +2165,35 @@ void Engine::keyboardHandler()
 			}
 			break;
 		case WAIT_OBJECT_0 + 2: // m_tapHoldExpiredEvent: threshold elapsed
+			{
+				Acquire a(&m_log, 1);
+				m_log << _T("* TapHold timer fired: state=") << m_tapHoldState
+					  << _T(" currentKeyPressCount=") << m_currentKeyPressCount << std::endl;
+			}
 			if (m_tapHoldState == TH_PENDING && m_tapHoldCurrentRule)
 			{
 				m_tapHoldState = TH_HOLDING;
 				generateKeySeqEvents(m_tapHoldContext, m_tapHoldCurrentRule->m_holdAction, Part_all);
 			}
+			flushPendingModifiersIfIdle();
 			continue;
 
 		case WAIT_OBJECT_0 + 3: // m_tapDanceExpiredEvent: tap-dance timeout
-			if (m_tapDanceState == TD_COUNTING && m_tapDanceCurrentRule)
 			{
-				m_tapDanceState = TD_IDLE;
-				int tapIdx = m_tapDanceCount - 1; // 0=tap1, 1=tap2, 2=tap3
-				if (tapIdx >= 0 && tapIdx < 3 && m_tapDanceCurrentRule->m_tap[tapIdx])
-				{
-					generateKeySeqEvents(m_tapDanceContext, m_tapDanceCurrentRule->m_tap[tapIdx], Part_all);
-				}
-				else
-				{
-					// No action for this tap count — replay original events
-					reInjectKeys(m_tapDanceBuffered);
-				}
-				m_tapDanceCurrentRule = NULL;
-				m_tapDanceBuffered.clear();
+				Acquire a(&m_log, 1);
+				m_log << _T("* TapDance timer fired: state=") << m_tapDanceState
+					  << _T(" count=") << m_tapDanceCount
+					  << _T(" currentKeyPressCount=") << m_currentKeyPressCount << std::endl;
 			}
+			confirmTapDance();
 			continue;
 
 		case WAIT_OBJECT_0 + 4: // m_comboExpiredEvent: combo window elapsed
+			{
+				Acquire a(&m_log, 1);
+				m_log << _T("* Combo timer fired: state=") << m_comboState
+					  << _T(" currentKeyPressCount=") << m_currentKeyPressCount << std::endl;
+			}
 			if (m_comboState == CO_PENDING)
 			{
 				// immediate / rollover: no timer was started, so this event should not fire;
@@ -2111,6 +2236,11 @@ void Engine::keyboardHandler()
 							keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, 0);
 						}
 						generateKeySeqEvents(m_comboContext, matchedRule->m_action, Part_all);
+						{
+							Acquire a(&m_log, 1);
+							m_log << _T("* Combo: explicit scoped modifier release at fire time") << std::endl;
+						}
+						generateModifierEvents(getBasicModifiersPressedByKeySeq(matchedRule->m_action));
 					}
 					else
 					{
@@ -2126,6 +2256,7 @@ void Engine::keyboardHandler()
 				}
 			}
 			combo_expired_skip:
+			flushPendingModifiersIfIdle();
 			continue;
 
 		case WAIT_OBJECT_0 + 5: // m_reInjectEvent: re-injected keys waiting in m_inputQueue
@@ -2764,6 +2895,11 @@ void Engine::keyboardHandler()
 			// ---- TapDance state machine ----
 			if (!handledBySM)
 			{
+				// Race guard: a pending timeout may already be signaled but not yet
+				// dispatched (see drainExpiredTapDanceIfPending() comment) -- confirm
+				// it first so this key event isn't matched against stale COUNTING state.
+				drainExpiredTapDanceIfPending();
+
 				// Build current modifier state for rule matching
 				Modifier tdMod = getCurrentModifiers(pressedKey, isKeyDown);
 				tdMod.dontcare(Modifier::Type_Up);
@@ -2885,6 +3021,11 @@ void Engine::keyboardHandler()
 									keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, 0);
 								}
 								generateKeySeqEvents(m_comboContext, matchedRule->m_action, Part_all);
+								{
+									Acquire a(&m_log, 1);
+									m_log << _T("* Combo: explicit scoped modifier release at fire time") << std::endl;
+								}
+								generateModifierEvents(getBasicModifiersPressedByKeySeq(matchedRule->m_action));
 								// Re-inject key-up for the released key so apps see the release
 								std::vector<KEYBOARD_INPUT_DATA> upEvent;
 								upEvent.push_back(kid);
@@ -2971,6 +3112,11 @@ void Engine::keyboardHandler()
 									keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, 0);
 								}
 								generateKeySeqEvents(m_comboContext, matchedRule->m_action, Part_all);
+								{
+									Acquire a(&m_log, 1);
+									m_log << _T("* Combo: explicit scoped modifier release at fire time") << std::endl;
+								}
+								generateModifierEvents(getBasicModifiersPressedByKeySeq(matchedRule->m_action));
 								// rollover: re-inject any non-combo-key events buffered during CO_PENDING
 								if (detMode == Setting::CD_ROLLOVER)
 								{
@@ -3190,27 +3336,7 @@ void Engine::keyboardHandler()
 				  << std::endl;
 		}
 
-		if (m_currentKeyPressCount <= 0)
-		{
-			{
-				Acquire a(&m_log, 1);
-				m_log << _T("* No key is pressed") << std::endl;
-			}
-			generateModifierEvents(Modifier());
-			if (0 < m_currentKeyPressCountOnWin32)
-				keyboardResetOnWin32();
-			m_currentKeyPressCount = 0;
-			m_currentKeyPressCountOnWin32 = 0;
-			m_oneShotKey.m_key = NULL;
-
-			for (int i = Modifier::Type_TouchpadSticky; i <= Modifier::Type_TouchpadRSticky; ++i)
-				m_currentLock.release(static_cast<Modifier::Type>(i));
-
-			for (int i = Modifier::Type_Keyboard0; i <= Modifier::Type_Keyboard7; ++i)
-				m_currentLock.release(static_cast<Modifier::Type>(i));
-
-			m_currentLock.release(Modifier::Type_DP);
-		}
+		flushPendingModifiersIfIdle();
 
 		key.initialize();
 		updateLastPressedKey(isPhysicallyPressed ? c.m_mkey.m_key : NULL);

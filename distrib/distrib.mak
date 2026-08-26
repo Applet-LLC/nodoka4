@@ -2,7 +2,7 @@
 
 !if ( "$(_DEBUG)" == "" )
 !if ( "$(RETAIL)" == "1" )
-VERSION		= 4.32
+VERSION		= 4.33
 TARGET_x86	= ..\Win32\Release\nodoka.exe					\
 			..\Win32\Release\nodoka_hil.exe				\
 			..\Win32\Release\nodoka_limit.exe				\
@@ -15,7 +15,7 @@ TARGET_x64	= ..\x64\Release\nodoka64.exe					\
 			..\x64\Release\nodoka64.dll					\
 			..\sirius_sdk\sirius_hook_for_nodoka_x64.dll
 !else
-VERSION		= 4.32_sample
+VERSION		= 4.33_sample
 TARGET_x86	= ..\Win32\Sample\nodoka.exe					\
 			..\Win32\Sample\nodoka_hil.exe				\
 			..\Win32\Sample\nodoka_limit.exe				\
@@ -29,7 +29,7 @@ TARGET_x64	= ..\x64\Sample\nodoka64.exe					\
 			..\sirius_sdk\sirius_hook_for_nodoka_x64.dll
 !endif
 !else
-VERSION		= 4.32_debug
+VERSION		= 4.33_debug
 TARGET_x86	= ..\Win32\Debug\nodoka.exe						\
 			..\Win32\Debug\nodoka_hil.exe					\
 			..\Win32\Debug\nodoka_limit.exe				\

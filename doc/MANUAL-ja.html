@@ -62,7 +62,7 @@
 			<li><font face="ＭＳ Ｐゴシック">Windows 10 22H2 以降向けの汎用キーバインディング変更ソフトです。</font></li>
 			<li><font face="ＭＳ Ｐゴシック">実行ファイルには、EV署名を、またデバイスドライバにはWHQL署名を付与し、管理者権限へのアプリへの操作および、x64環境では、x86, 
 			x64両方のアプリへの操作が可能です。</font></li>
-			<li><font face="ＭＳ Ｐゴシック">「窓使いの憂鬱」Version 3.30から「のどか」Version 4.32
+			<li><font face="ＭＳ Ｐゴシック">「窓使いの憂鬱」Version 3.30から「のどか」Version 4.33
 			までの変更/修正点については、<b><a href="#HISTORY">改版履歴</a></b>を ご覧ください。</font></li>
 			<li>
 			<font face="ＭＳ Ｐゴシック"><a href="#FAQ">FAQ</a>や<a href="#BUGS">バグ</a>に出ていない情報の掲載箇所については、別途準備中です。</font></ul>
@@ -183,8 +183,8 @@
 
 			<p></p><p></p>
 		<li><b><font face="ＭＳ Ｐゴシック">アプリのインストール</font></b></font><p><font face="ＭＳ Ｐゴシック">入手された実行ファイル  
-		<span class="auto-style6">nodoka-4.32_sample_setup.exe</span>
-		(試用版), <span class="auto-style6">nodoka-4.32_setup.exe</span> (正式版)を
+		<span class="auto-style6">nodoka-4.33_sample_setup.exe</span>
+		(試用版), <span class="auto-style6">nodoka-4.33_setup.exe</span> (正式版)を
 		<strong>Administrator（管理者）</strong>権限で実行してください。しばらくすると「のどか」のインストール作業が開始され
 		、下記に示すダイアログが表示されます。(ドメインに参加している場合には、ローカルPCの管理者権限での実行が必要です。)<br>もし、「のどか」実行中の場合では、先に、「のどか」を終了させるかどうか、ダイアログによる問い合わせがあるので、OKで進めてください。&nbsp;</font></p>
 		<p><img border="0" src="setup1.jpg" width="524" height="392"></p>
@@ -1872,6 +1872,37 @@
 		<dt class="h1"><font face="ＭＳ Ｐゴシック"><a name="HISTORY">１６. 改版履歴　history</a></font>
 <dd class="d1">
 	<div>
+		<p>2026/08/26 4.33 </p>
+		<p><b>概要</b><br>Combo/TapDanceで、モディファイヤキー(Shift/Ctrl等)が押されたまま戻らなくなることがある不具合を修正しました。また、TapDanceの誤認識修正と、Combo/TapDance/TapHoldまわりのドキュメント記載を整備しました。あわせて、.nodoka拡張子をエクスプローラーの「新規作成」メニューに追加しました。</p>
+
+    <h4>(1) Combo/TapDanceのモディファイヤキー押しっぱなし不具合の修正</h4>
+    <p>Combo/TapDance/TapHoldは、それぞれタイマーによる確定処理(タイムアウトでの確定)を持っていますが、この確定処理が、メインループ末尾で行われるモディファイヤキー(Shift/Ctrl/Alt/Win)の解放処理を素通りしてしまうことがあり、Comboの発火時やTapDanceのタップ確定時に、本来離されるべきモディファイヤキーが押されたままになる不具合を修正しました。</p>
+    <p>あわせて、TapDanceのタイムアウト成立とほぼ同時に次のキー入力が発生した場合、本来独立した2回のタップとして処理されるべきところが、タイミング次第で誤って1回のダブルタップとして結合されてしまう競合状態も修正しました。</p>
+    <p>なお、Combo/TapHoldについても、判定の境界(閾値やタイムアウトとほぼ同時にキー操作が重なるケース)で、Combo成立/不成立やtap/holdの判定が稀に振れることがある点を確認していますが、モディファイヤキーの押しっぱなしなど実害を伴う挙動ではないため、今回は対応を見送っています。</p>
+
+    <h4>(2) .nodoka拡張子をエクスプローラーの「新規作成」メニューに追加</h4>
+    <p>エクスプローラーで、フォルダ内を右クリック→新規作成メニューから、「のどか ファイル」(.nodoka)を直接作成できるようにしました。アンインストール時には、このメニュー項目も削除されます。</p>
+
+    <h4>(3) Combo/TapDance/TapHoldのドキュメント記載整備</h4>
+    <p><a href="CUSTOMIZE-ja.html#Combo">カスタマイズ方法のヘルプ</a>について、KEYを指定する箇所にはFUNCTIONも指定できることの明記、TapDanceのKEYは1つのみ指定可能である旨の明記、TapHoldのルール単位オプション(<code>permissive_hold=</code>、<code>hold_on_other_key=</code>、<code>quick_tap_term=</code>)の記述例の追加、未定義の関数を使っていたサンプルを実際に動作する記述例へ差し替えるなど、記載の整備を行いました。あわせて、いわゆるLayerの概念は、ロックキー(L0～LF)やmod0～9(M0～M9)を用いて実現できる旨を明記しました。</p>
+
+    <h4>(4) 起動時引数 <code>-t</code> / <code>-d</code> の追加(自動テスト向け)</h4>
+    <p>外部からの自動テストやスクリプトでの利用を想定し、起動時引数に <code>-t &lt;名前&gt;</code> と <code>-d &lt;ファイルパス&gt;</code> を追加しました。</p>
+    <ul>
+        <li><code>-t &lt;名前&gt;</code>: タスクトレイアイコンのメニューの「設定切り替え」等で使われているのと同じ名前を指定して、該当する設定(.nodokaファイル)へ切り替えて再ロードします。すでに「のどか」が起動していれば切り替えて再ロード、まだ起動していなければその設定を選択したうえで起動します。名前が見つからない場合には何も変更されません。</li>
+        <li><code>-d &lt;ファイルパス&gt;</code>: ログウィンドウの内容を、指定したファイルにも追記出力します(UTF-8、BOM無し)。指定すると詳細ログも自動的に有効になります。</li>
+    </ul>
+    <p>詳しい説明は、<a href="CUSTOMIZE-ja.html#option_arg">カスタマイズ方法のヘルプの「オプション　起動時引数」</a>の項をご覧ください。</p>
+
+    <h4>(5) その他の修正</h4>
+    <ol>
+        <li>Combo/TapDance/TapHoldの状態遷移処理で、詳細ログにキー入力内容が出力されないことがあった記録漏れを修正しました。</li>
+        <li>バージョン情報ダイアログの著作権表示の連絡先メールアドレスを、appletllc@gmail.com に更新しました。</li>
+    </ol>
+	</div>
+
+	<br><br>
+	<div>
 		<p>2026/08/18 4.32 </p>
 		<p><b>概要</b><br>新デバイスドライバ nodokad2.sys (Ver.2.01) を採用し、x64版の既定ドライバとしました。あわせて、複数キーボード対応ドライバ kbdaddid.sys との連携強化、Windows Apps(新しいリモートデスクトップクライアント)利用時の応答なし不具合の修正、Combo / TapDance / TapHold機能の正式化などを行いました。</p>
 
@@ -2176,7 +2207,7 @@ taphold A = tap=a     hold=Shift_L               permissive_hold=on
 taphold T = tap=t     hold=&amp;Layer(layer_edit)   hold_on_other_key=on
 taphold SP = tap=Space hold=&amp;Layer(num)          quick_tap_term=120
 
-taphold F = tap=F  hold=C-                       # F: 短押し&rarr;f / 長押し&rarr;Ctrl</code></pre>
+taphold F = tap=F  hold=C-C                      # F: 短押し&rarr;f / 長押し&rarr;Ctrl+C</code></pre>
 
 <br><br>
       <div>

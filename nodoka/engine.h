@@ -500,6 +500,10 @@ private:
 	///
 	void generateKeySeqEvents(const Current &i_c, const KeySeq *i_keySeq,
 							  Part i_part);
+	/// which BASIC modifiers (Shift/Ctrl/Alt/Win) i_keySeq's actions press;
+	/// used to scope an immediate, targeted release right after firing a
+	/// KeySeq via Part_all, without touching modifiers it didn't request
+	Modifier getBasicModifiersPressedByKeySeq(const KeySeq *i_keySeq) const;
 	///
 	void generateKeyboardEvents(const Current &i_c);
 	///
@@ -513,6 +517,26 @@ private:
 
 	/// clear stuck modifiers after inactivity timeout (ModifierAutoClear)
 	void modifierAutoClear();
+
+	/// if no key is currently physically pressed, release all still-held
+	/// synthesized BASIC modifiers and reset per-cycle state. Shared by the
+	/// bottom of keyboardHandler()'s main loop and by the timer-driven
+	/// TapHold/TapDance/Combo confirmation branches, which `continue` past
+	/// the loop's normal fall-through to that cleanup and so must call this
+	/// explicitly before doing so.
+	void flushPendingModifiersIfIdle();
+
+	/// confirm (or replay) the currently-COUNTING tap-dance sequence and
+	/// release any modifiers it fired. Called from the m_tapDanceExpiredEvent
+	/// dispatch case and from drainExpiredTapDanceIfPending().
+	void confirmTapDance();
+
+	/// non-blocking: if m_tapDanceExpiredEvent is already signaled but not
+	/// yet dispatched (it can lose priority to m_readEvent in the wait
+	/// array), confirm the pending sequence now, before a newly-arrived key
+	/// event is processed against stale TD_COUNTING state. Call at the top
+	/// of the TapDance state machine block, before it reads m_tapDanceState.
+	void drainExpiredTapDanceIfPending();
 
 	/// get current modifiers
 	Modifier getCurrentModifiers(Key *i_key, bool i_isPressed);

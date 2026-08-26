@@ -14,9 +14,9 @@
 #ifndef RETAIL
 #  define SAMPLE_REL
 #  define SAMPLE_TIME 30		// min.
-#  define VERSION "4.32_sample"
+#  define VERSION "4.33_sample"
 #else
-#  define VERSION "4.32"
+#  define VERSION "4.33"
 #endif
 
 #define YAMY_SUCCESS						0

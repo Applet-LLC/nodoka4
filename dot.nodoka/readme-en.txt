@@ -1,6 +1,6 @@
 # About Nodoka, a General-Purpose Keybinding Remapping Software
 
-https://appletllc.com/  appletllc@gmail.com 2026-08-18
+https://appletllc.com/  appletllc@gmail.com 2026-08-26
 
 ## 1. Overview
 
@@ -47,7 +47,7 @@ From the page below, download and install the x64 or x86 file according to your 
 
 Then restart Windows. Running the setup while Nodoka is not running helps prevent installation failure.
 
-Run either `nodoka-4.32_sample_setup.exe` (trial version) or `nodoka-4.32_setup.exe` (full version) with administrator privileges.
+Run either `nodoka-4.33_sample_setup.exe` (trial version) or `nodoka-4.33_setup.exe` (full version) with administrator privileges.
 
 The device driver is installed during setup. A confirmation dialog may appear if necessary.
 
@@ -172,342 +172,39 @@ Also, to KOBAYASHI Yoshiaki, who developed YAMY, my sincere thanks.
 
 ## 6. Release Notes
 
-### 2026-08-18 4.32
+### 2026-08-26 4.33
 
 **Summary**
 
-Adopted a new device driver, `nodokad2.sys` (Ver.2.01), as the default driver for the x64 edition. Also strengthened cooperation with the multi-keyboard driver `kbdaddid.sys`, fixed an unresponsiveness issue when using Windows Apps (a remote-access client distinct from the traditional Remote Desktop), and promoted Combo / TapDance / TapHold to a fully supported feature.
+Fixed a bug in Combo/TapDance where a modifier key (Shift/Ctrl, etc.) could remain stuck down and not return. Also fixed a TapDance mis-recognition issue, and cleaned up the documentation around Combo/TapDance/TapHold. In addition, added the `.nodoka` extension to Explorer's "New" menu.
 
-We had originally planned 4.32 as a major version upgrade, but since it ended up containing only bug fixes, this is an ordinary bug-fix release.
+#### (1) Fixed the Combo/TapDance modifier-key stuck-down bug
 
-Many mail domains now treat our update announcements as spam, so we have given up on emailing update notices out. If you own 4.29, 4.30, or 4.31 and would like the update, please go through checkout for $0 (=¥0) on the Gumroad sales page.
+Combo, TapDance, and TapHold each have timer-driven confirmation processing (confirmation on timeout). This confirmation processing could bypass the modifier-key (Shift/Ctrl/Alt/Win) release handling that runs at the end of the main loop, so when a Combo fired or a TapDance tap was confirmed, a modifier key that should have been released could remain stuck down. This has been fixed.
 
-Going forward, we are also moving sales management to Gumroad. Existing owners can get 4.32 there for $0 (=¥0); owners of 4.28 or earlier can get it for $6 (=¥1,000); new purchasers pay $11 (=¥1,800). Once you register there, you can download it from that page at any time. Currently, Gumroad is the only sales channel we offer. If you purchase by mistake, Gumroad can process a refund within 30 days.
+We also fixed a race condition where, if the next key input arrived at almost the same moment a TapDance timeout was reached, two taps that should have been processed independently could be incorrectly merged into a single double-tap, depending on timing.
 
-https://gumroad.com/l/Zbge
+Note that for Combo/TapHold, we have confirmed that, right at the judgment boundary (cases where a key operation overlaps almost exactly with a threshold or timeout), Combo success/failure or the tap/hold judgment can occasionally flicker. Since this does not cause harmful behavior such as a stuck modifier key, we have decided not to address it this time.
 
-#### (1) Adoption of the new device driver `nodokad2.sys` (Ver.2.01)
+#### (2) Added the `.nodoka` extension to Explorer's "New" menu
 
-The previous device driver, `nodokad.sys`, was WDM-based and worked by intercepting IRPs (I/O Request Packets) — a "detour" approach. Even after 4.31 we continued fixing BSODs (a use-after-free fix in the completion path, mitigations for `REFERENCE_BY_POINTER` (0x18) on Bluetooth keyboard sleep/wake and device removal, etc.), which reduced how often they occurred, but conflicts inherent to the approach itself remained and could not be eliminated entirely.
+You can now create a "Nodoka file" (`.nodoka`) directly from Explorer's right-click → New menu. This menu entry is also removed on uninstall.
 
-To address this limitation, we built `nodokad2.sys` from scratch as a standard keyboard-class filter driver (kbfiltr type) on KMDF (Kernel-Mode Driver Framework). By dropping the IRP-intercepting approach, the class of conflicts that plagued `nodokad.sys` can no longer occur structurally. It has passed HLK testing and obtained WHQL signing.
+#### (3) Documentation cleanup for Combo/TapDance/TapHold
 
-`nodokad2.sys` is x64-only (the x86 edition continues to use `nodokad.sys`). The x64 setup installs `nodokad2.sys`. If you install the x64 edition of 4.32 on a system that already has the old `nodokad.sys`, it is automatically switched over to `nodokad2.sys` and the old driver is uninstalled (there is no risk of double-hooking).
+In the customization help (CUSTOMIZE-ja.html), we made the documentation more accurate: clarifying that a FUNCTION can be specified anywhere a KEY is accepted, noting that TapDance accepts only a single KEY, adding example syntax for TapHold's per-rule options (`permissive_hold=`, `hold_on_other_key=`, `quick_tap_term=`), and replacing samples that used undefined functions with ones that actually work. We also clarified that the Layer concept can be realized using lock keys (L0-LF) or mod0-9 (M0-M9).
 
-Note that the version of the legacy device driver `nodokad.sys` is Ver.1.43 for the x64 edition and Ver.1.41 for the x86 edition (it is not installed on x64, but a full copy is still placed in the `nodoka\nodokad` folder under the install directory in case you need to manually revert to it). Device driver versions 1.39, 1.40, 1.42, and 2.00 were skipped; we used those version numbers for debugging purposes.
+#### (4) Added `-t` / `-d` startup arguments (for automated testing)
 
-We also added a mechanism to `nodokad2.sys` that authenticates the caller (verifying the executable's signature, plus a challenge-response scheme), addressing the vulnerability where a process other than Nodoka itself could read keystrokes from, or inject keystrokes into, the driver.
+For use by external automated-testing tools and scripts, we added two startup arguments: `-t <name>` and `-d <path>`.
 
-We also introduced a safety net via the registry value `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\nodokad\HeartbeatTimeout` (REG_DWORD, seconds, default 3). If the driver detects that the app has not responded within the specified time, it automatically switches to passing all key input straight through, preventing keyboard lockup. Note that this safety net is a mitigation on the `nodokad.sys` (legacy driver) side only; `nodokad2.sys`, with its different architecture, has no equivalent mechanism, since the same kind of stall cannot occur there structurally.
+- `-t <name>`: Switches to, and reloads, the registered configuration (`.nodoka` file) whose name matches `<name>` — the same name used in the "Switch setting" tray-icon menu, etc. If Nodoka is already running, it switches and reloads; if not yet running, it starts up with that configuration selected. If the name is not found, nothing changes.
+- `-d <path>`: Also writes the contents of the log window to the specified file (UTF-8, no BOM), as they occur. Specifying this also automatically enables the detail log.
 
-To be candid, aside from the Windows Update issue that could break key input, Nodoka 4.30 (with nodokad 1.31) was, we think, more stable in terms of not hitting BSODs. However, that 1.31 approach accessed the kbdclass driver directly, in a way that cannot obtain WHQL signing, so going back to that old approach is not an option for us.
-
-#### (2) Fixed an unresponsiveness issue when using Windows Apps
-
-Connecting via Windows Apps, or repeatedly disconnecting/reconnecting a remote session or switching users, could leave the remote Nodoka instance unresponsive, or leave the keyboard stuck and unrecoverable. This has been fixed.
-
-The cause was a combination of three bugs:
-
-- The `WTS_REMOTE_CONNECT` event ignored the screen-locked state (`SESSION_LOCKED`) and reconnected immediately, so when the lock was later released, reconnection ran a second time, producing two consecutive `resume()` calls with no `pause()` in between.
-- The `CheckModifier` / `KeyboardPast` threads had no handling for receiving an unpaired Resume, so the wait loop on the UI thread could spin forever.
-- `Engine::stop()` was called twice when the application exited, touching handles that had already been released.
-
-All three issues have been fixed, and repeated disconnect/reconnect cycles and user switching under Windows Apps no longer cause unresponsiveness or keyboard lockup.
-
-#### (3) Strengthened cooperation with the multi-keyboard driver `kbdaddid.sys`
-
-We strengthened cooperation with the separately sold device driver `kbdaddid.sys`, which lets you distinguish individual keyboards from one another. This corresponds to the "full multi-keyboard support" we previewed as of 4.31. "Full" here means resolving the recognition delay — it does not mean every keyboard out there can now be distinguished.
-
-The existing `def option UnitID` mechanism identifies keyboards using WM_INPUT (raw input) at the application level, which in principle can only determine the source keyboard once a key is released (Up). Once `kbdaddid.sys` is installed, a device-identifying value is stamped into the kernel-level `ExtraInformation` of each key event, so multiple keyboards can be distinguished from the very moment a key goes down.
-
-On the Nodoka side, detection of `kbdaddid.sys`'s license state and version no longer depends on whether `def option UnitID` is present — it is now always checked. The kbdaddid usage status, DeviceIdMode, and version are now shown in both the startup log banner and the version dialog. We also added support for a new configuration syntax, `def option UnitID = Kx ExtraInfo 0x....`. See the customization help for details.
-
-`kbdaddid.sys` (and the mouse equivalent, `mouaddid.sys`) is not bundled with Nodoka itself; it is planned to become available separately (as both a one-time-purchase and a subscription edition) starting 2026-08-18. See below for how to obtain it:
-
-- One-time purchase: https://applet.gumroad.com/l/tnwvkd
-- Subscription: https://applet.gumroad.com/l/hnbxr
-
-For installation instructions and specifications of `kbdaddid.sys` itself, please refer to kbdaddid's own documentation. This Readme and the help file only describe how to use it from the Nodoka side.
-
-Note that Nodoka does not yet support `mouaddid.sys`.
-
-#### (4) Combo / TapDance / TapHold promoted to a fully supported feature
-
-Combo / TapDance / TapHold, which were offered as an experimental implementation in 4.31, are now a fully supported feature, and their documentation has moved from the Readme's release notes into the main body of the customization help. TapHold now offers three extension options: Permissive Hold (confirm Hold only after the other key's press-and-release completes), Hold on Other Key Press (confirm Hold the instant another key goes down), and Quick Tap Term (fire a tap immediately, without waiting, if the same key is pressed again shortly after the previous tap). See the customization help for details.
+See the "Options: Startup Arguments" section of the customization help for details.
 
 #### (5) Other fixes
 
-1. Added logic during setup to write the `HeartbeatTimeout` registry value described above to `nodokad.sys`'s service key (this applies to the x86 edition, and to the x64 edition only if it has been manually reverted to `nodokad.sys`).
-2. Fixed DriverManager's handling of the UpperFilters registration order (position relative to the keyboard class driver) so it stays correct in environments where multiple filter drivers (`nodokad2` / `kbdaddid`, etc.) coexist.
-3. Since 4.31, building the self-extracting setup files (e.g. `nodoka-4.32_setup.exe`) has used our own in-house tool, `nexpress` (this was omitted from the 4.31 Readme, so it is noted here for completeness). It was developed to replace the standard Windows `iexpress.exe`, which we ran into failures with when building archives. `nexpress` keeps compatibility with iexpress while also addressing vulnerabilities that iexpress left unaddressed (CWE-427: DLL/executable search-path hijacking, CWE-377: predictable temporary files, CWE-59: symlink following). In 4.32, it gained support for the `/C` option (extract only, without launching setup.exe). We also fixed an archive-extraction failure caused by a filename collision (the x86 and x64 `nodokad.pdb`).
-
-### 2026-06-27 4.31
-
-The license has been changed from CPL (Common Public License) to EPL 2.0 (Eclipse Public License 2.0).
-
-#### (1) Changes to supported OSes and notes about the next version
-
-Previously, Windows 2000, XP, Vista, 7, 8, and 10 were supported. However, this version supports Windows 10 22H2 or later only.
-
-It can also run on Windows 10 version 1903 (May 2019 Update), but on older versions than that, installation may result in an abnormal state such as inability to input keystrokes.
-
-Windows Server is not supported. Judging from the kernel version, installation should be possible on Windows Server 2022 or later. On Windows Server 2019 or earlier, issues will occur.
-
-For Windows 10 32-bit (x86), this 4.31 release will be the last; the next version is planned to support Windows 11 only.
-
-The next version is also planned to be a major upgrade, and the following features are envisioned:
-
-- Implementation of Combo / TapDance / TapHold.
-- Full support for multiple keyboards.
-- A trial GUI-based configuration tool.
-
-These plans are not finalized, so implementation is not guaranteed, but Combo / TapDance / TapHold have already been experimentally implemented and can be tried in this version. See the end of this Readme.
-
-#### (2) Bug fixes and specification changes
-
-1. Windows 11 support for the device driver and a fix for the inability to input keys during Windows Update.
-2. An improvement for the problem where modifier keys remain pressed.
-3. Fixes to the LL Hook implementation.
-4. Fixes for cooperation issues with applications running with administrator privileges.
-5. Improved coordinate accuracy in window move/maximize functions.
-6. Fixed a configuration file loading bug.
-7. Changes to the development environment.
-8. Remote Desktop support.
-9. Experimental implementation for the next version.
-
-1) Windows 11 support for the device driver and a fix for the inability to input keys during Windows Update
-
-When Windows is updated or upgraded, the code has been redesigned as a primitive driver for Windows 10 version 1903 or later so that the driver registration state is handled correctly.
-
-The version number has been changed to 1.38 (previously 1.33). Versions 1.34, 1.35, 1.36, and 1.37 were skipped.
-
-Installation was changed back from INF-based installation to setup-based installation, as before.
-
-The x86 (32-bit) version is WHQL-signed on Windows 10 22H2, and the x64 (64-bit) version is WHQL-signed on Windows 11 24H2.
-
-Because it is now a primitive driver, it is compatible with Windows Update. The device driver installation destination has changed from `C:\Windows\System32\drivers` to per-driver folders under `C:\Windows\System32\DriverStore\FileRepository`.
-
-If you install Nodoka 4.31 in an environment that already has 4.30 (nodokad 1.31), the old driver settings are removed and the new driver settings are written to the registry.
-
-So far, we have not encountered cases where Windows Update from Windows 10 20H2 to 21H2 or 22H2 causes key input to stop working while Nodoka is installed and version 4.31 is used.
-
-At least the likelihood has been reduced. However, there are cases where `nodokad.sys` is not present, and in that case the installation may need to be repeated.
-
-If you still encounter a state where you cannot type on the login screen after Windows Update, you can try the following.
-
-If the on-screen keyboard works on the login screen, use that.
-
-If the on-screen keyboard does not work, force shutdown several times during the boot screen just before the login screen to enter recovery mode, then boot using the last known good configuration to recover.
-
-2) Added mitigations for modifier keys remaining pressed
-
-The following two options were added. They are disabled by default. Both coexist with the existing `def option CheckModifier`.
-
-They are intended for cases where Shift or Ctrl frequently remain stuck down, and are worth trying if needed.
-
-- `def option SyncModifierGracePeriod = <ms>`  (example: 500; 0 disables the feature)  
-
-  When performing key remapping, there may be a delay of several tens of milliseconds before the system reflects the key output (a delay in the LL Hook and an asynchronous WriteFile to the device driver). If the next key is pressed during this delay, `GetAsyncKeyState` will return 0, causing legitimate modifier keys to be incorrectly cleared.
-
-To prevent this false positive, the grace period ignores clearing within a specified number of milliseconds after a modifier key is recorded as "pressed," thus preventing false positives. **A value of approximately 500 ms** is recommended. If this does not appear to be occurring, no configuration is necessary.
-
-- `def option ModifierAutoClear = <seconds>`  (example: 5; 0 disables the feature)  
-
-This function measures the time elapsed since pressing a modifier key (Shift, Ctrl, Alt, Win) and, after the specified time has passed, sends an Up signal to the modifier key, automatically clearing it.
-
-It's easier to specify than CheckModifer, but it doesn't offer fine-grained control.
-
-As a side note, it seems that Hyper-V environments employ a workaround of periodically sending Up signals to each modifier key. This can sometimes be observed in the log window.
-
-
-3) Fixes to the LL Hook implementation
-
-A bug where logs were not displayed when the log dialog had focus was fixed.
-
-In `engine.cpp`, the LL Hook callback handling was changed to use Events rather than Windows Messages. This is the same implementation as YAMY.
-
-As a result, the polling-based key input delay was reduced from 5 ms to none, improving responsiveness.
-
-4) Cooperation with administrator-privilege applications
-
-Even though `uiAccess=true` was written in the manifest, things were not working properly, such as being unable to retrieve window information from administrator-privilege applications, so this was fixed.
-
-However, if you look at the debug output in DebugView, applications using Microsoft Edge WebView2 refuse DLL loading, so window information cannot be obtained.
-
-Also, executables such as `nodoka64.exe` with `uiAccess=true` will show an error dialog and fail to function properly if run outside `Program Files`, so `nodoka64_nua.exe` was prepared. Its manifest sets `uiAccess=false`.
-
-If an application does not allow key remapping or window information retrieval, you may be able to work around it by launching `nodoka64_hil.exe` directly so that it runs with higher privileges.
-
-Alternatively, running `nodoka64_nua.exe` with administrator privileges may also work.
-
-5) Improved coordinate accuracy in window move/maximize functions
-
-In `&WindowMaximize`, `&WindowHMaximize`, `&WindowVMaximize`, `&WindowMoveTo`, `&WindowMonitorTo`, `&WindowResizeTo`, `&WindowResizeToPer`, `&WindowResizeMoveTo`, and `&WindowResizeMoveToPer`, the problem of window coordinate calculations not being performed in physical pixels in DPI environments above 125% was fixed.
-
-It was also corrected to use the accurate window rectangle excluding the invisible border (shadow area) introduced by DWM on Windows 10 and later.
-
-6) Configuration file loading bug fix
-
-A bug where the first 1 or 2 bytes were skipped was fixed.
-
-Support for UTF-8 BOM was also added, so files can now be loaded in ASCII, Shift-JIS, UTF-8 with or without BOM, or UTF-16.
-
-7) Development environment changes
-
-The build environment was migrated from Visual Studio 2005 plus DDK to Visual Studio 2022 plus EWDK.
-
-At the same time, all source code was converted to UTF-8.
-
-64-bit pointer casts that were left over from the 64-bit port were also fixed, such as `DWORD -> DWORD_PTR` and `(HWND) -> (HWND)(ULONG_PTR)`, reducing build warnings.
-
-All executable files, DLL files, and SYS files are EV-signed.
-
-DLLs loaded from `nodoka64.exe` must be digitally signed. This is one of the measures used to mitigate DLL injection vulnerabilities.
-
-Azure Artifact Signing has not been obtained.
-
-8) Remote Desktop support
-
-In a Remote Desktop environment, the software traditionally operates in LL Hook mode. However, if you add `-f` to the startup arguments for `nodoka64.exe`, it will run in device-driver mode.
-
-In Hyper-V environments, `-f` is required if you want to use the device driver.
-
-This feature had already been implemented starting with 4.27. This is because in the RDP functionality of Windows 7 and later, the Remote Desktop Keyboard Device composed of `terminpt.sys` exists in the same way as other keyboards, making it possible to cooperate with `nodokad.sys`. Reference information is available at the following site:
-
-- How to enable a third-party driver to intercept and disable the SAS keyboard sequence in Remote Desktop Protocol (RDP) sessions for Windows 7, Windows Server 2008 R2, Windows 8 and Windows Server 2012  
-  http://web.archive.org/web/20150111112645/http://support.microsoft.com/kb/2867446
-
-Note that `nodokad.sys` does not support multiple sessions on Windows Server.
-
-9) Experimental implementation for the next version
-
-The following three proposals are being worked on. Of these, Combo / TapDance / TapHold can be tried in this 4.31 version.
-
-- GUI configuration editor.  
-  This is a separate application, so it is not implemented in 4.31.
-
-- Full support for multiple keyboards.  
-  Code for multiple-keyboard support using the unpublished `kdbaddid.sys` driver has been implemented, but it will not work in environments without that driver.  
-  This function binds external keyboards to K1 through K7 modifiers on a per-device or per-instance basis.  
-  Unlike the implementation in 4.20, keys can be distinguished from the very start of key down processing.
-
-- Implementation to verify Combo / TapDance / TapHold details.  
-  The documentation is as follows. The reason the maximum number of keys for Combo is six is that it was designed with Braille six-dot input in mind.  
-  Also, using many simultaneous keys in Combo may require an N-key rollover keyboard, so it may not always work exactly as configured.
-
---- Combo
-
-Realize key remapping through simultaneous pressing of 2 to 6 keys.
-
-`combo [modifier-] KEY1 KEY2 [KEY3 … KEY6] [window=<ms>] = ACTION`
-
-# Combo options
-
-`def option ComboWindow = <ms>`  
-Default: 50  
-Time window for the timeout method.
-
-`def option ComboDetector = timeout | immediate | rollover | strict-order | zero-latency`  
-Specify the simultaneous-press detection method.
-
-`def option ComboIdleThreshold = <ms>`  
-Default: 0 (disabled)  
-Grace period for simultaneous-press detection.
-
-`def option ComboOverlapRatio = <0–100>`  
-Default: 0 (disabled)  
-Adds overlap ratio to simultaneous-press judgment to improve accuracy.
-
-`def option ComboNestedAlwaysMatch = on | off`  
-Default: off  
-If the first key of the Combo remains pressed after timeout, continue Combo detection mode.  
-This option only works in modes with timers: `timeout`, `strict-order`, and `zero-latency`.
-
-Meaning of `ComboDetector` modes:
-
-- `timeout`: Timeout-based mode (default). Fires if all keys are pressed within `ComboWindow`.
-- `immediate`: No timer. Fires immediately the moment all keys are pressed.
-- `rollover`: No timer. Allows interruption by keys outside the combo.
-- `strict-order`: Requires presses to occur in the defined order.
-- `zero-latency`: Outputs `key1` immediately, and if the combo is completed, cancels it with IME backspace correction.  
-  Works when IME is on; when IME is off, it behaves like `immediate`.
-
-`&SetComboDetector` function  
-This changes Combo-related parameters from the point of execution onward.
-
-`&SetComboDetector(mode, window, overlap, nested, idle)`
-
-Only `mode` is a string; the remaining arguments are numeric only.
-
-`&SetComboDetector(immediate, -1, -1, -1, -1)`  
-`&SetComboDetector(rollover, 80, -1, -1, -1)`
-
-Argument | Type | Meaning
----|---|---
-mode | mode name | `timeout` / `immediate` / `rollover` / `strict-order` / `zero-latency`
-window | ms / -1 | Combo window
-overlap | 0–100 / -1 | Overlap ratio threshold
-nested | 0 or 1 / -1 | `ComboNestedAlwaysMatch`
-idle | ms / -1 | `ComboIdleThreshold`
-
---- TapDance
-
-Performs different actions for single / double / triple taps within a given time period.
-
-# Global option (outside keymap)
-
-`def option TapDanceTimeout = <ms>`  
-Default: 300
-
-# Rule definition (inside keymap)
-
-`tapdance [modifier-] KEY [=]`
-- `tap1=ACTION`  Required for one tap.
-- `[tap2=ACTION]`  Optional for two taps.
-- `[tap3=ACTION]`  Optional for three taps.
-- `[timeout=<ms>]`  Timeout specific to this rule; omitted to use the global value.
-
-`tapdance Escape = tap1=Escape  tap2=C-OpenBracket  timeout=200`
-
---- TapHold
-
-Determines whether a key press is a short press (tap) or a long press (hold) based on the press duration, and performs different actions.
-
-# Global option (outside keymap)
-
-`def option TapHoldThreshold = <ms>`  
-Default: 200  
-Threshold for tap/hold judgment.
-
-`def option TapHoldInterrupt = tap | hold`  
-Default: tap  
-If another key is pressed while TapHold is being judged, treat it as the specified tap or hold.
-
-`def option TapHoldPermissiveHold = on | off`  
-Default: off  
-Hold is confirmed only after the other key’s DOWN→UP completes.
-
-`def option TapHoldOnOtherKeyPress = on | off`  
-Default: off  
-Hold is confirmed the moment another key goes DOWN.
-
-`def option TapHoldQuickTapTerm = 120`  
-0 = disabled, default: 0  
-If the same key is pressed again within the specified time after the previous tap, do not hold it pending; treat it as a tap.
-
-# Rule definition (inside keymap)
-
-`taphold [modifier-] KEY [=]`
-- `tap=ACTION`
-- `hold=ACTION`
-- `[threshold=<ms>]`  Threshold specific to this rule; omitted to use the global value.
-- `[interrupt=tap|hold]`  Interrupt behavior specific to this rule; omitted to use the global value.
-
-Per-rule `def option` settings can override the global ones.
-
-`taphold A  tap=a     hold=Shift_L              permissive_hold=on`  
-`taphold T  tap=t     hold=&Layer(layer_edit)   hold_on_other_key=on`  
-`taphold SP tap=Space hold=&Layer(num)          quick_tap_term=120`
-
-`taphold F  tap=F  hold=C-                     # F: short press -> f / long press -> Ctrl`
+1. Fixed a logging gap in the Combo/TapDance/TapHold state-transition handling where key input details were sometimes missing from the detail log.
+2. Updated the contact email address shown in the version dialog's copyright notice to appletllc@gmail.com.
 

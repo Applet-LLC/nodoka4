@@ -3,7 +3,7 @@
   <assemblyIdentity
     type="win32"
     name="nodoka"
-    version="4.3.2.0"
+    version="4.3.3.0"
     processorArchitecture="amd64"
 />
   <description>nodoka</description>

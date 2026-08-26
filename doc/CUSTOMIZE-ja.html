@@ -97,9 +97,9 @@
 			<font face="ＭＳ Ｐゴシック">109.nodoka</font></code></a><font face="ＭＳ Ｐゴシック"> 
 			又は  
 			</font> <a href="./104.nodoka.txt"><code><font face="ＭＳ Ｐゴシック">
-			104.nodoka</font></code></a><font face="ＭＳ Ｐゴシック"> で定義されている  
-			</font> <code><em><font face="ＭＳ Ｐゴシック">KEY</font></em></code><font face="ＭＳ Ｐゴシック"> 
-			が使用できます。<a href="keyboard.html#キーボード配列定義">図示したものは、こちら。</a></font></p>
+			104.nodoka</font></code></a><font face="ＭＳ Ｐゴシック"> で定義された def key の記述における キー名のキーワードが、
+			</font> <code><em><font face="ＭＳ Ｐゴシック">KEY</font></em></code><font face="ＭＳ Ｐゴシック"> のところに書けるキーワードとなります。
+			そのKEYをキーボード配列上のキートップに記述したものが<a href="keyboard.html#キーボード配列定義">こちら。</a></font></p>
 		  
 		  <dl>
 		    <dt class="h3"><font face="ＭＳ Ｐゴシック"><a name="modifier">モディファイヤの指定</a>
@@ -1108,7 +1108,7 @@ taphold A = tap=A  hold=S-L               permissive_hold=on
 taphold S = tap=S  hold=C-L               hold_on_other_key=on
 taphold D = tap=D  hold=&amp;WindowMinimize   quick_tap_term=120
 
-taphold F = tap=F  hold=C-                       # F: 短押し&rarr;f / 長押し&rarr;Ctrl</code></pre>
+taphold F = tap=F  hold=C-C                      # F: 短押し&rarr;f / 長押し&rarr;Ctrl+C</code></pre>
 		      <p><font face="ＭＳ Ｐゴシック">上記のうち、<code>&amp;WindowMinimize</code> のように、<code>hold=</code> にはKEYだけでなくFUNCTIONも指定できます。</font></p>
 
 		      <p><strong>グローバルオプション（キーマップ外）</strong></p>
@@ -1463,7 +1463,7 @@ def option TapHoldQuickTapTerm = 120           # 0=無効、デフォルト 0
 			又は  
 			</font> <a href="./104.nodoka.txt"><code>
 			<font face="ＭＳ Ｐゴシック">104.nodoka</font></code></a><font face="ＭＳ Ｐゴシック"> 
-			に書かれています。<a href="keyboard.html#キーボード配列定義">図示したものは、こちら。</a></font></p>
+			に書かれています。109.nodokaや104.nodoka で定義された def key の記述における キー名のキーワードが、KEYのところに書けるキーワードとなります。そのKEYをキーボード配列上のキートップに記述して<a href="keyboard.html#キーボード配列定義">図示したものは、こちら。</a></font></p>
 		  
 		  <dl>
 		    <dt class="h3"><font face="ＭＳ Ｐゴシック"><a name="def_key">キー定義</a>
@@ -2947,10 +2947,17 @@ def option UnitID = K2 ExtraInfo 0x56780000</p>
 					8以降において、-kを用いてキーボードLLフックモードで動作させているときに、うまくキー入力できなくなってしまうAlt-TabとWin-Xを、<font face="ＭＳ Ｐゴシック">高整合性(High 
 					IL)版である nodoka_hil.exeあるいはnodoka64_hil.exeを用いて管理者権限で起動するのではなく、通常権限で用いる場合において、キーカスタマイズ対象から外すことで、Alt-TabとWin-XをWindowsに入力できるようにするものです。</font> </p>
 					<p><a name="起動時オプション-g">-g　　　整合性レベルを指定します。</a><br>
-					　　-g 2 では整合性レベルHighとなります。管理者権限での起動が必要となります。ただしWindows 8以降での 
+					　　-g 2 では整合性レベルHighとなります。管理者権限での起動が必要となります。ただしWindows 8以降での
 					-wの代わりとなるhil版と同等になりません。<br>
 					　　-g 1 は整合性レベルMediumです。省略時のデフォルトとなります。<br>
 					　　-g 0 だと整合性レベルLowとなります。なお権限が不足してまともに動作しません。&nbsp; </p>
+					<p><a name="-t">-t</a> &lt;name&gt;　　（4.33で追加）指定した名前(&lt;name&gt;)に一致する、登録済みの設定(.nodokaファイル)へ切り替えて再ロードします。&lt;name&gt;には、タスクトレイアイコンを右クリックしたメニューの「設定切り替え」や、複数の設定ファイルをシンボルで切り替える機能で使われているのと同じ名前を指定します。<br>
+					　　すでに「のどか」が起動している場合には、該当する設定に切り替えて再ロードします(多重起動時の引数転送と同じ経路で処理されます)。まだ起動していない場合(コールド起動)には、最初に読み込む設定としてあらかじめこの名前の設定を選択したうえで起動します。<br>
+					　　指定した名前が見つからない場合には、何も変更されません(標準の検索順で決まる設定がそのまま読み込まれます)。<code>--title</code> という長い形式でも指定可能です。<br>
+					　　主に外部の自動テストツールやスクリプトから、設定を切り替えながら「のどか」の動作を検証する用途を想定した引数です。-yも忘れずにつけてください。</p>
+					<p><a name="-d">-d</a> &lt;path&gt;　　（4.33で追加）ログウィンドウへの表示に加えて、指定したパス(&lt;path&gt;)のファイルにも、ログを追記出力します(文字コードはUTF-8、BOM無し)。<br>
+					　　-d を指定すると、ログウィンドウの「詳細」チェックボックスに相当する詳細ログが自動的に有効になります(-Lを付ける必要はありません)。ファイルは他プロセスからの読み取りを妨げない共有モードで開かれ、「のどか」終了時に閉じられます。<br>
+					　　主に、GUIを介さずに外部の自動テストツールから「のどか」のログを取得・検証する用途を想定した引数です。<code>--dlog</code> という長い形式でも指定可能です。</p>
 					<p><font face="ＭＳ Ｐゴシック"><br>
 　</font></p>
 				</blockquote>
@@ -3017,7 +3024,7 @@ def option UnitID = K2 ExtraInfo 0x56780000</p>
 			  　<p><b><font face="ＭＳ Ｐゴシック">解説と使い方</font></b></p>
 				<p class="auto-style1">
 				マニフェストにおいて、uiAccess=trueとした実行ファイルを提供していますが、uiAccess=trueでは困るケースに対応するため、uiAccess=falseとしたバイナリを同梱しています。<span class="auto-style6">nodoka64_nua.exe</span> 
-				<p>管理者権限で起動したり、Program Files以下以外で動作させたり可能です。なお異なるフォルダで動作させる場合、dllがロードできないとエラーとなります。少なくともnodoka64.dllを同じフォルダにおいてください。sirius_hook_for_nodoka_x64.dllは無くても動きますが、Text Services Framework:TSFが利用できなくなります。オプション TSF使用/未使用もご覧ください。</p><br>
+				<p>管理者権限で起動したり、Program Files以下以外で動作させたり可能です。なお異なるフォルダで動作させる場合、dllがロードできないとエラーとなります。少なくともnodoka64.dllと、sirius_hook_for_nodoka_x64.dllを同じフォルダにおいてください。</p><br>
 
 				<a href="https://learn.microsoft.com/ja-jp/windows/win32/winauto/uiauto-securityoverview" target="_blank">支援技術のセキュリティに関する考慮事項 - Win32 apps | Microsoft Learn　https://learn.microsoft.com/ja-jp/windows/win32/winauto/uiauto-securityoverview</a></p>
 				<p></p><br>
@@ -5156,4 +5163,4 @@ def option UnitID = K2 ExtraInfo 0x56780000</p>
 </div>
 
 </body>
-</html>
+</html>
